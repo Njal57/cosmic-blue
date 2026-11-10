@@ -33,10 +33,12 @@ done
 
 ### Anaconda
 
-# Firefox: a browser in the live session (the installed system uses the flatpak)
+# Firefox: a browser in the live session (the installed system uses the flatpak).
+# spice-vdagent: clipboard sharing when the live ISO runs in a VM (GNOME Boxes...).
 dnf install -y \
     anaconda-live \
     firefox \
+    spice-vdagent \
     libblockdev-btrfs \
     libblockdev-dm \
     libblockdev-lvm
