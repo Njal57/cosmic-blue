@@ -1,4 +1,4 @@
-# Anaconda installer ISO for COSMIC-blue.
+# Anaconda installer ISO for cosmic-blue.
 # The ISO installs the image, then switches the deployment to the published
 # GHCR image so that later `bootc upgrade` runs pull updates from it.
 [customizations.installer.kickstart]
@@ -8,7 +8,7 @@ bootc switch --mutate-in-place --transport registry ghcr.io/njal57/cosmic-blue:l
 %end
 """
 
-# Language, keyboard, users, network and timezone are set up in the installer, since COSMIC-blue
+# Language, keyboard, users, network and timezone are set up in the installer, since cosmic-blue
 # has no first-boot setup wizard.
 [customizations.installer.modules]
 enable = [
