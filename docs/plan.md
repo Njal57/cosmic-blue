@@ -142,11 +142,23 @@ DevToolbox, Builder.
 `os-release` et `image-info.json` (nom, ID, URL) réécrits par `00-image-info.sh`.
 À adapter pour « COSMIC-blue ».
 
-## 3. Suite (étape 2, après validation)
+## 3. Étape 2 : ce qui est en place
 
-1. `Containerfile` : `FROM base-main`, `COPY --from` de `projectbluefin/common`
-   (sans les fichiers GNOME) et de `ublue-os/brew`.
-2. `build.sh` : groupe COSMIC, `cosmic-greeter`, paquets de la section b,
-   tailscale, services de la section d, identité.
-3. Flatpaks : un `system-flatpaks.Brewfile` adapté à COSMIC.
-4. Ensuite seulement : variante DX, noyau ZFS.
+Base validée : `base-main` + COSMIC Fedora.
+
+- `Containerfile` : `FROM ghcr.io/ublue-os/base-main`, avec les fichiers de
+  `projectbluefin/common` et `ublue-os/brew` passés par le contexte de build.
+- `build_files/` (un script par étape) :
+  - `10-system-files.sh` : copie common + brew sans les fichiers GNOME, puis `system_files/` ;
+  - `20-cosmic.sh` : groupes `@cosmic-desktop` et `@cosmic-desktop-apps`, `cosmic-greeter` ;
+  - `30-packages.sh` : paquets de la section 2b, Tailscale, uupd, Starship ;
+  - `40-image-info.sh` : `image-info.json` et `os-release` « COSMIC-blue » ;
+  - `50-services.sh` : services de la section 2d, Flathub ;
+  - `60-initramfs.sh`, `90-cleanup.sh` (dépôts tiers désactivés), `99-tests.sh`
+    (vérifie entre autres que COSMIC vient bien de Fedora et qu'il n'y a pas de GNOME Shell).
+- `system_files/` : quelques fichiers repris de `ublue-os/bluefin`
+  (`flatpak-nuke-fedora`, hooks de setup, starship), la liste de flatpaks
+  installés au premier démarrage (`cosmic-blue.preinstall`) et le Brewfile
+  `system-flatpaks` adapté à COSMIC.
+
+Pas encore fait : variante DX, noyau ZFS, ISO (étape 3).
