@@ -18,5 +18,12 @@ for repo_file in \
     sed -i 's@enabled=1@enabled=0@g' "${repo_file}"
 done
 
+# Fedora 45+ ships its repo files in /usr/share/dnf5/repos.d only. bootc-image-builder
+# reads /etc/yum.repos.d to build the installer ISO, so expose the Fedora repos there
+# too (a file in /etc/yum.repos.d overrides the same-named one in /usr/share).
+for repo_file in /usr/share/dnf5/repos.d/fedora*.repo; do
+    [[ -f "/etc/yum.repos.d/$(basename "${repo_file}")" ]] || cp -a "${repo_file}" /etc/yum.repos.d/
+done
+
 dnf5 clean all
 rm -rf /var/lib/dnf /var/cache/* /tmp/* || true
