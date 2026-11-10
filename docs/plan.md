@@ -5,7 +5,7 @@ GNOME, COSMIC venant des **paquets officiels Fedora** (pas de COPR).
 
 ## 1. Image de base recommandée
 
-**`ghcr.io/ublue-os/base-main:latest`** (actuellement Fedora 44), puis
+**`ghcr.io/ublue-os/base-main:latest`** (actuellement Fedora 45), puis
 installation de COSMIC depuis les dépôts Fedora.
 
 ### Comment Bluefin est construit
@@ -150,7 +150,7 @@ Base validée : `base-main` + COSMIC Fedora.
   `projectbluefin/common` et `ublue-os/brew` passés par le contexte de build.
 - `build_files/` (un script par étape) :
   - `10-system-files.sh` : copie common + brew sans les fichiers GNOME, puis `system_files/` ;
-  - `20-cosmic.sh` : groupes `@cosmic-desktop` et `@cosmic-desktop-apps`, `cosmic-greeter` ;
+  - `20-cosmic.sh` : groupes `@cosmic-desktop` + les applis COSMIC (Edit, Files, Player, Term), `cosmic-greeter` ;
   - `30-packages.sh` : paquets de la section 2b, Tailscale, uupd, Starship ;
   - `40-image-info.sh` : `image-info.json` et `os-release` « COSMIC-blue » ;
   - `50-services.sh` : services de la section 2d, Flathub ;
