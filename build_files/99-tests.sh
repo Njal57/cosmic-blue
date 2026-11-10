@@ -14,7 +14,10 @@ done
 test -f /usr/share/flatpak/preinstall.d/bazaar.preinstall
 test -f /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
 test ! -e /usr/lib/systemd/system/flatpak-add-fedora-repos.service
-test ! -d /etc/dconf/db/distro.d
+# Aucun réglage dconf GNOME de Bluefin (le dossier lui-même peut venir de Fedora)
+if compgen -G '/etc/dconf/db/distro.d/*bluefin*' >/dev/null; then
+    echo "Réglages dconf Bluefin (GNOME) présents"; exit 1
+fi
 
 IMPORTANT_PACKAGES=(
     cosmic-session
