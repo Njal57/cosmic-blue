@@ -65,10 +65,10 @@ menu_auto_hide = True
 [Storage]
 default_scheme = BTRFS
 btrfs_compression = zstd:1
+# A single btrfs root: on Fedora 45, a separate /home (mounted as /var/home)
+# makes Anaconda's `systemd-tmpfiles --prefix=/var/home` step fail (code 73).
 default_partitioning =
-    /     (min 1 GiB, max 70 GiB)
-    /home (min 500 MiB, free 50 GiB)
-    /var  (btrfs)
+    /     (min 1 GiB)
 
 [User Interface]
 hidden_spokes =
@@ -107,7 +107,7 @@ EOF
 
 tee /usr/share/anaconda/post-scripts/install-configure-upgrade.ks <<EOF
 %post --erroronfail
-bootc switch --mutate-in-place --transport registry $IMAGE_REF:$IMAGE_TAG
+bootc switch --mutate-in-place --enforce-container-sigpolicy --transport registry $IMAGE_REF:$IMAGE_TAG
 %end
 EOF
 
