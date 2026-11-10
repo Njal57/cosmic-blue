@@ -140,13 +140,17 @@ DevToolbox and Builder flatpaks.
 - `system_files/`: a few files taken from `ublue-os/bluefin`
   (`flatpak-nuke-fedora`, setup hooks, starship), the first-boot flatpak list
   (`cosmic-blue.preinstall`) and a COSMIC-adapted `system-flatpaks` Brewfile.
-- Signing: keyless (GitHub Actions OIDC) until a `SIGNING_SECRET` cosign key is
-  configured; the image is then referenced as `ostree-image-signed`.
+- Signing: `build.yml` signs each image pushed from `main` with the cosign key in
+  the `SIGNING_SECRET` secret. The public key (`cosign.pub`) ships as
+  `/etc/pki/containers/cosmic-blue.pub`, with a `policy.json` entry and a
+  `registries.d` file, so the image is referenced as `ostree-image-signed` and
+  bootc verifies updates.
 
 - Disk images (`build-disk.yml`, bootc-image-builder): a qcow2 VM disk and an
   Anaconda installer ISO.
 - Live ISO (`build-live-iso.yml`, ublue-os/titanoboa as in projectbluefin/iso):
-  boots into a COSMIC live session and starts Anaconda, which installs the
-  image embedded in the ISO. Live-only changes are in `iso_files/configure_live_iso.sh`.
+  boots into a COSMIC live session with a shortcut to Anaconda, which installs
+  the image embedded in the ISO. Live-only changes are in
+  `iso_files/configure_live_iso.sh`.
 
-Not done yet: DX variant, ZFS kernel, key-based signing.
+Not done yet: DX variant, ZFS kernel.

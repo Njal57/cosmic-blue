@@ -6,8 +6,8 @@ IMAGE_PRETTY_NAME="cosmic-blue"
 HOME_URL="https://github.com/${IMAGE_VENDOR}/${IMAGE_NAME}"
 VERSION="${VERSION:-${FEDORA_MAJOR_VERSION}.$(date +%Y%m%d)}"
 
-# Until the image is signed with a key (no cosign.pub in the repo), bootc cannot
-# verify the signature, so the image is referenced as "unverified".
+# The image is verified with cosign.pub (see 10-system-files.sh); without it,
+# bootc cannot verify the signature and the image is referenced as "unverified".
 if [[ -f /etc/pki/containers/cosmic-blue.pub ]]; then
     IMAGE_REF="ostree-image-signed:docker://ghcr.io/${IMAGE_VENDOR}/${IMAGE_NAME}"
 else

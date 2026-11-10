@@ -80,6 +80,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Add test account to the VM disk
+        # The qcow2 is a ready-to-boot disk with no setup wizard, so it needs an
+        # account. The password comes from the VM_TEST_PASSWORD repository
+        # secret and is only stored hashed in the generated config.
+        if: matrix.disk-type == 'qcow2'
+        shell: bash
+        env:
+          VM_TEST_PASSWORD: ${{ secrets.VM_TEST_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${VM_TEST_PASSWORD}" ]]; then
+            echo "::warning::VM_TEST_PASSWORD is not set: the qcow2 disk has no account"
+            exit 0
+          fi
+          hash=$(printf '%s' "${VM_TEST_PASSWORD}" | openssl passwd -6 -stdin)
+          cat >> ./disk_config/disk.toml <<TOML
+
+          [[customizations.user]]
+          name = "test"
+          password = "${hash}"
+          groups = ["wheel"]
+          TOML
+
       - name: Build disk images
         id: build
         uses: osbuild/bootc-image-builder-action@8661cd3832544ad68c12dcde8681b13ab0f56a8d # main
