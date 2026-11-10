@@ -1,27 +1,25 @@
-#!/bin/bash
+#!/usr/bin/bash
+# Point d'entrée du build de COSMIC-blue. Chaque étape est un script séparé.
+set -euox pipefail
 
-set -ouex pipefail
+: "${IMAGE_NAME:=cosmic-blue}"
+: "${IMAGE_VENDOR:=njal57}"
+: "${UBLUE_IMAGE_TAG:=latest}"
+: "${VERSION:=}"
+export IMAGE_NAME IMAGE_VENDOR UBLUE_IMAGE_TAG VERSION
+FEDORA_MAJOR_VERSION="$(rpm -E %fedora)"
+export FEDORA_MAJOR_VERSION
 
-# Copy the contents of system_files/ of the git repo to /
-cp -avf "/ctx/system_files"/. /
-
-### Install packages
-
-# Packages can be installed from any enabled yum repo on the image.
-# RPMfusion repos are available by default in ublue main images
-# List of rpmfusion packages can be found here:
-# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/43/x86_64/repoview/index.html&protocol=https&redirect=1
-
-# this installs a package from fedora repos
-dnf5 install -y tmux
-
-# Use a COPR Example:
-#
-# dnf5 -y copr enable ublue-os/staging
-# dnf5 -y install package
-# Disable COPRs so they don't end up enabled on the final image:
-# dnf5 -y copr disable ublue-os/staging
-
-#### Example for enabling a System Unit File
-
-systemctl enable podman.socket
+for step in \
+    10-system-files.sh \
+    20-cosmic.sh \
+    30-packages.sh \
+    40-image-info.sh \
+    50-services.sh \
+    60-initramfs.sh \
+    90-cleanup.sh \
+    99-tests.sh; do
+    echo "::group:: ===${step}==="
+    "/ctx/build_files/${step}"
+    echo "::endgroup::"
+done
