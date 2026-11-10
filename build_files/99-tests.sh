@@ -4,6 +4,12 @@ set -euox pipefail
 
 # ublue signing keys present (otherwise updates from ghcr.io/ublue-os are impossible)
 jq -e '.transports.docker."ghcr.io/ublue-os"' /etc/containers/policy.json >/dev/null
+# No Bluefin wallpapers or boot watermark
+test ! -e /usr/share/backgrounds/bluefin
+if rpm -q plymouth-theme-spinner; then
+    rpm -V --nomode --nouser --nogroup --nomtime plymouth-theme-spinner
+fi
+
 # cosmic-blue signing key and policy, and the signed image reference
 test -s /etc/pki/containers/cosmic-blue.pub
 jq -e '.transports.docker."ghcr.io/njal57/cosmic-blue"[0].keyPath == "/etc/pki/containers/cosmic-blue.pub"' \

@@ -16,7 +16,8 @@ cp -a /ctx/system_files/common/. "${STAGE}/"
 cp -a /ctx/system_files/common-bluefin/. "${STAGE}/"
 cp -a /ctx/system_files/brew/. "${STAGE}/"
 
-# GNOME-specific files (or files for GNOME tools) we don't want in a COSMIC image.
+# GNOME-specific files (or files for GNOME tools) and Bluefin branding we
+# don't want in a COSMIC image.
 GNOME_ONLY=(
     etc/dconf
     etc/gnome-initial-setup
@@ -37,6 +38,21 @@ GNOME_ONLY=(
     usr/share/ublue-os/user-setup.hooks.d/10-theming.sh
     usr/share/ublue-os/user-setup.hooks.d/20-dynamic-wallpaper.sh
     usr/share/ublue-os/user-setup.hooks.d/25-damask-setup.sh
+)
+# Bluefin branding: wallpapers, the dinosaur boot (Plymouth) watermark and the
+# Bluefin logos that replace Fedora's. Fedora's own files are kept instead.
+GNOME_ONLY+=(
+    usr/share/backgrounds/bluefin
+    usr/share/gnome-background-properties
+    usr/share/plymouth
+    usr/share/pixmaps/fedora-gdm-logo.png
+    usr/share/pixmaps/fedora-logo-icon.png
+    usr/share/pixmaps/fedora-logo-small.png
+    usr/share/pixmaps/fedora-logo-sprite.png
+    usr/share/pixmaps/fedora-logo.png
+    usr/share/pixmaps/fedora_logo_med.png
+    usr/share/pixmaps/fedora_whitelogo_med.png
+    usr/share/pixmaps/system-logo-white.png
 )
 for path in "${GNOME_ONLY[@]}"; do
     rm -rf "${STAGE:?}/${path}"
