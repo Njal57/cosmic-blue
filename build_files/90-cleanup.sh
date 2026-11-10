@@ -10,6 +10,7 @@ for repo_file in \
     /etc/yum.repos.d/negativo17-*.repo \
     /etc/yum.repos.d/fedora-cisco-openh264.repo \
     /usr/share/dnf5/repos.d/*.repo; do
+    [[ -f "${repo_file}" ]] || continue
     case "$(basename "${repo_file}")" in
         fedora-cisco-openh264.repo) ;;
         fedora*.repo) continue ;;  # dépôts Fedora officiels : on les laisse tels quels
