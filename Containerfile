@@ -1,22 +1,22 @@
-# COSMIC-blue : une image Universal Blue façon Bluefin, avec COSMIC à la place de GNOME.
-# Voir docs/plan.md pour le choix de la base et l'inventaire.
+# COSMIC-blue: a Bluefin-like Universal Blue image with COSMIC instead of GNOME.
+# See docs/plan.md for the choice of base image and the inventory.
 
 ARG BASE_IMAGE="ghcr.io/ublue-os/base-main"
 ARG BASE_TAG="latest"
 ARG COMMON_IMAGE="ghcr.io/projectbluefin/common:latest"
 ARG BREW_IMAGE="ghcr.io/ublue-os/brew:latest"
 
-# Fichiers partagés de Bluefin (ujust, uupd, setup, signature, udev...) et Homebrew
+# Bluefin shared files (ujust, uupd, setup, signing, udev...) and Homebrew
 FROM ${COMMON_IMAGE} AS common
 FROM ${BREW_IMAGE} AS brew
 
-# Contexte de build : scripts + fichiers système, jamais copiés tels quels dans l'image finale
+# Build context: scripts + system files, never copied as-is into the final image
 FROM scratch AS ctx
 COPY build_files /build_files
 COPY --from=common /system_files/shared /system_files/common
 COPY --from=common /system_files/bluefin /system_files/common-bluefin
 COPY --from=brew /system_files /system_files/brew
-# Nos propres fichiers, appliqués en dernier pour avoir la priorité
+# Our own files, applied last so they take precedence
 COPY system_files /system_files/cosmic-blue
 
 FROM ${BASE_IMAGE}:${BASE_TAG}

@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Désactive tous les dépôts tiers et nettoie.
+# Disable all third-party repos and clean up.
 set -euox pipefail
 
 shopt -s nullglob
@@ -13,7 +13,7 @@ for repo_file in \
     [[ -f "${repo_file}" ]] || continue
     case "$(basename "${repo_file}")" in
         fedora-cisco-openh264.repo) ;;
-        fedora*.repo) continue ;;  # dépôts Fedora officiels : on les laisse tels quels
+        fedora*.repo) continue ;;  # official Fedora repos: leave them as they are
     esac
     sed -i 's@enabled=1@enabled=0@g' "${repo_file}"
 done

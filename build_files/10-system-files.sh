@@ -1,10 +1,10 @@
 #!/usr/bin/bash
-# Copie les fichiers de Bluefin (projectbluefin/common + ublue-os/brew) puis les nôtres,
-# en retirant tout ce qui ne concerne que GNOME.
+# Copy Bluefin's files (projectbluefin/common + ublue-os/brew), then ours,
+# dropping everything that only matters for GNOME.
 set -euox pipefail
 
-# Ces paquets de base-main sont remplacés par les fichiers de projectbluefin/common
-# (même choix que Bluefin, cf. ublue-os/bluefin build_files/shared/build.sh).
+# These base-main packages are replaced by projectbluefin/common files
+# (same choice as Bluefin, see ublue-os/bluefin build_files/shared/build.sh).
 readarray -t UBLUE_PKGS < <(rpm -qa --qf '%{NAME}\n' ublue-os-luks ublue-os-just ublue-os-udev-rules ublue-os-signing ublue-os-update-services)
 if [[ "${#UBLUE_PKGS[@]}" -gt 0 ]]; then
     dnf5 -y remove "${UBLUE_PKGS[@]}"
@@ -16,7 +16,7 @@ cp -a /ctx/system_files/common/. "${STAGE}/"
 cp -a /ctx/system_files/common-bluefin/. "${STAGE}/"
 cp -a /ctx/system_files/brew/. "${STAGE}/"
 
-# Fichiers spécifiques à GNOME (ou à des outils GNOME) qu'on ne veut pas dans une image COSMIC.
+# GNOME-specific files (or files for GNOME tools) we don't want in a COSMIC image.
 GNOME_ONLY=(
     etc/dconf
     etc/gnome-initial-setup
@@ -45,7 +45,7 @@ done
 cp -a "${STAGE}/." /
 cp -a /ctx/system_files/cosmic-blue/. /
 
-# Les visages (avatars) Bluefin sont rangés dans un sous-dossier, comme dans Bluefin
+# Bluefin faces (avatars) ship in a subfolder; move them up, as Bluefin does
 if [[ -d /usr/share/pixmaps/faces/bluefin ]]; then
     rm -f /usr/share/pixmaps/faces/*.{png,jpg,svg} || true
     mv /usr/share/pixmaps/faces/bluefin/* /usr/share/pixmaps/faces/

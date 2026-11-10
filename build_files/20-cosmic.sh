@@ -1,14 +1,14 @@
 #!/usr/bin/bash
-# Bureau COSMIC, uniquement depuis les dépôts officiels Fedora.
+# COSMIC desktop, from the official Fedora repositories only.
 set -euox pipefail
 
-# Pour le journal de build : groupes COSMIC disponibles dans cette version de Fedora
+# For the build log: COSMIC groups available in this Fedora release
 dnf5 group list --hidden | grep -i cosmic || true
 
-# Groupes comps utilisés par Fedora COSMIC (spin et Atomic). Aucun COPR n'est activé ici :
-# les paquets COSMIC viennent forcément des dépôts Fedora (vérifié dans 99-tests.sh).
-# On ne prend pas @cosmic-desktop-apps : sur Fedora il tire des applis KDE/GNOME
-# (Okular, Rhythmbox, Nheko...) qu'on remplace par des flatpaks, comme Bluefin.
+# Comps group used by Fedora COSMIC (spin and Atomic). No COPR is enabled here,
+# so COSMIC packages necessarily come from Fedora (checked in 99-tests.sh).
+# @cosmic-desktop-apps is skipped: on Fedora it pulls KDE/GNOME apps
+# (Okular, Rhythmbox, Nheko...) that we replace with flatpaks, like Bluefin.
 dnf5 -y install \
     @cosmic-desktop \
     cosmic-edit \
@@ -16,8 +16,8 @@ dnf5 -y install \
     cosmic-player \
     cosmic-term
 
-# (pas de power-profiles-daemon : base-main fournit déjà tuned-ppd)
-# Briques de bureau que l'image Atomic de Fedora apporte et que base-main n'a pas forcément
+# (no power-profiles-daemon: base-main already ships tuned-ppd)
+# Desktop pieces that Fedora's Atomic image brings and base-main may lack
 dnf5 -y install --skip-unavailable \
     NetworkManager-wifi \
     NetworkManager-openvpn \

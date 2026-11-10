@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Paquets ajoutés par Bluefin (build_files/base/04-packages.sh), sans ceux propres à GNOME.
+# Packages added by Bluefin (build_files/base/04-packages.sh), minus GNOME-specific ones.
 set -euox pipefail
 
 FEDORA_PACKAGES=(
@@ -76,24 +76,24 @@ FEDORA_PACKAGES=(
 )
 dnf5 -y install "${FEDORA_PACKAGES[@]}"
 
-# Tailscale (dépôt officiel Tailscale, désactivé après usage)
+# Tailscale (official Tailscale repo, disabled after use)
 dnf5 config-manager addrepo --from-repofile=https://pkgs.tailscale.com/stable/fedora/tailscale.repo
 dnf5 config-manager setopt tailscale-stable.enabled=0
 dnf5 -y install --enablerepo=tailscale-stable tailscale
 
-# uupd (outil de mise à jour d'Universal Blue) depuis le COPR ublue-os/packages,
-# activé seulement le temps de l'installation, comme dans Bluefin.
+# uupd (Universal Blue's update tool) from the ublue-os/packages COPR,
+# enabled only during the install, as in Bluefin.
 dnf5 -y copr enable ublue-os/packages
 dnf5 -y install --repo="copr:copr.fedorainfracloud.org:ublue-os:packages" uupd
 dnf5 -y copr disable ublue-os/packages
 
-# Starship (invite de shell), binaire officiel
+# Starship (shell prompt), official binary
 curl -fsSL --retry 3 -o /tmp/starship.tar.gz \
     https://github.com/starship/starship/releases/latest/download/starship-x86_64-unknown-linux-gnu.tar.gz
 tar -xzf /tmp/starship.tar.gz -C /tmp
 install -m 0755 /tmp/starship /usr/bin/starship
 
-# Paquets retirés, comme dans Bluefin (Firefox passe en flatpak)
+# Removed packages, as in Bluefin (Firefox comes as a flatpak)
 EXCLUDED_PACKAGES=(
     fedora-bookmarks
     fedora-chromium-config

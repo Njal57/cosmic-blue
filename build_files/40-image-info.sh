@@ -1,13 +1,13 @@
 #!/usr/bin/bash
-# Identité de l'image : image-info.json (utilisé par ujust, uupd...) et os-release.
+# Image identity: image-info.json (used by ujust, uupd...) and os-release.
 set -euox pipefail
 
 IMAGE_PRETTY_NAME="COSMIC-blue"
 HOME_URL="https://github.com/${IMAGE_VENDOR}/${IMAGE_NAME}"
 VERSION="${VERSION:-${FEDORA_MAJOR_VERSION}.$(date +%Y%m%d)}"
 
-# Tant que l'image n'est pas signée par clé (cosign.pub absent du dépôt), bootc ne peut pas
-# vérifier la signature : on référence l'image en "unverified".
+# Until the image is signed with a key (no cosign.pub in the repo), bootc cannot
+# verify the signature, so the image is referenced as "unverified".
 if [[ -f /etc/pki/containers/cosmic-blue.pub ]]; then
     IMAGE_REF="ostree-image-signed:docker://ghcr.io/${IMAGE_VENDOR}/${IMAGE_NAME}"
 else
@@ -27,7 +27,7 @@ cat > /usr/share/ublue-os/image-info.json <<JSON
 }
 JSON
 
-# On garde ID=fedora (pas de souci de chemins EFI/GRUB), on change seulement le nom affiché.
+# Keep ID=fedora (avoids EFI/GRUB path issues); only change the displayed name.
 sed -i "s|^NAME=.*|NAME=\"${IMAGE_PRETTY_NAME}\"|" /usr/lib/os-release
 sed -i "s|^PRETTY_NAME=.*|PRETTY_NAME=\"${IMAGE_PRETTY_NAME} ${VERSION}\"|" /usr/lib/os-release
 sed -i "s|^VARIANT_ID=.*|VARIANT_ID=${IMAGE_NAME}|" /usr/lib/os-release

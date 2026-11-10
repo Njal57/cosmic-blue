@@ -1,11 +1,11 @@
 #!/usr/bin/bash
-# Vérifications simples : si l'une échoue, le build échoue.
+# Simple checks: if one fails, the build fails.
 set -euox pipefail
 
-# Clés de signature ublue présentes (sinon impossible de mettre à jour depuis ghcr.io/ublue-os)
+# ublue signing keys present (otherwise updates from ghcr.io/ublue-os are impossible)
 jq -e '.transports.docker."ghcr.io/ublue-os"' /etc/containers/policy.json >/dev/null
 
-# ujust et ses recettes
+# ujust and its recipes
 for f in bin/ujust share/ublue-os/just/00-entry.just share/ublue-os/just/apps.just \
          share/ublue-os/just/default.just share/ublue-os/just/update.just; do
     test -e "/usr/${f}"
@@ -14,9 +14,9 @@ done
 test -f /usr/share/flatpak/preinstall.d/bazaar.preinstall
 test -f /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
 test ! -e /usr/lib/systemd/system/flatpak-add-fedora-repos.service
-# Aucun réglage dconf GNOME de Bluefin (le dossier lui-même peut venir de Fedora)
+# No Bluefin GNOME dconf settings (the folder itself may come from Fedora)
 if compgen -G '/etc/dconf/db/distro.d/*bluefin*' >/dev/null; then
-    echo "Réglages dconf Bluefin (GNOME) présents"; exit 1
+    echo "Bluefin (GNOME) dconf settings present"; exit 1
 fi
 
 IMPORTANT_PACKAGES=(
@@ -36,20 +36,20 @@ IMPORTANT_PACKAGES=(
     zsh
 )
 for package in "${IMPORTANT_PACKAGES[@]}"; do
-    rpm -q "${package}" >/dev/null || { echo "Paquet manquant : ${package}"; exit 1; }
+    rpm -q "${package}" >/dev/null || { echo "Missing package: ${package}"; exit 1; }
 done
 
-# Aucun paquet GNOME Shell ne doit se retrouver dans l'image
+# No GNOME Shell package may end up in the image
 for package in gnome-shell gdm mutter; do
     if rpm -q "${package}" >/dev/null; then
-        echo "Paquet GNOME inattendu : ${package}"; exit 1
+        echo "Unexpected GNOME package: ${package}"; exit 1
     fi
 done
 
-# COSMIC doit venir des paquets Fedora (pas d'un COPR)
+# COSMIC must come from Fedora packages (not a COPR)
 for package in cosmic-session cosmic-comp; do
     vendor="$(rpm -q --qf '%{VENDOR}' "${package}")"
-    [[ "${vendor}" == "Fedora Project" ]] || { echo "${package} ne vient pas de Fedora (${vendor})"; exit 1; }
+    [[ "${vendor}" == "Fedora Project" ]] || { echo "${package} does not come from Fedora (${vendor})"; exit 1; }
 done
 
 systemctl is-enabled cosmic-greeter.service

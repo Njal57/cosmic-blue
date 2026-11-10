@@ -1,6 +1,6 @@
-# Flatpaks installés au premier démarrage (flatpak-preinstall.service).
-# Repris de la liste Bluefin (system-flatpaks.Brewfile), sans les applis remplacées par COSMIC
-# (Text Editor -> COSMIC Edit) ni celles propres à GNOME Shell (Extension Manager, Nautilus Previewer).
+# Flatpaks installed on first boot (flatpak-preinstall.service).
+# Taken from Bluefin's list (system-flatpaks.Brewfile), minus apps replaced by COSMIC
+# (Text Editor -> COSMIC Edit) and GNOME Shell-only ones (Extension Manager, Nautilus Previewer).
 
 [Flatpak Preinstall com.github.tchx84.Flatseal]
 Branch=stable

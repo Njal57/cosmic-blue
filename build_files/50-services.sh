@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Services activés par Bluefin (build_files/base/17-cleanup.sh), sans dconf-update (GNOME).
+# Services enabled by Bluefin (build_files/base/17-cleanup.sh), minus dconf-update (GNOME).
 set -euox pipefail
 
 systemctl enable \
@@ -16,15 +16,15 @@ systemctl --global enable \
     podman-auto-update.timer \
     ublue-user-setup.service
 
-# uupd remplace les mises à jour automatiques de rpm-ostree
+# uupd replaces rpm-ostree automatic updates
 systemctl disable rpm-ostreed-automatic.timer || true
 
-# Flathub à la place du dépôt flatpak Fedora
+# Flathub instead of the Fedora flatpak remote
 flatpak remote-add --system --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 systemctl disable flatpak-add-fedora-repos.service || true
 rm -f /usr/lib/systemd/system/flatpak-add-fedora-repos.service
 
-# Masquer quelques entrées de menu inutiles (comme Bluefin)
+# Hide a few useless menu entries (like Bluefin)
 for app in fish htop nvtop; do
     if [[ -f "/usr/share/applications/${app}.desktop" ]]; then
         sed -i 's@\[Desktop Entry\]@[Desktop Entry]\nHidden=true@g' "/usr/share/applications/${app}.desktop"

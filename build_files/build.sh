@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Point d'entrée du build de COSMIC-blue. Chaque étape est un script séparé.
+# COSMIC-blue build entry point. Each step is a separate script.
 set -euox pipefail
 
 : "${IMAGE_NAME:=cosmic-blue}"
