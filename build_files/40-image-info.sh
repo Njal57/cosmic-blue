@@ -2,7 +2,7 @@
 # Image identity: image-info.json (used by ujust, uupd...) and os-release.
 set -euox pipefail
 
-IMAGE_PRETTY_NAME="COSMIC-blue"
+IMAGE_PRETTY_NAME="cosmic-blue"
 HOME_URL="https://github.com/${IMAGE_VENDOR}/${IMAGE_NAME}"
 VERSION="${VERSION:-${FEDORA_MAJOR_VERSION}.$(date +%Y%m%d)}"
 

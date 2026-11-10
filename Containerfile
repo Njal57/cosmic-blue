@@ -1,4 +1,4 @@
-# COSMIC-blue: a Bluefin-like Universal Blue image with COSMIC instead of GNOME.
+# cosmic-blue: a Bluefin-like Universal Blue image with COSMIC instead of GNOME.
 # See docs/plan.md for the choice of base image and the inventory.
 
 ARG BASE_IMAGE="ghcr.io/ublue-os/base-main"

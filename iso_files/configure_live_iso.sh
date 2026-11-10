@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+# Titanoboa post-rootfs hook: turns the cosmic-blue image into a live session
+# with the Anaconda installer. It runs inside the live root filesystem only;
+# the installed system is the unmodified ghcr.io image embedded in the ISO.
+# Adapted from projectbluefin/iso (iso_files/configure_iso_anaconda.sh).
+
+set -eoux pipefail
+
+IMAGE_INFO="$(cat /usr/share/ublue-os/image-info.json)"
+IMAGE_TAG="$(jq -c -r '."image-tag"' <<<"$IMAGE_INFO")"
+IMAGE_REF="$(jq -c -r '."image-ref"' <<<"$IMAGE_INFO")"
+IMAGE_REF="${IMAGE_REF##*:docker://}"
+IMAGE_REF="${IMAGE_REF##ostree-unverified-registry:}"
+
+### Live session
+
+# Services that make no sense in a live session (updates, first-boot setup,
+# flatpak installs, VPN...).
+for unit in \
+    brew-setup.service \
+    flatpak-nuke-fedora.service \
+    flatpak-preinstall.service \
+    rpm-ostree-countme.service \
+    rpm-ostreed-automatic.timer \
+    tailscaled.service \
+    ublue-system-setup.service \
+    uupd.timer; do
+    systemctl disable "$unit" || true
+done
+for unit in podman-auto-update.timer ublue-user-setup.service; do
+    systemctl --global disable "$unit" || true
+done
+
+### Anaconda
+
+# Firefox: a browser in the live session (the installed system uses the flatpak).
+# spice-vdagent: clipboard sharing when the live ISO runs in a VM (GNOME Boxes...).
+dnf install -y \
+    anaconda-live \
+    firefox \
+    spice-vdagent \
+    libblockdev-btrfs \
+    libblockdev-dm \
+    libblockdev-lvm
+
+# Profile matched on os-release (ID=fedora, VARIANT_ID=cosmic-blue)
+mkdir -p /etc/anaconda/profile.d
+tee /etc/anaconda/profile.d/cosmic-blue.conf <<'EOF'
+# Anaconda configuration file for cosmic-blue
+
+[Profile]
+profile_id = cosmic-blue
+
+[Profile Detection]
+os_id = fedora
+variant_id = cosmic-blue
+
+[Network]
+default_on_boot = FIRST_WIRED_WITH_LINK
+
+[Bootloader]
+efi_dir = fedora
+menu_auto_hide = True
+
+[Storage]
+default_scheme = BTRFS
+btrfs_compression = zstd:1
+# A single btrfs root: on Fedora 45, a separate /home (mounted as /var/home)
+# makes Anaconda's `systemd-tmpfiles --prefix=/var/home` step fail (code 73).
+default_partitioning =
+    /     (min 1 GiB)
+
+[User Interface]
+hidden_spokes =
+    NetworkSpoke
+
+[Localization]
+use_geolocation = False
+EOF
+
+. /etc/os-release
+echo "cosmic-blue release $VERSION_ID" >/etc/system-release
+sed -i 's/ANACONDA_PRODUCTVERSION=.*/ANACONDA_PRODUCTVERSION=""/' /usr/{,s}bin/liveinst || true
+
+# Installer shortcut: on the live user's desktop and first in the COSMIC dock.
+# The installer is not started automatically.
+sed -i 's/^Name=.*/Name=Install cosmic-blue/' /usr/share/applications/liveinst.desktop
+mkdir -p /etc/skel/Desktop
+install -m 0755 /usr/share/applications/liveinst.desktop /etc/skel/Desktop/liveinst.desktop
+dock=()
+for app in liveinst org.mozilla.firefox firefox com.system76.CosmicFiles \
+    com.system76.CosmicTerm com.system76.CosmicSettings; do
+    if [[ -f "/usr/share/applications/${app}.desktop" ]]; then dock+=("\"${app}\""); fi
+done
+mkdir -p /usr/share/cosmic/com.system76.CosmicAppList/v1
+(IFS=,; echo "[${dock[*]}]") >/usr/share/cosmic/com.system76.CosmicAppList/v1/favorites
+cat /usr/share/cosmic/com.system76.CosmicAppList/v1/favorites
+
+# Install the image embedded in the ISO (no download needed), then point the
+# deployment at the registry so that `bootc upgrade` pulls updates from GHCR.
+mkdir -p /usr/share/anaconda/post-scripts
+tee -a /usr/share/anaconda/interactive-defaults.ks <<EOF
+ostreecontainer --url=$IMAGE_REF:$IMAGE_TAG --transport=containers-storage --no-signature-verification
+%include /usr/share/anaconda/post-scripts/install-configure-upgrade.ks
+%include /usr/share/anaconda/post-scripts/disable-fedora-flatpak.ks
+EOF
+
+tee /usr/share/anaconda/post-scripts/install-configure-upgrade.ks <<EOF
+%post --erroronfail
+bootc switch --mutate-in-place --enforce-container-sigpolicy --transport registry $IMAGE_REF:$IMAGE_TAG
+%end
+EOF
+
+tee /usr/share/anaconda/post-scripts/disable-fedora-flatpak.ks <<'EOF'
+%post --erroronfail
+systemctl disable flatpak-add-fedora-repos.service || true
+%end
+EOF

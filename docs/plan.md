@@ -1,4 +1,4 @@
-# COSMIC-blue: base image choice and Bluefin inventory
+# cosmic-blue: base image choice and Bluefin inventory
 
 Goal: a Bluefin-like Universal Blue image with COSMIC instead of GNOME, with
 COSMIC coming from the **official Fedora packages** (no COPR).
@@ -123,7 +123,7 @@ DevToolbox and Builder flatpaks.
 **g) Identity**
 
 `os-release` and `image-info.json` (name, ID, URLs) are rewritten by
-`00-image-info.sh`; adapted for "COSMIC-blue".
+`00-image-info.sh`; adapted for "cosmic-blue".
 
 ## 3. Current state of the build
 
@@ -133,7 +133,7 @@ DevToolbox and Builder flatpaks.
   - `10-system-files.sh`: copies common + brew minus GNOME files, then `system_files/`;
   - `20-cosmic.sh`: `@cosmic-desktop` group + COSMIC apps (Edit, Files, Player, Term), `cosmic-greeter`;
   - `30-packages.sh`: packages from section 2b, Tailscale, uupd, Starship;
-  - `40-image-info.sh`: `image-info.json` and "COSMIC-blue" `os-release`;
+  - `40-image-info.sh`: `image-info.json` and "cosmic-blue" `os-release`;
   - `50-services.sh`: services from section 2d, Flathub;
   - `60-initramfs.sh`, `90-cleanup.sh` (third-party repos disabled), `99-tests.sh`
     (checks, among other things, that COSMIC comes from Fedora and that GNOME Shell is absent).
@@ -145,5 +145,12 @@ DevToolbox and Builder flatpaks.
   `/etc/pki/containers/cosmic-blue.pub`, with a `policy.json` entry and a
   `registries.d` file, so the image is referenced as `ostree-image-signed` and
   bootc verifies updates.
+
+- Disk images (`build-disk.yml`, bootc-image-builder): a qcow2 VM disk and an
+  Anaconda installer ISO.
+- Live ISO (`build-live-iso.yml`, ublue-os/titanoboa as in projectbluefin/iso):
+  boots into a COSMIC live session with a shortcut to Anaconda, which installs
+  the image embedded in the ISO. Live-only changes are in
+  `iso_files/configure_live_iso.sh`.
 
 Not done yet: DX variant, ZFS kernel.
