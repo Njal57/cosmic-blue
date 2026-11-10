@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Titanoboa post-rootfs hook: turns the COSMIC-blue image into a live session
+# Titanoboa post-rootfs hook: turns the cosmic-blue image into a live session
 # with the Anaconda installer. It runs inside the live root filesystem only;
 # the installed system is the unmodified ghcr.io image embedded in the ISO.
 # Adapted from projectbluefin/iso (iso_files/configure_iso_anaconda.sh).
@@ -44,7 +44,7 @@ dnf install -y \
 # Profile matched on os-release (ID=fedora, VARIANT_ID=cosmic-blue)
 mkdir -p /etc/anaconda/profile.d
 tee /etc/anaconda/profile.d/cosmic-blue.conf <<'EOF'
-# Anaconda configuration file for COSMIC-blue
+# Anaconda configuration file for cosmic-blue
 
 [Profile]
 profile_id = cosmic-blue
@@ -77,12 +77,12 @@ use_geolocation = False
 EOF
 
 . /etc/os-release
-echo "COSMIC-blue release $VERSION_ID" >/etc/system-release
+echo "cosmic-blue release $VERSION_ID" >/etc/system-release
 sed -i 's/ANACONDA_PRODUCTVERSION=.*/ANACONDA_PRODUCTVERSION=""/' /usr/{,s}bin/liveinst || true
 
 # Installer shortcut: on the live user's desktop and first in the COSMIC dock.
 # The installer is not started automatically.
-sed -i 's/^Name=.*/Name=Install COSMIC-blue/' /usr/share/applications/liveinst.desktop
+sed -i 's/^Name=.*/Name=Install cosmic-blue/' /usr/share/applications/liveinst.desktop
 mkdir -p /etc/skel/Desktop
 install -m 0755 /usr/share/applications/liveinst.desktop /etc/skel/Desktop/liveinst.desktop
 dock=()

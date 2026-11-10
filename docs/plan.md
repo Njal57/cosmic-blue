@@ -1,4 +1,4 @@
-# COSMIC-blue: base image choice and Bluefin inventory
+# cosmic-blue: base image choice and Bluefin inventory
 
 Goal: a Bluefin-like Universal Blue image with COSMIC instead of GNOME, with
 COSMIC coming from the **official Fedora packages** (no COPR).
@@ -123,7 +123,7 @@ DevToolbox and Builder flatpaks.
 **g) Identity**
 
 `os-release` and `image-info.json` (name, ID, URLs) are rewritten by
-`00-image-info.sh`; adapted for "COSMIC-blue".
+`00-image-info.sh`; adapted for "cosmic-blue".
 
 ## 3. Current state of the build
 
@@ -133,7 +133,7 @@ DevToolbox and Builder flatpaks.
   - `10-system-files.sh`: copies common + brew minus GNOME files, then `system_files/`;
   - `20-cosmic.sh`: `@cosmic-desktop` group + COSMIC apps (Edit, Files, Player, Term), `cosmic-greeter`;
   - `30-packages.sh`: packages from section 2b, Tailscale, uupd, Starship;
-  - `40-image-info.sh`: `image-info.json` and "COSMIC-blue" `os-release`;
+  - `40-image-info.sh`: `image-info.json` and "cosmic-blue" `os-release`;
   - `50-services.sh`: services from section 2d, Flathub;
   - `60-initramfs.sh`, `90-cleanup.sh` (third-party repos disabled), `99-tests.sh`
     (checks, among other things, that COSMIC comes from Fedora and that GNOME Shell is absent).
