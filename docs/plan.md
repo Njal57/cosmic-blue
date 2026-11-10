@@ -143,4 +143,10 @@ DevToolbox and Builder flatpaks.
 - Signing: keyless (GitHub Actions OIDC) until a `SIGNING_SECRET` cosign key is
   configured; the image is then referenced as `ostree-image-signed`.
 
-Not done yet: DX variant, ZFS kernel, ISO, key-based signing.
+- Disk images (`build-disk.yml`, bootc-image-builder): a qcow2 VM disk and an
+  Anaconda installer ISO.
+- Live ISO (`build-live-iso.yml`, ublue-os/titanoboa as in projectbluefin/iso):
+  boots into a COSMIC live session and starts Anaconda, which installs the
+  image embedded in the ISO. Live-only changes are in `iso_files/configure_live_iso.sh`.
+
+Not done yet: DX variant, ZFS kernel, key-based signing.
