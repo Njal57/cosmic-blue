@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '05 10 * * *'  # 10:05am UTC everyday
+    - cron: '00 10 * * *'  # every day at 10:00 UTC (11:00 in Paris in winter, 12:00 in summer)
   push:
     branches:
       - main
