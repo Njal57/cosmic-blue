@@ -31,17 +31,6 @@ for unit in podman-auto-update.timer ublue-user-setup.service; do
     systemctl --global disable "$unit" || true
 done
 
-# Start the installer when the live session opens
-mkdir -p /etc/xdg/autostart
-tee /etc/xdg/autostart/liveinst-autostart.desktop <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=Install COSMIC-blue
-Exec=liveinst
-Icon=anaconda
-X-GNOME-Autostart-enabled=true
-EOF
-
 ### Anaconda
 
 # Firefox: a browser in the live session (the installed system uses the flatpak)
@@ -90,6 +79,20 @@ EOF
 . /etc/os-release
 echo "COSMIC-blue release $VERSION_ID" >/etc/system-release
 sed -i 's/ANACONDA_PRODUCTVERSION=.*/ANACONDA_PRODUCTVERSION=""/' /usr/{,s}bin/liveinst || true
+
+# Installer shortcut: on the live user's desktop and first in the COSMIC dock.
+# The installer is not started automatically.
+sed -i 's/^Name=.*/Name=Install COSMIC-blue/' /usr/share/applications/liveinst.desktop
+mkdir -p /etc/skel/Desktop
+install -m 0755 /usr/share/applications/liveinst.desktop /etc/skel/Desktop/liveinst.desktop
+dock=()
+for app in liveinst org.mozilla.firefox firefox com.system76.CosmicFiles \
+    com.system76.CosmicTerm com.system76.CosmicSettings; do
+    if [[ -f "/usr/share/applications/${app}.desktop" ]]; then dock+=("\"${app}\""); fi
+done
+mkdir -p /usr/share/cosmic/com.system76.CosmicAppList/v1
+(IFS=,; echo "[${dock[*]}]") >/usr/share/cosmic/com.system76.CosmicAppList/v1/favorites
+cat /usr/share/cosmic/com.system76.CosmicAppList/v1/favorites
 
 # Install the image embedded in the ISO (no download needed), then point the
 # deployment at the registry so that `bootc upgrade` pulls updates from GHCR.
