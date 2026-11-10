@@ -96,8 +96,8 @@ jobs:
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          # e.g. cosmic-blue-anaconda-iso-amd64 / cosmic-blue-qcow2-amd64
-          name: ${{ env.IMAGE_NAME }}-${{ matrix.disk-type }}-${{ inputs.platform || 'amd64' }}
+          # e.g. cosmic-blue-iso-amd64 / cosmic-blue-qcow2-amd64
+          name: ${{ env.IMAGE_NAME }}-${{ matrix.disk-type == 'anaconda-iso' && 'iso' || matrix.disk-type }}-${{ inputs.platform || 'amd64' }}
           path: ${{ steps.build.outputs.output-directory }}
           if-no-files-found: error
           retention-days: 0
