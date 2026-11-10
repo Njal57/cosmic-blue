@@ -45,6 +45,21 @@ done
 cp -a "${STAGE}/." /
 cp -a /ctx/system_files/cosmic-blue/. /
 
+# Only accept key-signed cosmic-blue images (cosign.pub, signed by build.yml)
+IMAGE="ghcr.io/${IMAGE_VENDOR}/${IMAGE_NAME}"
+jq --arg image "$IMAGE" '.transports.docker[$image] = [{
+    "type": "sigstoreSigned",
+    "keyPath": "/etc/pki/containers/cosmic-blue.pub",
+    "signedIdentity": {"type": "matchRepository"}
+}]' /etc/containers/policy.json > /tmp/policy.json
+mv /tmp/policy.json /etc/containers/policy.json
+mkdir -p /etc/containers/registries.d
+cat > /etc/containers/registries.d/cosmic-blue.yaml <<EOF
+docker:
+  ${IMAGE}:
+    use-sigstore-attachments: true
+EOF
+
 # Bluefin faces (avatars) ship in a subfolder; move them up, as Bluefin does
 if [[ -d /usr/share/pixmaps/faces/bluefin ]]; then
     rm -f /usr/share/pixmaps/faces/*.{png,jpg,svg} || true
