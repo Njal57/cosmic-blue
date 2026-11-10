@@ -140,7 +140,10 @@ DevToolbox and Builder flatpaks.
 - `system_files/`: a few files taken from `ublue-os/bluefin`
   (`flatpak-nuke-fedora`, setup hooks, starship), the first-boot flatpak list
   (`cosmic-blue.preinstall`) and a COSMIC-adapted `system-flatpaks` Brewfile.
-- Signing: keyless (GitHub Actions OIDC) until a `SIGNING_SECRET` cosign key is
-  configured; the image is then referenced as `ostree-image-signed`.
+- Signing: `build.yml` signs each image pushed from `main` with the cosign key in
+  the `SIGNING_SECRET` secret. The public key (`cosign.pub`) ships as
+  `/etc/pki/containers/cosmic-blue.pub`, with a `policy.json` entry and a
+  `registries.d` file, so the image is referenced as `ostree-image-signed` and
+  bootc verifies updates.
 
-Not done yet: DX variant, ZFS kernel, ISO, key-based signing.
+Not done yet: DX variant, ZFS kernel.

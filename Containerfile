@@ -18,6 +18,8 @@ COPY --from=common /system_files/bluefin /system_files/common-bluefin
 COPY --from=brew /system_files /system_files/brew
 # Our own files, applied last so they take precedence
 COPY system_files /system_files/cosmic-blue
+# Public key used to verify the image signature on update
+COPY cosign.pub /system_files/cosmic-blue/etc/pki/containers/cosmic-blue.pub
 
 FROM ${BASE_IMAGE}:${BASE_TAG}
 
