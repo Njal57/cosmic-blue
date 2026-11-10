@@ -161,11 +161,11 @@ jobs:
           # https://github.com/coreos/rpm-ostree/issues/5509
           # use old bundle format, so we can use newer cosign 3.X.X instead of 2.X.X
           if [[ -n "${COSIGN_PRIVATE_KEY}" ]]; then
-            # Signature par clé (SIGNING_SECRET), vérifiable par bootc avec cosign.pub
+            # Key-based signature (SIGNING_SECRET), verifiable by bootc with cosign.pub
             cosign sign -y --new-bundle-format=false --use-signing-config=false --key env://COSIGN_PRIVATE_KEY ${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}
           else
-            # Pas encore de clé : signature "keyless" via l'identité OIDC de GitHub Actions
-            # (vérifiable avec `cosign verify`, pas encore par bootc).
+            # No key yet: "keyless" signature using the GitHub Actions OIDC identity
+            # (verifiable with `cosign verify`, not yet by bootc).
             cosign sign -y --new-bundle-format=false --use-signing-config=false ${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}
           fi
 

@@ -1,164 +1,146 @@
-# COSMIC-blue : choix de la base et inventaire Bluefin (étape 1)
+# COSMIC-blue: base image choice and Bluefin inventory
 
-Objectif : une image Universal Blue « à la Bluefin », avec COSMIC à la place de
-GNOME, COSMIC venant des **paquets officiels Fedora** (pas de COPR).
+Goal: a Bluefin-like Universal Blue image with COSMIC instead of GNOME, with
+COSMIC coming from the **official Fedora packages** (no COPR).
 
-## 1. Image de base recommandée
+## 1. Base image
 
-**`ghcr.io/ublue-os/base-main:latest`** (actuellement Fedora 45), puis
-installation de COSMIC depuis les dépôts Fedora.
+**`ghcr.io/ublue-os/base-main:latest`** (currently Fedora 45), with COSMIC
+installed from the Fedora repositories.
 
-### Comment Bluefin est construit
+### How Bluefin is built
 
 ```
 quay.io/fedora-ostree-desktops/silverblue   (Fedora, GNOME)
-  └─ ghcr.io/ublue-os/silverblue-main        (couche "main" Universal Blue)
+  └─ ghcr.io/ublue-os/silverblue-main        (Universal Blue "main" layer)
        └─ Bluefin  (+ ghcr.io/projectbluefin/common + ghcr.io/ublue-os/brew)
 ```
 
-`ublue-os/main` ne publie que trois variantes : `base-main`, `silverblue-main`
-et `kinoite-main`. Il n'existe pas de `cosmic-main`.
+`ublue-os/main` only publishes three variants: `base-main`, `silverblue-main`
+and `kinoite-main`. There is no `cosmic-main`.
 
-### Options comparées
+### Options compared
 
-| Option | Pour | Contre |
+| Option | Pros | Cons |
 |---|---|---|
-| **A. `ublue-os/base-main` + COSMIC Fedora** (recommandé) | Garde toute la couche *main* (codecs negativo17, clés de signature ublue, `ublue-os-just`, udev, noyau/akmods, Flathub) sans GNOME. C'est l'équivalent exact de « silverblue-main », mais pour COSMIC. | Il faut installer le groupe COSMIC nous-mêmes et activer `cosmic-greeter`. |
-| B. `quay.io/fedora-ostree-desktops/cosmic-atomic` | COSMIC Atomic officiel Fedora (depuis F42), déjà intégré. | Perd la couche *main* : il faudrait refaire codecs, signature, akmods, etc. à la main. |
-| C. `bluefin` en retirant GNOME | Tout Bluefin d'office. | Désinstaller GNOME proprement est fragile (gschemas, dconf, extensions, gdm), image lourde. À éviter. |
+| **A. `ublue-os/base-main` + Fedora COSMIC** (chosen) | Keeps the whole *main* layer (negativo17 codecs, ublue signing keys, `ublue-os-just`, udev, kernel/akmods, Flathub) without GNOME. The exact equivalent of `silverblue-main`, for COSMIC. | We install the COSMIC group ourselves and enable `cosmic-greeter`. |
+| B. `quay.io/fedora-ostree-desktops/cosmic-atomic` | Official Fedora COSMIC Atomic (since F42), already integrated. | Loses the *main* layer: codecs, signing, akmods, etc. would have to be redone by hand. |
+| C. `bluefin` with GNOME removed | All of Bluefin out of the box. | Removing GNOME cleanly is fragile (gschemas, dconf, extensions, gdm) and the image is heavy. Avoid. |
 
-Le choix A revient à reproduire `cosmic-atomic` (qui est lui-même `base-atomic`
-plus le groupe comps COSMIC), mais par-dessus la couche *main* d'Universal Blue.
+Option A amounts to reproducing `cosmic-atomic` (itself `base-atomic` plus the
+COSMIC comps group) on top of Universal Blue's *main* layer.
 
-### Esquisse pour l'étape 2
+## 2. What Bluefin adds beyond GNOME
 
-```dockerfile
-FROM ghcr.io/ublue-os/base-main:latest
-# build.sh :
-#   dnf5 -y group install cosmic-desktop cosmic-desktop-apps   (dépôts Fedora)
-#   systemctl enable cosmic-greeter.service
-#   systemctl set-default graphical.target
-```
-
-Les noms exacts des groupes/paquets (`cosmic-desktop`, `cosmic-session`,
-`cosmic-greeter`…) seront vérifiés au premier build (`dnf5 group list` dans
-l'image). Je n'ai pas pu interroger les dépôts Fedora depuis mon environnement.
-
-## 2. Ce que Bluefin ajoute au-delà de GNOME
-
-Sources lues : `ublue-os/bluefin` (`build_files/`), `projectbluefin/common`
+Sources read: `ublue-os/bluefin` (`build_files/`), `projectbluefin/common`
 (`system_files/`), `ublue-os/main`.
 
-### Déjà fourni par `base-main` (rien à faire)
+### Already provided by `base-main`
 
-Codecs et multimédia (ffmpeg, libavcodec, fdk-aac, intel-vaapi-driver, via
+Codecs and multimedia (ffmpeg, libavcodec, fdk-aac, intel-vaapi-driver, via
 negativo17), `distrobox`, `just`, `fzf`, `htop`, `nvtop`, `vim`, `tmux`,
 `wireguard-tools`, `wl-clipboard`, YubiKey (`pam-u2f`, `yubikey-manager`),
-`smartmontools`, polices Noto CJK, clés de signature ublue, dépôt Flathub.
+`smartmontools`, Noto CJK fonts, ublue signing keys, Flathub remote.
 
-### À reproduire
+### To reproduce
 
-**a) Couche `projectbluefin/common` (réutilisable presque telle quelle)**
+**a) `projectbluefin/common` layer (reusable almost as-is)**
 
-Bluefin copie `ghcr.io/projectbluefin/common` (`/system_files/shared` et
-`/system_files/bluefin`) et `ghcr.io/ublue-os/brew` dans son image. On peut faire
-de même avec un `COPY --from=` :
+Bluefin copies `ghcr.io/projectbluefin/common` (`/system_files/shared` and
+`/system_files/bluefin`) and `ghcr.io/ublue-os/brew` into its image. We do the
+same through the build context:
 
-- `ujust` + recettes (`00-entry`, `apps`, `default`, `shared`, `update`,
-  `system`) : `update`, `toggle-updates`, `devmode`/`toggle-devmode`,
+- `ujust` + recipes (`00-entry`, `apps`, `default`, `shared`, `update`,
+  `system`): `update`, `toggle-updates`, `devmode`/`toggle-devmode`,
   `install-system-flatpaks`, `bluefin-cli`, `setup-vms`, `enroll-secure-boot-key`,
   `powerwash`, `changelogs`, `report`, `device-info`, `benchmark`, `toggle-tpm2`,
   `install-jetbrains-toolbox`, `install-ai-tools`, `cncf`…
-- **Homebrew** (`ghcr.io/ublue-os/brew`) : `brew-setup.service`,
+- **Homebrew** (`ghcr.io/ublue-os/brew`): `brew-setup.service`,
   `brew-preinstall`, Brewfiles (`cli`, `fonts`, `ide`, `k8s-tools`, `ai-tools`…).
-- **Mises à jour** : `uupd` + `uupd.timer`, `uupd-on-ac`, `bootc-update-stage`
-  (remplace `rpm-ostreed-automatic.timer`).
-- **Setup** : `ublue-system-setup`, `ublue-user-setup` (+ hooks), `ublue-bling`
+- **Updates**: `uupd` + `uupd.timer`, `uupd-on-ac`, `bootc-update-stage`
+  (replaces `rpm-ostreed-automatic.timer`).
+- **Setup**: `ublue-system-setup`, `ublue-user-setup` (+ hooks), `ublue-bling`
   (bling.sh/fish, starship), fastfetch, `uwelcome`.
-- **Flatpak** : `flatpak-preinstall.service`, filtre « flatpark »,
+- **Flatpak**: `flatpak-preinstall.service`, "flatpark" filter,
   `flatpak-appstream-refresh`, `flatpak-nuke-fedora`.
-- `/etc/containers/policy.json` + clés (vérification des images ublue),
-  règles udev matériel (Framework, ZSA, Wooting, Titan key…), profils ICC
-  Framework, polkit, sudoers bootc, `luks-tpm2-autounlock`.
+- `/etc/containers/policy.json` + keys (ublue image verification), hardware
+  udev rules (Framework, ZSA, Wooting, Titan key…), Framework ICC profiles,
+  polkit, bootc sudoers, `luks-tpm2-autounlock`.
 
-À **ne pas** reprendre (spécifique GNOME) : `/etc/dconf/db/distro.d/*`,
+**Not** reused (GNOME-specific): `/etc/dconf/db/distro.d/*`,
 `zz0-bluefin-modifications.gschema.override`, `gnome-initial-setup/vendor.conf`,
-palettes Ptyxis, `gnome-xdg-terminals.list`, fond d'écran dynamique GNOME.
+Ptyxis palettes, `gnome-xdg-terminals.list`, GNOME dynamic wallpaper.
 
-**b) Paquets RPM (Fedora) ajoutés par Bluefin** (`04-packages.sh`)
+**b) RPM packages (Fedora) added by Bluefin** (`04-packages.sh`)
 
-- Outils : `fish`, `zsh`, `fastfetch`, `glow`, `gum`, `bash-color-prompt`,
+- Tools: `fish`, `zsh`, `fastfetch`, `glow`, `gum`, `bash-color-prompt`,
   `gcc`, `gcc-c++`, `make`, `python3-pip`, `rclone`, `restic`, `borgbackup`,
   `waypipe`, `xdg-terminal-exec`, `lm_sensors`, `powertop`, `powerstat`, `usbip`.
-- Réseau/entreprise : `samba` + winbind/sssd, `adcli`, `krb5-workstation`,
+- Network/enterprise: `samba` + winbind/sssd, `adcli`, `krb5-workstation`,
   `oddjob-mkhomedir`, `autofs`, `davfs2`, `iwd`, `firewall-config`.
-- Matériel : `hplip`, `foo2zjs`, `printer-driver-brlaser`, `input-remapper`,
+- Hardware: `hplip`, `foo2zjs`, `printer-driver-brlaser`, `input-remapper`,
   `libratbag-ratbagd`, `ddcutil`, `evtest`, `switcheroo-control`,
   `libimobiledevice`, `ifuse`, `usbmuxd`, `igt-gpu-tools`.
-- Chiffrement/stockage : `cryfs`, `fuse-encfs`, `bcache-tools`,
+- Encryption/storage: `cryfs`, `fuse-encfs`, `bcache-tools`,
   `gnupg2-scdaemon`, `git-credential-libsecret`, `openssh-askpass`.
-- Polices / saisie : `jetbrains-mono-fonts-all`, `adwaita-fonts-all`,
+- Fonts / input: `jetbrains-mono-fonts-all`, `adwaita-fonts-all`,
   `opendyslexic-fonts`, `mozc`, `ibus-mozc`.
-- Hors Fedora : `tailscale` (dépôt officiel Tailscale), `uupd` (COPR
-  ublue-os/packages), `nerd-fonts` (COPR che/nerd-fonts), `starship` (binaire
-  GitHub).
-- Retirés : `firefox` (remplacé par la flatpak), `podman-docker`, `fedora-bookmarks`.
-- Spécifiques GNOME, à ignorer : `gnome-tweaks`, `nautilus-gsconnect`,
-  `gnome-rounded-blur`, `adw-gtk3-theme`, extensions GNOME.
+- Outside Fedora: `tailscale` (official Tailscale repo), `uupd` (COPR
+  ublue-os/packages), `nerd-fonts` (COPR che/nerd-fonts), `starship` (GitHub
+  binary).
+- Removed: `firefox` (replaced by the flatpak), `podman-docker`, `fedora-bookmarks`.
+- GNOME-specific, ignored: `gnome-tweaks`, `nautilus-gsconnect`,
+  `gnome-rounded-blur`, GNOME extensions.
 
-**c) Noyau / modules** (`03-install-kernel-akmods.sh`)
+**c) Kernel / modules** (`03-install-kernel-akmods.sh`)
 
-Bluefin remplace le noyau par celui `coreos-stable` avec ZFS et
-`v4l2loopback`. Proposition : garder le noyau de `base-main` au début (plus
-simple), et voir plus tard si ZFS/v4l2loopback est voulu.
+Bluefin swaps in the `coreos-stable` kernel with ZFS and `v4l2loopback`. We
+keep the `base-main` kernel for now and may add ZFS/v4l2loopback later.
 
-**d) Services activés** (`17-cleanup.sh`)
+**d) Enabled services** (`17-cleanup.sh`)
 
 `uupd.timer`, `brew-setup`, `flatpak-preinstall`, `tailscaled`,
-`input-remapper`, `ublue-system-setup`, `rpm-ostree-countme`, et côté
-utilisateur `podman-auto-update.timer` et `ublue-user-setup`.
-(`dconf-update.service` est GNOME : inutile.)
+`input-remapper`, `ublue-system-setup`, `rpm-ostree-countme`, and for users
+`podman-auto-update.timer` and `ublue-user-setup`.
+(`dconf-update.service` is GNOME-only: not needed.)
 
-**e) Flatpaks par défaut** (`system-flatpaks.Brewfile`)
+**e) Default flatpaks** (`system-flatpaks.Brewfile`)
 
-Neutres, à garder : Firefox, Thunderbird, Flatseal, Bazaar (boutique),
-Mission Center, DistroShelf, Ignition, Impression, Pinta, Gradia, Refine,
-Déjà Dup, Firmware.
+Desktop-neutral, kept: Firefox, Thunderbird, Flatseal, Bazaar (store),
+Mission Center, DistroShelf, Ignition, Impression, Refine, Déjà Dup, Firmware.
 
-Applis GNOME : à remplacer par leurs équivalents COSMIC quand ils existent
-(Fichiers, Éditeur, Terminal, Lecteur, Paramètres sont fournis en RPM par
-COSMIC), ou à garder en flatpak (Calculatrice, Calendrier, Météo, Cartes,
-Papers, Loupe, Snapshot…). `ExtensionManager` et `NautilusPreviewer` sont à
-retirer.
+GNOME apps: replaced by COSMIC equivalents when they exist (Files, Edit,
+Terminal, Player and Settings ship as COSMIC RPMs), otherwise kept as flatpaks
+(Calculator, Calendar, Weather, Maps, Papers, Loupe, Snapshot…).
+`ExtensionManager` and `NautilusPreviewer` are dropped.
 
-**f) Variante DX** (`00-dx.sh`, optionnelle, plus tard)
+**f) DX variant** (`00-dx.sh`, optional, later)
 
-Docker CE, VS Code (dépôt Microsoft), libvirt/QEMU/virt-manager, incus/lxc,
-cockpit, podman-compose/machine/tui, bpftrace/bcc, ROCm, flatpaks Podman Desktop,
-DevToolbox, Builder.
+Docker CE, VS Code (Microsoft repo), libvirt/QEMU/virt-manager, incus/lxc,
+cockpit, podman-compose/machine/tui, bpftrace/bcc, ROCm, Podman Desktop,
+DevToolbox and Builder flatpaks.
 
-**g) Identité**
+**g) Identity**
 
-`os-release` et `image-info.json` (nom, ID, URL) réécrits par `00-image-info.sh`.
-À adapter pour « COSMIC-blue ».
+`os-release` and `image-info.json` (name, ID, URLs) are rewritten by
+`00-image-info.sh`; adapted for "COSMIC-blue".
 
-## 3. Étape 2 : ce qui est en place
+## 3. Current state of the build
 
-Base validée : `base-main` + COSMIC Fedora.
+- `Containerfile`: `FROM ghcr.io/ublue-os/base-main`, with the
+  `projectbluefin/common` and `ublue-os/brew` files passed through the build context.
+- `build_files/` (one script per step):
+  - `10-system-files.sh`: copies common + brew minus GNOME files, then `system_files/`;
+  - `20-cosmic.sh`: `@cosmic-desktop` group + COSMIC apps (Edit, Files, Player, Term), `cosmic-greeter`;
+  - `30-packages.sh`: packages from section 2b, Tailscale, uupd, Starship;
+  - `40-image-info.sh`: `image-info.json` and "COSMIC-blue" `os-release`;
+  - `50-services.sh`: services from section 2d, Flathub;
+  - `60-initramfs.sh`, `90-cleanup.sh` (third-party repos disabled), `99-tests.sh`
+    (checks, among other things, that COSMIC comes from Fedora and that GNOME Shell is absent).
+- `system_files/`: a few files taken from `ublue-os/bluefin`
+  (`flatpak-nuke-fedora`, setup hooks, starship), the first-boot flatpak list
+  (`cosmic-blue.preinstall`) and a COSMIC-adapted `system-flatpaks` Brewfile.
+- Signing: keyless (GitHub Actions OIDC) until a `SIGNING_SECRET` cosign key is
+  configured; the image is then referenced as `ostree-image-signed`.
 
-- `Containerfile` : `FROM ghcr.io/ublue-os/base-main`, avec les fichiers de
-  `projectbluefin/common` et `ublue-os/brew` passés par le contexte de build.
-- `build_files/` (un script par étape) :
-  - `10-system-files.sh` : copie common + brew sans les fichiers GNOME, puis `system_files/` ;
-  - `20-cosmic.sh` : groupes `@cosmic-desktop` + les applis COSMIC (Edit, Files, Player, Term), `cosmic-greeter` ;
-  - `30-packages.sh` : paquets de la section 2b, Tailscale, uupd, Starship ;
-  - `40-image-info.sh` : `image-info.json` et `os-release` « COSMIC-blue » ;
-  - `50-services.sh` : services de la section 2d, Flathub ;
-  - `60-initramfs.sh`, `90-cleanup.sh` (dépôts tiers désactivés), `99-tests.sh`
-    (vérifie entre autres que COSMIC vient bien de Fedora et qu'il n'y a pas de GNOME Shell).
-- `system_files/` : quelques fichiers repris de `ublue-os/bluefin`
-  (`flatpak-nuke-fedora`, hooks de setup, starship), la liste de flatpaks
-  installés au premier démarrage (`cosmic-blue.preinstall`) et le Brewfile
-  `system-flatpaks` adapté à COSMIC.
-
-Pas encore fait : variante DX, noyau ZFS, ISO (étape 3).
+Not done yet: DX variant, ZFS kernel, ISO, key-based signing.

@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Régénère l'initramfs pour prendre en compte les confs dracut ajoutées (ex. TPM/passkeys).
+# Regenerate the initramfs so added dracut configs (e.g. TPM/passkeys) take effect.
 set -euox pipefail
 
 KVER="$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core | head -n1)"
