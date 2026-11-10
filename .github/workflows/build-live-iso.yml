@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
   schedule:
     # Every Monday at 11:00 UTC, an hour after the daily image build
-    - cron: '00 11 * * 1'
+    - cron: '30 11 * * 1'
   pull_request:
     branches:
       - main
