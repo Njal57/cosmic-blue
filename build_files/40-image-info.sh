@@ -6,13 +6,21 @@ IMAGE_PRETTY_NAME="COSMIC-blue"
 HOME_URL="https://github.com/${IMAGE_VENDOR}/${IMAGE_NAME}"
 VERSION="${VERSION:-${FEDORA_MAJOR_VERSION}.$(date +%Y%m%d)}"
 
+# Tant que l'image n'est pas signée par clé (cosign.pub absent du dépôt), bootc ne peut pas
+# vérifier la signature : on référence l'image en "unverified".
+if [[ -f /etc/pki/containers/cosmic-blue.pub ]]; then
+    IMAGE_REF="ostree-image-signed:docker://ghcr.io/${IMAGE_VENDOR}/${IMAGE_NAME}"
+else
+    IMAGE_REF="ostree-unverified-registry:ghcr.io/${IMAGE_VENDOR}/${IMAGE_NAME}"
+fi
+
 mkdir -p /usr/share/ublue-os
 cat > /usr/share/ublue-os/image-info.json <<JSON
 {
   "image-name": "${IMAGE_NAME}",
   "image-flavor": "main",
   "image-vendor": "${IMAGE_VENDOR}",
-  "image-ref": "ostree-image-signed:docker://ghcr.io/${IMAGE_VENDOR}/${IMAGE_NAME}",
+  "image-ref": "${IMAGE_REF}",
   "image-tag": "${UBLUE_IMAGE_TAG}",
   "base-image-name": "base",
   "fedora-version": "${FEDORA_MAJOR_VERSION}"
