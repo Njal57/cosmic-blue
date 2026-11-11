@@ -84,3 +84,13 @@ test "$(systemctl get-default)" = graphical.target
 # Installer keyboard layout and clock format copied to COSMIC user settings
 test -x /usr/libexec/cosmic-blue-user-defaults
 systemctl is-enabled cosmic-blue-user-defaults.service
+
+# First-run assistant: no second language/keyboard/time zone prompt; VM agent
+test -f /etc/skel/.config/gnome-initial-setup-done
+rpm -q spice-vdagent
+
+# Frosted glass on by default, in the theme apps read and in the builder
+for theme in Dark Light; do
+    grep -qx true "/usr/share/cosmic/com.system76.CosmicTheme.${theme}/v2/frosted_windows"
+    grep -qx true "/usr/share/cosmic/com.system76.CosmicTheme.${theme}.Builder/v2/frosted_panel"
+done

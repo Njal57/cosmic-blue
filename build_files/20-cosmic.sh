@@ -30,9 +30,22 @@ dnf5 -y install --skip-unavailable \
     plymouth-system-theme \
     xdg-desktop-portal-gtk \
     xdg-user-dirs \
-    adw-gtk3-theme
+    adw-gtk3-theme \
+    spice-vdagent
+
+# spice-vdagent: in a VM (GNOME Boxes, virt-manager), clipboard sharing and
+# following the window size. It only starts when a SPICE channel is present.
 
 systemctl enable cosmic-greeter.service
+
+# COSMIC's first-run assistant (cosmic-initial-setup) asks again for the
+# language, keyboard layout and time zone, which Anaconda has already set.
+# When ~/.config/gnome-initial-setup-done exists it skips those pages (and the
+# Wi-Fi and account ones) and keeps accessibility, appearance, panel layout and
+# the COSMIC introduction. New accounts get that file from /etc/skel.
+mkdir -p /etc/skel/.config
+touch /etc/skel/.config/gnome-initial-setup-done
+
 systemctl set-default graphical.target
 
 # Fedora's default wallpaper for this release (day/night), offered in COSMIC
