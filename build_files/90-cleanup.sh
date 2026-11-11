@@ -22,6 +22,7 @@ done
 # reads /etc/yum.repos.d to build the installer ISO, so expose the Fedora repos there
 # too (a file in /etc/yum.repos.d overrides the same-named one in /usr/share).
 for repo_file in /usr/share/dnf5/repos.d/fedora*.repo; do
+    [[ -f "${repo_file}" ]] || continue
     [[ -f "/etc/yum.repos.d/$(basename "${repo_file}")" ]] || cp -a "${repo_file}" /etc/yum.repos.d/
 done
 
