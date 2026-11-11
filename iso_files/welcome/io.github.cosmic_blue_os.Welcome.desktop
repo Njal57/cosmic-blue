@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Welcome to cosmic-blue
+Name[fr]=Bienvenue dans cosmic-blue
+Comment=Discover cosmic-blue and install it
+Comment[fr]=Découvrir cosmic-blue et l'installer
+Icon=fedora-logo-icon
+Exec=/usr/libexec/cosmic-blue-welcome
+Terminal=false
+StartupNotify=true
+Categories=System;

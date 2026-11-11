@@ -117,3 +117,19 @@ tee /usr/share/anaconda/post-scripts/disable-fedora-flatpak.ks <<'EOF'
 systemctl disable flatpak-add-fedora-repos.service || true
 %end
 EOF
+
+### Welcome tour
+
+# A short tour (iso_files/welcome) that opens with the live session: what
+# cosmic-blue is, trying it live, highlights, and a button for the installer.
+# The workflow copies its files into the titanoboa checkout, mounted at /app.
+dnf install -y gjs gtk4 libadwaita
+install -D -m 0755 /app/cosmic-blue-welcome/cosmic-blue-welcome.js /usr/libexec/cosmic-blue-welcome
+install -D -m 0644 /app/cosmic-blue-welcome/io.github.cosmic_blue_os.Welcome.desktop \
+    /usr/share/applications/io.github.cosmic_blue_os.Welcome.desktop
+install -D -m 0644 /app/cosmic-blue-welcome/io.github.cosmic_blue_os.Welcome.desktop \
+    /etc/xdg/autostart/io.github.cosmic_blue_os.Welcome.desktop
+# COSMIC's first-run assistant is for installed systems: skip it in the live
+# session so that it does not open on top of the tour.
+mkdir -p /etc/skel/.config
+touch /etc/skel/.config/cosmic-initial-setup-done

@@ -59,6 +59,9 @@ jobs:
           git -C "${titanoboa_dir}" checkout --quiet "${TITANOBOA_REF}"
           # just >= 1.57 requires the list language feature used by which()
           sed -i '1a set lists' "${titanoboa_dir}/Justfile"
+          # The post-rootfs hook only sees the titanoboa checkout (mounted at
+          # /app), so ship the welcome tour files inside it.
+          cp -r iso_files/welcome "${titanoboa_dir}/cosmic-blue-welcome"
 
           # Arguments: image, livesys, flatpaks file, compression, extra kargs,
           # image embedded for the installer, polkit rules.
