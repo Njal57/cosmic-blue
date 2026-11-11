@@ -1,3 +1,5 @@
+<p align="center"><img src="branding/logo/cosmic-blue-logo-horizontal-dark.svg#gh-dark-mode-only" alt="cosmic-blue" width="420"><img src="branding/logo/cosmic-blue-logo-horizontal-light.svg#gh-light-mode-only" alt="cosmic-blue" width="420"></p>
+
 # cosmic-blue
 
 cosmic-blue is a Bluefin-like [Universal Blue](https://universal-blue.org/) image
@@ -28,7 +30,10 @@ always roll back to the previous version.
   Tailscale.
 - **Flatpaks:** Firefox and a set of apps from Bluefin's list are installed
   from Flathub on first boot.
-- Fedora and COSMIC defaults for wallpaper, boot splash and logos.
+- Dark theme by default (COSMIC and GTK apps).
+- Its own wallpaper and logo, also on the boot screen (sources in
+  [`branding/`](branding/)); Fedora's wallpaper stays available in COSMIC
+  Settings.
 
 ## Install
 

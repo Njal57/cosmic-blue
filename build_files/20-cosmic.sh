@@ -34,3 +34,15 @@ dnf5 -y install --skip-unavailable \
 
 systemctl enable cosmic-greeter.service
 systemctl set-default graphical.target
+
+# Fedora's default wallpaper for this release (day/night), offered in COSMIC
+# Settings next to the cosmic-blue one. (Fedora 44 has no extras package.)
+dnf5 -y install "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
+
+# cosmic-blue defaults (wallpaper, theme) and boot logo (Plymouth watermark)
+# were copied before these packages were installed; apply them again so they
+# win over the packaged files.
+cp -a /ctx/system_files/cosmic-blue/usr/share/cosmic/. /usr/share/cosmic/
+cp -a /ctx/system_files/cosmic-blue/usr/share/plymouth/. /usr/share/plymouth/
+# Dark GTK defaults (zz1-cosmic-blue.gschema.override)
+glib-compile-schemas /usr/share/glib-2.0/schemas

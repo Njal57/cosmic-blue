@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-50 -50 100 100"><title>cosmic-blue</title><defs>
+<linearGradient id="cb-orbit" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#7fe0ff"/><stop offset="1" stop-color="#2f6bff"/></linearGradient>
+<linearGradient id="cb-planet" x1=".2" y1="1" x2=".8" y2="0"><stop offset="0" stop-color="#cfeeff"/><stop offset=".45" stop-color="#4f98f5"/><stop offset="1" stop-color="#14399e"/></linearGradient>
+</defs><path d="M30.3 -25.4 A40 40 0 1 0 30.3 25.4" fill="none" stroke="url(#cb-orbit)" stroke-width="13" stroke-linecap="round"/><circle cx="-2" cy="0" r="13" fill="url(#cb-planet)"/><circle cx="38" cy="0" r="6.5" fill="#e6f3ff"/></svg>

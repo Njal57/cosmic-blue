@@ -1,0 +1,5 @@
+# Dark by default for GTK and libadwaita apps that read GSettings directly
+# (COSMIC itself defaults to dark, and tells portal-aware apps and flatpaks).
+[org.gnome.desktop.interface]
+color-scheme='prefer-dark'
+gtk-theme='adw-gtk3-dark'
