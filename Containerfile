@@ -2,7 +2,9 @@
 # See docs/plan.md for the choice of base image and the inventory.
 
 ARG BASE_IMAGE="ghcr.io/ublue-os/base-main"
-ARG BASE_TAG="latest"
+# Fedora 44, like Bluefin and Aurora: on Fedora 45 the live ISO installer
+# fails while preparing /var (systemd-tmpfiles exits with code 73).
+ARG BASE_TAG="44"
 ARG COMMON_IMAGE="ghcr.io/projectbluefin/common:latest"
 ARG BREW_IMAGE="ghcr.io/ublue-os/brew:latest"
 

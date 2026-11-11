@@ -12,7 +12,7 @@ always roll back to the previous version.
 
 ## What's inside
 
-- **Base:** `ghcr.io/ublue-os/base-main:latest`, the Universal Blue "main" layer
+- **Base:** `ghcr.io/ublue-os/base-main:44` (Fedora 44, like Bluefin), the Universal Blue "main" layer
   without any desktop: Fedora, multimedia codecs, ublue signing keys, `ujust`,
   udev rules and Flathub.
 - **Desktop:** COSMIC from the official Fedora repositories (no COPR), with

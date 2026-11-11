@@ -65,10 +65,11 @@ menu_auto_hide = True
 [Storage]
 default_scheme = BTRFS
 btrfs_compression = zstd:1
-# A single btrfs root: on Fedora 45, a separate /home (mounted as /var/home)
-# makes Anaconda's `systemd-tmpfiles --prefix=/var/home` step fail (code 73).
+# Same layout as Bluefin and Aurora: one btrfs volume with /, /home and /var
 default_partitioning =
-    /     (min 1 GiB)
+    /     (min 1 GiB, max 70 GiB)
+    /home (min 500 MiB, free 50 GiB)
+    /var  (btrfs)
 
 [User Interface]
 hidden_spokes =

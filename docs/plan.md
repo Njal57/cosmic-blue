@@ -5,8 +5,10 @@ COSMIC coming from the **official Fedora packages** (no COPR).
 
 ## 1. Base image
 
-**`ghcr.io/ublue-os/base-main:latest`** (currently Fedora 45), with COSMIC
-installed from the Fedora repositories.
+**`ghcr.io/ublue-os/base-main:44`** (Fedora 44, like Bluefin), with COSMIC
+installed from the Fedora repositories. It was `latest` (Fedora 45) at first,
+but the live ISO installer failed on Fedora 45 (`systemd-tmpfiles` exit code 73
+while Anaconda prepares /var). Move to the next release when Bluefin does.
 
 ### How Bluefin is built
 
