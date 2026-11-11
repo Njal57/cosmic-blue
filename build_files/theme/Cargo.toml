@@ -1,0 +1,11 @@
+[package]
+name = "cosmic-blue-theme"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Same libcosmic revision as the COSMIC 1.11.0 packages in Fedora 44
+# (cosmic-settings epoch-1.11.0 Cargo.lock). Update it with COSMIC.
+[dependencies]
+cosmic-theme = { git = "https://github.com/pop-os/libcosmic", rev = "430f3d48a97d8779f9c1985473912e594ccca1ae", default-features = false }
+cosmic-config = { git = "https://github.com/pop-os/libcosmic", rev = "430f3d48a97d8779f9c1985473912e594ccca1ae", default-features = false }

@@ -12,6 +12,12 @@ ARG BREW_IMAGE="ghcr.io/ublue-os/brew:latest"
 FROM ${COMMON_IMAGE} AS common
 FROM ${BREW_IMAGE} AS brew
 
+# Default COSMIC themes with frosted glass (see build_files/theme/src/main.rs)
+FROM docker.io/library/rust:1 AS theme
+COPY build_files/theme /theme
+RUN cd /theme && cargo build --release \
+    && XDG_CONFIG_HOME=/out /theme/target/release/cosmic-blue-theme
+
 # Build context: scripts + system files, never copied as-is into the final image
 FROM scratch AS ctx
 COPY build_files /build_files
@@ -20,6 +26,7 @@ COPY --from=common /system_files/bluefin /system_files/common-bluefin
 COPY --from=brew /system_files /system_files/brew
 # Our own files, applied last so they take precedence
 COPY system_files /system_files/cosmic-blue
+COPY --from=theme /out/cosmic /system_files/cosmic-blue/usr/share/cosmic
 # Public key used to verify the image signature on update
 COPY cosign.pub /system_files/cosmic-blue/etc/pki/containers/cosmic-blue.pub
 
