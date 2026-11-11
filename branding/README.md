@@ -10,6 +10,8 @@ SVGs need no font.
 - `logo/cosmic-blue-logo.png`: the mark, 512 px (Artifact Hub)
 - `logo/cosmic-blue-logo-horizontal-dark.svg` / `-light.svg`: mark + wordmark,
   for dark and light backgrounds
+- `system_files/usr/share/plymouth/themes/spinner/watermark.png`: the dark
+  horizontal logo at 392x70, shown on the boot screen
 
 Regenerate the SVGs with `python3 logo/build.py`.
 

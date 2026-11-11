@@ -4,7 +4,7 @@ set -euox pipefail
 
 # ublue signing keys present (otherwise updates from ghcr.io/ublue-os are impossible)
 jq -e '.transports.docker."ghcr.io/ublue-os"' /etc/containers/policy.json >/dev/null
-# No Bluefin wallpapers or boot watermark
+# No Bluefin wallpapers
 test ! -e /usr/share/backgrounds/bluefin
 # cosmic-blue wallpaper is the COSMIC default, and the logo is installed
 test -s /usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg
@@ -17,9 +17,9 @@ test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface color
 # Fedora's own wallpapers stay available
 rpm -q "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
 grep -q '^LOGO=cosmic-blue-logo$' /usr/lib/os-release
-if rpm -q plymouth-theme-spinner; then
-    rpm -V --nomode --nouser --nogroup --nomtime plymouth-theme-spinner
-fi
+# Boot (Plymouth) watermark is the cosmic-blue logo, not Fedora's or Bluefin's
+cmp /ctx/system_files/cosmic-blue/usr/share/plymouth/themes/spinner/watermark.png \
+    /usr/share/plymouth/themes/spinner/watermark.png
 
 # cosmic-blue signing key and policy, and the signed image reference
 test -s /etc/pki/containers/cosmic-blue.pub
