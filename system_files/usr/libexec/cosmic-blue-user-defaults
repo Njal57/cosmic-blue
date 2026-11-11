@@ -1,0 +1,97 @@
+#!/usr/bin/bash
+# Gives COSMIC the keyboard layout and clock format chosen in the installer.
+#
+# Anaconda stores them system-wide (/etc/X11/xorg.conf.d/00-keyboard.conf,
+# /etc/vconsole.conf, /etc/locale.conf), but cosmic-greeter and cosmic-comp
+# only read each user's COSMIC settings, which cosmic-initial-setup would
+# normally write. Without them the login screen and the session use a US
+# QWERTY layout and a 12-hour clock.
+#
+# Runs before the login screen at every boot. It only creates settings that
+# are missing, so a user's own choices are never overwritten.
+set -euo pipefail
+
+XKB_KEY=com.system76.CosmicComp/v1/xkb_config
+TIME_KEY=com.system76.CosmicAppletTime/v1/military_time
+WEEK_KEY=com.system76.CosmicAppletTime/v1/first_day_of_week
+
+layout="" model="" variant="" options=""
+
+# 1. X11 keyboard settings written by Anaconda or localectl
+if [[ -f /etc/X11/xorg.conf.d/00-keyboard.conf ]]; then
+    xkb_option() {
+        sed -n "s/^[[:space:]]*Option[[:space:]]*\"$1\"[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" \
+            /etc/X11/xorg.conf.d/00-keyboard.conf | head -n 1
+    }
+    layout="$(xkb_option XkbLayout)"
+    model="$(xkb_option XkbModel)"
+    variant="$(xkb_option XkbVariant)"
+    options="$(xkb_option XkbOptions)"
+fi
+
+# 2. Otherwise, the console keymap translated with systemd's map
+if [[ -z "${layout}" && -f /etc/vconsole.conf ]]; then
+    keymap="$(sed -n 's/^KEYMAP="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' /etc/vconsole.conf | head -n 1)"
+    if [[ -n "${keymap}" && -f /usr/share/systemd/kbd-model-map ]]; then
+        read -r _ layout model variant options < <(
+            awk -v km="${keymap}" '$1 == km { print; exit }' /usr/share/systemd/kbd-model-map
+        ) || true
+        [[ "${variant}" == "-" ]] && variant=""
+        [[ "${options}" == "-" ]] && options=""
+    fi
+fi
+
+# 24-hour clock and weeks starting on Monday, unless the language is US English
+lang="$(sed -n 's/^LANG="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' /etc/locale.conf 2>/dev/null | head -n 1)"
+military_time=true
+[[ "${lang}" == en_US* || -z "${lang}" ]] && military_time=false
+
+xkb_config=""
+if [[ -n "${layout}" && "${layout}" != "us" ]] || [[ -n "${variant}" ]]; then
+    if [[ -n "${options}" ]]; then options_ron="Some(\"${options}\")"; else options_ron="None"; fi
+    xkb_config="(
+    rules: \"\",
+    model: \"${model}\",
+    layout: \"${layout}\",
+    variant: \"${variant}\",
+    options: ${options_ron},
+    repeat_delay: 600,
+    repeat_rate: 25,
+)"
+fi
+
+# Writes a setting in a COSMIC config dir if it is not there yet
+write_missing() { # config_dir key value owner
+    local file="$1/$2"
+    [[ -n "$3" && ! -e "${file}" ]] || return 0
+    install -d -m 0755 "$(dirname "${file}")"
+    printf '%s' "$3" >"${file}"
+    if [[ -n "$4" ]]; then
+        chown -R "$4" "$1"
+    fi
+}
+
+configure() { # home owner
+    local dir="$1/.config/cosmic" time_value="" week_value=""
+    if [[ -n "$2" && ! -d "$1/.config" ]]; then
+        install -d -m 0700 -o "${2%%:*}" -g "${2##*:}" "$1/.config"
+    fi
+    if [[ "${military_time}" == true ]]; then
+        time_value=true
+        week_value=0
+    fi
+    write_missing "${dir}" "${XKB_KEY}" "${xkb_config}" "$2"
+    write_missing "${dir}" "${TIME_KEY}" "${time_value}" "$2"
+    write_missing "${dir}" "${WEEK_KEY}" "${week_value}" "$2"
+}
+
+# Future users
+configure /etc/skel ""
+
+# Existing users (regular UIDs, home under /home)
+while IFS=: read -r name _ uid gid _ home _; do
+    if (( uid >= 1000 && uid < 60000 )) && [[ "${home}" == /home/* || "${home}" == /var/home/* ]] \
+        && [[ -d "${home}" ]]; then
+        configure "${home}" "${uid}:${gid}"
+    fi
+done < <(getent passwd)

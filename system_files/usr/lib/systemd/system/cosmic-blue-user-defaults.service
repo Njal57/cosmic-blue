@@ -1,0 +1,11 @@
+[Unit]
+Description=Apply the installer keyboard layout and clock format to COSMIC
+After=local-fs.target systemd-user-sessions.service
+Before=cosmic-greeter.service display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/cosmic-blue-user-defaults
+
+[Install]
+WantedBy=multi-user.target
