@@ -24,8 +24,9 @@ survive cropping to 16:10, 4:3 and 21:9.
 It is built from two layers:
 
 - `wallpaper/sky.py`: sky gradient, procedural Milky Way and stars (numpy)
-- `wallpaper/foreground.py`: horizon planet, sunrise, ringed gas giant and
-  moon (SVG, rendered by `wallpaper/render.js` with Playwright's Chromium)
+- `wallpaper/foreground.py`: the logo as a scene, a planet inside a glowing
+  open orbit with a moon in the gap (SVG, rendered by `wallpaper/render.js`
+  with Playwright's Chromium)
 
-`wallpaper/build.sh` renders both, adds a fine grain against banding and
+`wallpaper/build.sh` renders both, dims the sky behind the planet, adds a fine grain against banding and
 writes the JPEG. The output is deterministic (fixed seeds).
