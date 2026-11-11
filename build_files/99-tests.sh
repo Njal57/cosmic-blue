@@ -12,7 +12,7 @@ fi
 
 # cosmic-blue signing key and policy, and the signed image reference
 test -s /etc/pki/containers/cosmic-blue.pub
-jq -e '.transports.docker."ghcr.io/njal57/cosmic-blue"[0].keyPath == "/etc/pki/containers/cosmic-blue.pub"' \
+jq -e '.transports.docker."ghcr.io/cosmic-blue-os/cosmic-blue"[0].keyPath == "/etc/pki/containers/cosmic-blue.pub"' \
     /etc/containers/policy.json >/dev/null
 grep -q 'use-sigstore-attachments: true' /etc/containers/registries.d/cosmic-blue.yaml
 jq -e '."image-ref" | startswith("ostree-image-signed:")' /usr/share/ublue-os/image-info.json >/dev/null

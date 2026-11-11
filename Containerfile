@@ -24,7 +24,7 @@ COPY cosign.pub /system_files/cosmic-blue/etc/pki/containers/cosmic-blue.pub
 FROM ${BASE_IMAGE}:${BASE_TAG}
 
 ARG IMAGE_NAME="cosmic-blue"
-ARG IMAGE_VENDOR="njal57"
+ARG IMAGE_VENDOR="cosmic-blue-os"
 ARG UBLUE_IMAGE_TAG="latest"
 ARG VERSION=""
 

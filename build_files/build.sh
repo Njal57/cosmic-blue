@@ -3,7 +3,7 @@
 set -euox pipefail
 
 : "${IMAGE_NAME:=cosmic-blue}"
-: "${IMAGE_VENDOR:=njal57}"
+: "${IMAGE_VENDOR:=cosmic-blue-os}"
 : "${UBLUE_IMAGE_TAG:=latest}"
 : "${VERSION:=}"
 export IMAGE_NAME IMAGE_VENDOR UBLUE_IMAGE_TAG VERSION
