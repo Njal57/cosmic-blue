@@ -16,6 +16,9 @@ grep -qx true /usr/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark
 test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'"
 # Fedora's own wallpapers stay available
 rpm -q "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
+# Each wallpaper is listed once in COSMIC Settings: no aliases, no copies
+test -z "$(find /usr/share/backgrounds -type l)"
+test -z "$(find /usr/share/backgrounds -type f -exec sha256sum {} + | cut -d' ' -f1 | sort | uniq -d)"
 grep -q '^LOGO=cosmic-blue-logo$' /usr/lib/os-release
 # Boot (Plymouth) watermark is the cosmic-blue logo, not Fedora's or Bluefin's
 cmp /ctx/system_files/cosmic-blue/usr/share/plymouth/themes/spinner/watermark.png \
