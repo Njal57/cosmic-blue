@@ -6,6 +6,12 @@ set -euox pipefail
 jq -e '.transports.docker."ghcr.io/ublue-os"' /etc/containers/policy.json >/dev/null
 # No Bluefin wallpapers or boot watermark
 test ! -e /usr/share/backgrounds/bluefin
+# cosmic-blue wallpaper is the COSMIC default, and the logo is installed
+test -s /usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg
+grep -q 'Path("/usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg")' \
+    /usr/share/cosmic/com.system76.CosmicBackground/v1/all
+test -s /usr/share/icons/hicolor/scalable/apps/cosmic-blue-logo.svg
+grep -q '^LOGO=cosmic-blue-logo$' /usr/lib/os-release
 if rpm -q plymouth-theme-spinner; then
     rpm -V --nomode --nouser --nogroup --nomtime plymouth-theme-spinner
 fi

@@ -34,6 +34,9 @@ sed -i "s|^VARIANT_ID=.*|VARIANT_ID=${IMAGE_NAME}|" /usr/lib/os-release
 sed -i "s|^HOME_URL=.*|HOME_URL=\"${HOME_URL}\"|" /usr/lib/os-release
 sed -i "s|^SUPPORT_URL=.*|SUPPORT_URL=\"${HOME_URL}/issues\"|" /usr/lib/os-release
 sed -i "s|^BUG_REPORT_URL=.*|BUG_REPORT_URL=\"${HOME_URL}/issues\"|" /usr/lib/os-release
+# Logo shown by COSMIC Settings (About) and fetch tools: an icon name
+sed -i "/^LOGO=/d" /usr/lib/os-release
+echo "LOGO=cosmic-blue-logo" >> /usr/lib/os-release
 sed -i "/^IMAGE_ID=/d; /^IMAGE_VERSION=/d" /usr/lib/os-release
 echo "IMAGE_ID=\"${IMAGE_NAME}\"" >> /usr/lib/os-release
 echo "IMAGE_VERSION=\"${VERSION}\"" >> /usr/lib/os-release
