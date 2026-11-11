@@ -45,3 +45,5 @@ rpm -q "f${FEDORA_MAJOR_VERSION}-backgrounds-extras-base" || echo "No Fedora ext
 # cosmic-blue defaults (wallpaper...) were copied before COSMIC was installed;
 # apply them again so they win over the files shipped by the packages.
 cp -a /ctx/system_files/cosmic-blue/usr/share/cosmic/. /usr/share/cosmic/
+# Dark GTK defaults (zz1-cosmic-blue.gschema.override)
+glib-compile-schemas /usr/share/glib-2.0/schemas

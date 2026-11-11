@@ -11,6 +11,9 @@ test -s /usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg
 grep -q 'Path("/usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg")' \
     /usr/share/cosmic/com.system76.CosmicBackground/v1/all
 test -s /usr/share/icons/hicolor/scalable/apps/cosmic-blue-logo.svg
+# Dark theme by default (COSMIC and GTK)
+grep -qx true /usr/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark
+test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'"
 # Fedora's own wallpapers stay available
 rpm -q "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
 grep -q '^LOGO=cosmic-blue-logo$' /usr/lib/os-release

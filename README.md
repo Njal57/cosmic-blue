@@ -30,6 +30,7 @@ always roll back to the previous version.
   Tailscale.
 - **Flatpaks:** Firefox and a set of apps from Bluefin's list are installed
   from Flathub on first boot.
+- Dark theme by default (COSMIC and GTK apps).
 - Its own wallpaper and logo (sources in [`branding/`](branding/)), with
   Fedora's wallpapers also available in COSMIC Settings; Fedora defaults for
   the boot splash.
