@@ -88,6 +88,6 @@ rpm -q spice-vdagent
 
 # Frosted glass on by default, in the theme apps read and in the builder
 for theme in Dark Light; do
-    grep -qx true "/usr/share/cosmic/com.system76.CosmicTheme.${theme}/v1/frosted_windows"
-    grep -qx true "/usr/share/cosmic/com.system76.CosmicTheme.${theme}.Builder/v1/frosted_panel"
+    grep -qx true "/usr/share/cosmic/com.system76.CosmicTheme.${theme}/v2/frosted_windows"
+    grep -qx true "/usr/share/cosmic/com.system76.CosmicTheme.${theme}.Builder/v2/frosted_panel"
 done
