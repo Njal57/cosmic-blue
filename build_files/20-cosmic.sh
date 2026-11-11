@@ -35,6 +35,13 @@ dnf5 -y install --skip-unavailable \
 systemctl enable cosmic-greeter.service
 systemctl set-default graphical.target
 
+# Fedora's wallpapers for this release (default day/night + extras), offered
+# in COSMIC Settings next to the cosmic-blue one.
+dnf5 -y install --skip-unavailable \
+    "f${FEDORA_MAJOR_VERSION}-backgrounds-base" \
+    "f${FEDORA_MAJOR_VERSION}-backgrounds-extras-base"
+rpm -q "f${FEDORA_MAJOR_VERSION}-backgrounds-extras-base" || echo "No Fedora extra wallpapers for this release"
+
 # cosmic-blue defaults (wallpaper...) were copied before COSMIC was installed;
 # apply them again so they win over the files shipped by the packages.
 cp -a /ctx/system_files/cosmic-blue/usr/share/cosmic/. /usr/share/cosmic/

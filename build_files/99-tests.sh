@@ -11,6 +11,8 @@ test -s /usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg
 grep -q 'Path("/usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg")' \
     /usr/share/cosmic/com.system76.CosmicBackground/v1/all
 test -s /usr/share/icons/hicolor/scalable/apps/cosmic-blue-logo.svg
+# Fedora's own wallpapers stay available
+rpm -q "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
 grep -q '^LOGO=cosmic-blue-logo$' /usr/lib/os-release
 if rpm -q plymouth-theme-spinner; then
     rpm -V --nomode --nouser --nogroup --nomtime plymouth-theme-spinner
