@@ -3,3 +3,5 @@
 [org.gnome.desktop.interface]
 color-scheme='prefer-dark'
 gtk-theme='adw-gtk3-dark'
+# Same icon theme as COSMIC (com.system76.CosmicTk icon_theme)
+icon-theme='cosmic-blue'
