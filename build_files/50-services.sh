@@ -4,6 +4,7 @@ set -euox pipefail
 
 systemctl enable \
     brew-setup.service \
+    cosmic-blue-user-defaults.service \
     flatpak-nuke-fedora.service \
     flatpak-preinstall.service \
     input-remapper.service \
