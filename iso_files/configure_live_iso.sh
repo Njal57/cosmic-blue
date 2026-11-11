@@ -65,8 +65,8 @@ menu_auto_hide = True
 [Storage]
 default_scheme = BTRFS
 btrfs_compression = zstd:1
-# A single btrfs root: on Fedora 45, a separate /home (mounted as /var/home)
-# makes Anaconda's `systemd-tmpfiles --prefix=/var/home` step fail (code 73).
+# A single btrfs root: `bootc install to-filesystem` does not yet initialize
+# a separately mounted /var (bootc-dev/bootc#2599).
 default_partitioning =
     /     (min 1 GiB)
 
@@ -96,11 +96,16 @@ mkdir -p /usr/share/cosmic/com.system76.CosmicAppList/v1
 (IFS=,; echo "[${dock[*]}]") >/usr/share/cosmic/com.system76.CosmicAppList/v1/favorites
 cat /usr/share/cosmic/com.system76.CosmicAppList/v1/favorites
 
-# Install the image embedded in the ISO (no download needed), then point the
-# deployment at the registry so that `bootc upgrade` pulls updates from GHCR.
+# Install the image embedded in the ISO (no download needed) with Anaconda's
+# bootc payload, which runs `bootc install to-filesystem`. The older
+# `ostreecontainer` payload fails on Fedora 45 when Anaconda prepares /var
+# (`systemd-tmpfiles --prefix=/var/home` exits with code 73).
+# --target-imgref points the deployment at the registry so that
+# `bootc upgrade` pulls updates from GHCR; the %post switch below adds the
+# signature policy check.
 mkdir -p /usr/share/anaconda/post-scripts
 tee -a /usr/share/anaconda/interactive-defaults.ks <<EOF
-ostreecontainer --url=$IMAGE_REF:$IMAGE_TAG --transport=containers-storage --no-signature-verification
+bootc --source-imgref=containers-storage:$IMAGE_REF:$IMAGE_TAG --target-imgref=$IMAGE_REF:$IMAGE_TAG
 %include /usr/share/anaconda/post-scripts/install-configure-upgrade.ks
 %include /usr/share/anaconda/post-scripts/disable-fedora-flatpak.ks
 EOF
