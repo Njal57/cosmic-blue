@@ -7,8 +7,8 @@
 # normally write. Without them the login screen and the session use a US
 # QWERTY layout and a 12-hour clock.
 #
-# Runs before the login screen at every boot. It only creates settings that
-# are missing, so a user's own choices are never overwritten.
+# Runs before the login screen at every boot. For users it only creates
+# settings that are missing, so a user's own choices are never overwritten.
 set -euo pipefail
 
 XKB_KEY=com.system76.CosmicComp/v1/xkb_config
@@ -84,6 +84,24 @@ configure() { # home owner
     write_missing "${dir}" "${TIME_KEY}" "${time_value}" "$2"
     write_missing "${dir}" "${WEEK_KEY}" "${week_value}" "$2"
 }
+
+# The login screen itself: cosmic-greeter runs its own cosmic-comp as the
+# cosmic-greeter user, and that compositor's keymap is what the password
+# field types with. This copy follows the system layout, so it is rewritten
+# whenever it differs.
+if [[ -n "${xkb_config}" ]] && greeter="$(getent passwd cosmic-greeter)"; then
+    greeter_home="$(cut -d: -f6 <<<"${greeter}")"
+    greeter_owner="$(cut -d: -f3,4 <<<"${greeter}")"
+    greeter_file="${greeter_home}/.config/cosmic/${XKB_KEY}"
+    if [[ -d "${greeter_home}" && "$(cat "${greeter_file}" 2>/dev/null)" != "${xkb_config}" ]]; then
+        install -d -m 0755 -o "${greeter_owner%%:*}" -g "${greeter_owner##*:}" \
+            "${greeter_home}/.config" "${greeter_home}/.config/cosmic" \
+            "${greeter_home}/.config/cosmic/com.system76.CosmicComp" \
+            "$(dirname "${greeter_file}")"
+        printf '%s' "${xkb_config}" >"${greeter_file}"
+        chown "${greeter_owner}" "${greeter_file}"
+    fi
+fi
 
 # Future users
 configure /etc/skel ""
