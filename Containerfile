@@ -18,6 +18,12 @@ COPY build_files/theme /theme
 RUN cd /theme && cargo build --release \
     && XDG_CONFIG_HOME=/out /theme/target/release/cosmic-blue-theme
 
+# COSMIC's first-run assistant, rebuilt from Fedora's source package with the
+# cosmic-blue patches (see build_files/initial_setup/patch.py)
+FROM registry.fedoraproject.org/fedora:${BASE_TAG} AS initial_setup
+COPY build_files/initial_setup /initial_setup
+RUN /initial_setup/build.sh
+
 # Build context: scripts + system files, never copied as-is into the final image
 FROM scratch AS ctx
 COPY build_files /build_files
@@ -27,6 +33,7 @@ COPY --from=brew /system_files /system_files/brew
 # Our own files, applied last so they take precedence
 COPY system_files /system_files/cosmic-blue
 COPY --from=theme /out/cosmic /system_files/cosmic-blue/usr/share/cosmic
+COPY --from=initial_setup /out /initial_setup
 # Public key used to verify the image signature on update
 COPY cosign.pub /system_files/cosmic-blue/etc/pki/containers/cosmic-blue.pub
 

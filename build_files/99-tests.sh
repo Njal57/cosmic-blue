@@ -87,6 +87,8 @@ systemctl is-enabled cosmic-blue-user-defaults.service
 
 # First-run assistant: no second language/keyboard/time zone prompt; VM agent
 test -f /etc/skel/.config/gnome-initial-setup-done
+# First-run assistant: our patched build (keeps the theme, no screen reader at start)
+cmp /ctx/initial_setup/cosmic-initial-setup /usr/bin/cosmic-initial-setup
 rpm -q spice-vdagent
 
 # Frosted glass on by default, in the theme apps read and in the builder
