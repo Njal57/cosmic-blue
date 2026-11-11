@@ -39,6 +39,33 @@ systemctl set-default graphical.target
 # Settings next to the cosmic-blue one. (Fedora 44 has no extras package.)
 dnf5 -y install "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
 
+# COSMIC Settings lists every image under /usr/share/backgrounds, following
+# symlinks, so aliases (desktop-backgrounds-compat's default.png...) and
+# copies show the same Fedora wallpaper many times. Keep one file per image.
+echo "Wallpapers before removing duplicates:"
+find /usr/share/backgrounds -printf '%y %p %l\n' | sort
+while IFS= read -r -d '' link; do
+    target="$(readlink -f "${link}" || true)"
+    if [[ -z "${target}" || ! -e "${target}" || "${target}" == /usr/share/backgrounds/* ]]; then
+        echo "Removing alias ${link} -> ${target}"
+        rm -f "${link}"
+    fi
+done < <(find /usr/share/backgrounds -type l -print0)
+declare -A seen_wallpapers=()
+while IFS= read -r -d '' file; do
+    hash="$(sha256sum "${file}" | cut -d' ' -f1)"
+    if [[ -n "${seen_wallpapers[${hash}]:-}" ]]; then
+        echo "Removing ${file}, same image as ${seen_wallpapers[${hash}]}"
+        rm -f "${file}"
+    else
+        seen_wallpapers[${hash}]="${file}"
+    fi
+done < <(find /usr/share/backgrounds -type f -regextype egrep \
+    -iregex '.*\.(png|jpe?g|jxl|webp|svg)' -print0 | sort -z)
+find /usr/share/backgrounds -mindepth 1 -type d -empty -delete
+echo "Wallpapers kept:"
+find /usr/share/backgrounds -printf '%y %p %l\n' | sort
+
 # cosmic-blue defaults (wallpaper, theme) and boot logo (Plymouth watermark)
 # were copied before these packages were installed; apply them again so they
 # win over the packaged files.
