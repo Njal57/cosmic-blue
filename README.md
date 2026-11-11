@@ -30,7 +30,10 @@ always roll back to the previous version.
   Tailscale.
 - **Flatpaks:** Firefox and a set of apps from Bluefin's list are installed
   from Flathub on first boot.
-- Dark theme by default (COSMIC and GTK apps).
+- Dark theme by default (COSMIC and GTK apps), with frosted glass and colors
+  built around the blue of the logo and wallpaper: a blue accent (#4f8dff
+  dark, #1d47c4 light) that also colors the outline of the active window,
+  night blue window backgrounds and slightly blue controls.
 - Icon theme "cosmic-blue": COSMIC's own symbolic icons with Papirus-Dark
   icons (blue folders) for apps and files, both from Fedora. Other themes
   can be picked in COSMIC Settings.
