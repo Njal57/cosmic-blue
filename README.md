@@ -1,3 +1,18 @@
+# cosmic-blue
+
+cosmic-blue is a Bluefin-like Universal Blue image with the COSMIC desktop.
+Source: https://github.com/cosmic-blue-os/cosmic-blue
+Image: `ghcr.io/cosmic-blue-os/cosmic-blue:latest`
+
+To switch an existing bootc system (including an older cosmic-blue install that
+still tracks the previous `ghcr.io/njal57/cosmic-blue` image) to cosmic-blue:
+
+```bash
+sudo bootc switch ghcr.io/cosmic-blue-os/cosmic-blue:latest
+```
+
+Reboot afterwards. The rest of this README is the upstream image-template guide.
+
 # image-template
 
 This repository is meant to be a template for building your own custom [bootc](https://github.com/bootc-dev/bootc) image. This template is the recommended way to make customizations to any image published by the Universal Blue Project.
