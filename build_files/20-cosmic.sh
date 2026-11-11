@@ -39,8 +39,10 @@ systemctl set-default graphical.target
 # Settings next to the cosmic-blue one. (Fedora 44 has no extras package.)
 dnf5 -y install "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
 
-# cosmic-blue defaults (wallpaper...) were copied before COSMIC was installed;
-# apply them again so they win over the files shipped by the packages.
+# cosmic-blue defaults (wallpaper, theme) and boot logo (Plymouth watermark)
+# were copied before these packages were installed; apply them again so they
+# win over the packaged files.
 cp -a /ctx/system_files/cosmic-blue/usr/share/cosmic/. /usr/share/cosmic/
+cp -a /ctx/system_files/cosmic-blue/usr/share/plymouth/. /usr/share/plymouth/
 # Dark GTK defaults (zz1-cosmic-blue.gschema.override)
 glib-compile-schemas /usr/share/glib-2.0/schemas
