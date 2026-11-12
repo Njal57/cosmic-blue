@@ -68,7 +68,8 @@ next to the system information, in place of Bluefin's dinosaurs:
   light version darkens the moon and the planet highlight. Bottom and right
   edges use reverse video blocks, so they are as smooth as the top and left
   ones. Regenerate them with `python3 fastfetch/build.py` (needs
-  `rsvg-convert` and Pillow).
+  `rsvg-convert`, numpy and Pillow). The script picks the size and position
+  of the logo on the cell grid that give the cleanest curves.
 - `system_files/usr/share/ublue-os/fastfetch.jsonc`: the modules (image, OS,
   COSMIC version, hardware...), with Nerd Font icons
 - `system_files/usr/bin/ublue-fastfetch`: picks the logo for the COSMIC
