@@ -1,0 +1,6 @@
+{
+    (modifiers: [Ctrl, Alt], key: "t", description: Some("Terminal")): System(Terminal),
+    (modifiers: [Super], key: "e", description: Some("Files")): System(HomeFolder),
+    (modifiers: [Super, Shift], key: "s", description: Some("Screenshot")): System(Screenshot),
+    (modifiers: [Ctrl, Shift], key: "Escape", description: Some("System monitor")): Spawn("flatpak run io.missioncenter.MissionCenter"),
+}
