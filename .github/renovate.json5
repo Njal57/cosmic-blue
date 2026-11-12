@@ -14,12 +14,13 @@
   "packageRules": [
     {
       // Base images are rebuilt every day (ublue-os/base-main around 01:10
-      // and 04:10 UTC): one grouped pull request right after the last
-      // upstream build. Its merge (after ~1 hour of CI) starts an image build.
+      // and 04:10 UTC): one grouped pull request at 04:00-04:59 UTC. Its
+      // merge (after ~1 hour of CI) builds the image, and the daily build of
+      // build.yml then sees a recent build and skips.
       "description": "Container images in the Containerfile",
       "matchManagers": ["dockerfile"],
       "groupName": "base images",
-      "schedule": ["* 5 * * *"]
+      "schedule": ["* 4 * * *"]
     },
     {
       "description": "GitHub Actions, once a week",

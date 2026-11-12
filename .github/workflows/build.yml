@@ -1,28 +1,87 @@
 ---
 name: Build container image
+# Triggers, without duplicate builds:
+#   - pull requests: build and boot-test, nothing is published,
+#   - pushes to main (merged pull requests, Renovate base image updates): build
+#     and publish,
+#   - every day: build and publish to pick up Fedora package updates, unless
+#     main was already built in the last hours (e.g. after the morning
+#     Renovate base image update),
+#   - by hand (workflow_dispatch), also used by check-cosmic-version.yml.
+# Changes that do not end up in the image (website, docs, other workflows,
+# Renovate config) do not start a build.
 on:
   pull_request:
     branches:
       - main
+    paths-ignore: &not-in-image
+      - '**/README.md'
+      - 'docs/**'
+      - 'website/**'
+      - 'artifacthub-repo.yml'
+      - '.github/renovate.json5'
+      - '.github/scripts/**'
+      - '.github/workflows/**'
+      - '!.github/workflows/build.yml'
   schedule:
     - cron: '30 10 * * *'  # every day at 10:30 UTC (11:30 in Paris in winter, 12:30 in summer)
   push:
     branches:
       - main
-    paths-ignore:
-      - '**/README.md'
+    paths-ignore: *not-in-image
   workflow_dispatch:
 
 env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
+  # The daily build is skipped if main was built within this many hours
+  RECENT_BUILD_HOURS: 8
 
+# Pull requests: a new push cancels the running build. Main: builds queue up
+# instead, so a publishing build is never cut short.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  recent_build:
+    name: Check for a recent build
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - name: Look for a recent build of main
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          since="$(date -u -d "-${RECENT_BUILD_HOURS} hours" +%FT%TZ)"
+          # Successful, running or queued builds of main, other than this run
+          recent="$(gh run list --workflow build.yml --branch main --limit 30 \
+            --json databaseId,status,conclusion,createdAt,event,url \
+            --jq "map(select(.databaseId != ${GITHUB_RUN_ID} and .event != \"pull_request\"
+                  and .createdAt >= \"${since}\"
+                  and (.status != \"completed\" or .conclusion == \"success\")))
+                  | .[0].url // empty")"
+          if [ -n "${recent}" ]; then
+            echo "main was built in the last ${RECENT_BUILD_HOURS} hours, skipping: ${recent}"
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "skip=false" >> "${GITHUB_OUTPUT}"
+          fi
+
   build_push:
     name: Build and push image
+    needs: recent_build
+    # recent_build only runs for the daily build
+    if: >-
+      !cancelled() &&
+      (needs.recent_build.result == 'skipped' ||
+       (needs.recent_build.result == 'success' && needs.recent_build.outputs.skip != 'true'))
     runs-on: ubuntu-26.04
 
     permissions:
