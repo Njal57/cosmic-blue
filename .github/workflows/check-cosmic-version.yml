@@ -1,7 +1,15 @@
 ---
 name: Check COSMIC version
-# Opens (or updates) an issue when Fedora ships a COSMIC version other than the
-# one in build_files/cosmic-version, and closes it once they match again.
+# When Fedora ships a COSMIC version other than the one in
+# build_files/cosmic-version, this workflow:
+#   1. opens an issue (label cosmic-update) to track the update,
+#   2. opens a pull request that moves the theme tool to the libcosmic revision
+#      of the new release and updates build_files/cosmic-version,
+#   3. builds the image from that branch (build.yml, nothing is published),
+#   4. merges the pull request and starts the main build if it is green.
+# If the build fails, the pull request and the issue stay open with a link to
+# the failed run, and this workflow fails too (GitHub sends an email); later
+# daily runs leave them alone until the pull request is fixed by hand.
 on:
   schedule:
     - cron: '0 6 * * *'  # every day at 06:00 UTC, before the image build
@@ -21,7 +29,10 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
+
+env:
+  LABEL: cosmic-update
 
 jobs:
   check:
@@ -30,6 +41,10 @@ jobs:
     permissions:
       contents: read
       issues: write
+    outputs:
+      base_tag: ${{ steps.fedora.outputs.base_tag }}
+      pinned: ${{ steps.fedora.outputs.pinned }}
+      current: ${{ steps.fedora.outputs.current }}
 
     steps:
       - name: Checkout
@@ -63,7 +78,7 @@ jobs:
             echo "current=${current}"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Open, update or close the issue
+      - name: Open or close the issue
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -72,16 +87,15 @@ jobs:
           CURRENT: ${{ steps.fedora.outputs.current }}
         run: |
           set -euo pipefail
-          label="cosmic-update"
-          gh label create "${label}" --force \
+          gh label create "${LABEL}" --force \
             --color 4f8dff --description "A new COSMIC version is available in Fedora"
-          issue="$(gh issue list --state open --label "${label}" \
+          issue="$(gh issue list --state open --label "${LABEL}" \
             --json number --jq '.[0].number // empty')"
 
           if [ "${CURRENT}" = "${PINNED}" ]; then
             if [ -n "${issue}" ]; then
               gh issue close "${issue}" \
-                --comment "build_files/cosmic-version now matches Fedora ${BASE_TAG} (COSMIC ${CURRENT})."
+                --comment "build_files/cosmic-version matches Fedora ${BASE_TAG} (COSMIC ${CURRENT})."
             fi
             exit 0
           fi
@@ -90,27 +104,185 @@ jobs:
           {
             echo "Fedora ${BASE_TAG} now ships COSMIC **${CURRENT}**, cosmic-blue is pinned to **${PINNED}**."
             echo
-            echo "Latest Fedora packages:"
-            echo
             echo '```'
             cat packages.txt
             echo '```'
             echo
-            echo "To do:"
+            echo "The daily image build already uses the new packages. This workflow opens a"
+            echo "pull request that moves the theme tool (\`build_files/theme/Cargo.toml\`) to"
+            echo "the libcosmic revision of cosmic-settings ${CURRENT}, builds the image from it"
+            echo "(which also rebuilds cosmic-initial-setup with \`build_files/initial_setup/patch.py\`)"
+            echo "and merges it when the build is green. This issue then closes itself."
             echo
-            echo "- [ ] Update the libcosmic revision in \`build_files/theme/Cargo.toml\` to the one in the \`Cargo.lock\` of cosmic-settings ${CURRENT}."
-            echo "- [ ] Check that \`build_files/initial_setup/patch.py\` still applies to cosmic-initial-setup and does what it should."
-            echo "- [ ] Set \`build_files/cosmic-version\` to \`${CURRENT}\`; this issue then closes itself."
-            echo "- [ ] Test the image in a VM (theme, initial setup)."
-            echo
-            echo "Found by the [Check COSMIC version](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) workflow."
+            echo "If the build fails, fix the pull request by hand."
           } > body.md
 
-          if [ -n "${issue}" ]; then
-            # Rewrite it only for another version, to keep ticked boxes
-            if [ "$(gh issue view "${issue}" --json title --jq .title)" != "${title}" ]; then
-              gh issue edit "${issue}" --title "${title}" --body-file body.md
-            fi
-          else
-            gh issue create --title "${title}" --label "${label}" --body-file body.md
+          if [ -z "${issue}" ]; then
+            gh issue create --title "${title}" --label "${LABEL}" --body-file body.md
+          elif [ "$(gh issue view "${issue}" --json title --jq .title)" != "${title}" ]; then
+            gh issue edit "${issue}" --title "${title}" --body-file body.md
           fi
+
+  update:
+    name: Update, test and merge
+    needs: check
+    if: github.event_name != 'pull_request' && needs.check.outputs.current != needs.check.outputs.pinned
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    permissions:
+      actions: write
+      contents: write
+      issues: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BASE_TAG: ${{ needs.check.outputs.base_tag }}
+      PINNED: ${{ needs.check.outputs.pinned }}
+      CURRENT: ${{ needs.check.outputs.current }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+
+      - name: Prepare the branch
+        id: branch
+        run: |
+          set -euo pipefail
+          branch="cosmic-update/${CURRENT//\~/-}"
+          echo "branch=${branch}" >> "${GITHUB_OUTPUT}"
+
+          if git ls-remote --exit-code --heads origin "${branch}" > /dev/null; then
+            # Already tried: a failed update waits for a manual fix (the pull
+            # request then builds and is merged like any other). A manual run
+            # of this workflow tests and merges the branch again.
+            if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+              echo "${branch} already exists, testing it again"
+              echo "run=true" >> "${GITHUB_OUTPUT}"
+            else
+              echo "${branch} already exists, waiting for a manual fix"
+            fi
+            exit 0
+          fi
+          echo "run=true" >> "${GITHUB_OUTPUT}"
+
+          # libcosmic revision locked by cosmic-settings for this release
+          # (upstream tags are epoch-<version>; Fedora writes pre-releases with ~)
+          tag="epoch-${CURRENT//\~/-}"
+          lock_url="https://raw.githubusercontent.com/pop-os/cosmic-settings/${tag}/Cargo.lock"
+          rev="$(curl -fsSL "${lock_url}" \
+            | sed -n 's|^source = "git+https://github.com/pop-os/libcosmic[^#]*#\([0-9a-f]\{40\}\)"$|\1|p' \
+            | sort -u)"
+          if [ "$(printf '%s\n' "${rev}" | grep -c .)" != 1 ]; then
+            echo "::error::Could not find a single libcosmic revision in ${lock_url}"
+            exit 1
+          fi
+          echo "libcosmic revision for COSMIC ${CURRENT}: ${rev}"
+
+          git switch -c "${branch}"
+          sed -i \
+            -e "s|\(libcosmic\", rev = \"\)[0-9a-f]\{40\}|\1${rev}|g" \
+            -e "s|COSMIC [0-9][^ ]* packages in Fedora [0-9]*|COSMIC ${CURRENT} packages in Fedora ${BASE_TAG}|" \
+            -e "s|cosmic-settings epoch-[^ ]* Cargo.lock|cosmic-settings ${tag} Cargo.lock|" \
+            build_files/theme/Cargo.toml
+          sed -i "s|^${PINNED//./\\.}\$|${CURRENT}|" build_files/cosmic-version
+          git diff --stat
+          grep -q "rev = \"${rev}\"" build_files/theme/Cargo.toml
+          grep -qx "${CURRENT}" build_files/cosmic-version
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Update to COSMIC ${CURRENT}" \
+            -m "Fedora ${BASE_TAG} ships COSMIC ${CURRENT}: move the theme tool to libcosmic ${rev} (cosmic-settings ${tag} Cargo.lock)."
+          git push origin "${branch}"
+
+      - name: Open the pull request
+        if: steps.branch.outputs.run == 'true'
+        id: pr
+        env:
+          BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          set -euo pipefail
+          pr="$(gh pr list --head "${BRANCH}" --state open --json number --jq '.[0].number // empty')"
+          if [ -z "${pr}" ]; then
+            issue="$(gh issue list --state open --label "${LABEL}" --json number --jq '.[0].number // empty')"
+            {
+              echo "Fedora ${BASE_TAG} ships COSMIC ${CURRENT} (cosmic-blue was pinned to ${PINNED})."
+              echo
+              echo "- \`build_files/theme/Cargo.toml\`: libcosmic revision locked by cosmic-settings ${CURRENT}."
+              echo "- \`build_files/cosmic-version\`: ${CURRENT}."
+              echo
+              echo "Opened by the [Check COSMIC version](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) workflow, which merges it once the image build from this branch is green."
+              if [ -n "${issue}" ]; then echo; echo "Closes #${issue}"; fi
+            } > pr.md
+            gh pr create --base main --head "${BRANCH}" --label "${LABEL}" \
+              --title "Update to COSMIC ${CURRENT}" --body-file pr.md
+            pr="$(gh pr list --head "${BRANCH}" --state open --json number --jq '.[0].number')"
+          fi
+          echo "pr=${pr}" >> "${GITHUB_OUTPUT}"
+
+      # Pushes and pull requests made with the workflow token do not start
+      # other workflows, so the image build is started by hand on the branch.
+      # Off the default branch, build.yml builds and tests but publishes nothing.
+      - name: Build the image from the branch
+        if: steps.branch.outputs.run == 'true'
+        id: build
+        env:
+          BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          set -euo pipefail
+          sha="$(git ls-remote origin "refs/heads/${BRANCH}" | cut -f1)"
+          gh workflow run build.yml --ref "${BRANCH}"
+
+          run=""
+          for _ in $(seq 60); do
+            sleep 10
+            run="$(gh run list --workflow build.yml --branch "${BRANCH}" \
+              --event workflow_dispatch --commit "${sha}" --limit 1 \
+              --json databaseId,createdAt \
+              --jq "map(select(.createdAt >= \"$(date -u -d '-15 min' +%FT%TZ)\")) | .[0].databaseId // empty")"
+            [ -n "${run}" ] && break
+          done
+          test -n "${run}"
+          echo "run=${run}" >> "${GITHUB_OUTPUT}"
+          echo "Build: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${run}"
+
+          gh run watch "${run}" --interval 60 --exit-status > /dev/null
+
+      - name: Merge
+        if: steps.branch.outputs.run == 'true'
+        env:
+          PR: ${{ steps.pr.outputs.pr }}
+          RUN: ${{ steps.build.outputs.run }}
+        run: |
+          set -euo pipefail
+          gh pr merge "${PR}" --squash --delete-branch \
+            --subject "Update to COSMIC ${CURRENT} (#${PR})" \
+            --body "Fedora ${BASE_TAG} ships COSMIC ${CURRENT}: move the theme tool to the libcosmic revision of this release. Image build from the branch passed: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${RUN}"
+
+          # The merge was made with the workflow token: start the build on main
+          gh workflow run build.yml --ref main
+
+          issue="$(gh issue list --state open --label "${LABEL}" --json number --jq '.[0].number // empty')"
+          if [ -n "${issue}" ]; then
+            gh issue close "${issue}" --comment "Updated to COSMIC ${CURRENT} in #${PR}."
+          fi
+
+      - name: Report a failure
+        if: failure()
+        env:
+          PR: ${{ steps.pr.outputs.pr }}
+          RUN: ${{ steps.build.outputs.run }}
+        run: |
+          set -euo pipefail
+          if [ -n "${RUN}" ]; then
+            url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${RUN}"
+          else
+            url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          fi
+          msg="The automatic update to COSMIC ${CURRENT} failed and needs a manual fix: ${url}"
+          issue="$(gh issue list --state open --label "${LABEL}" --json number --jq '.[0].number // empty')"
+          [ -n "${issue}" ] && gh issue comment "${issue}" --body "${msg}"
+          [ -n "${PR}" ] && gh pr comment "${PR}" --body "${msg}"
+          true
