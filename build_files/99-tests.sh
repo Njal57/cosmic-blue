@@ -20,9 +20,23 @@ rpm -q "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
 test -z "$(find /usr/share/backgrounds -type l)"
 test -z "$(find /usr/share/backgrounds -type f -exec sha256sum {} + | cut -d' ' -f1 | sort | uniq -d)"
 grep -q '^LOGO=cosmic-blue-logo$' /usr/lib/os-release
-# Boot (Plymouth) watermark is the cosmic-blue logo, not Fedora's or Bluefin's
-cmp /ctx/system_files/cosmic-blue/usr/share/plymouth/themes/spinner/watermark.png \
-    /usr/share/plymouth/themes/spinner/watermark.png
+# Boot screen (Plymouth): cosmic-blue theme by default, with our logo images,
+# the blue spinner and Fedora's other images, and included in the initramfs
+test "$(plymouth-set-default-theme)" = cosmic-blue
+PLYMOUTH_THEME=/usr/share/plymouth/themes/cosmic-blue
+grep -qx "ImageDir=${PLYMOUTH_THEME}" "${PLYMOUTH_THEME}/cosmic-blue.plymouth"
+grep -qx 'ModuleName=two-step' "${PLYMOUTH_THEME}/cosmic-blue.plymouth"
+grep -qx 'UseFirmwareBackground=true' "${PLYMOUTH_THEME}/cosmic-blue.plymouth"
+for image in watermark.png bgrt-fallback.png; do
+    cmp "/ctx/system_files/cosmic-blue/usr/share/plymouth/themes/cosmic-blue/${image}" "${PLYMOUTH_THEME}/${image}"
+done
+compgen -G "${PLYMOUTH_THEME}/throbber-*.png" >/dev/null
+test -e "${PLYMOUTH_THEME}/lock.png"
+test -e "${PLYMOUTH_THEME}/entry.png"
+KVER="$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core | head -n1)"
+lsinitrd "/usr/lib/modules/${KVER}/initramfs.img" > /tmp/initramfs.txt
+grep -q 'plymouth/themes/cosmic-blue/bgrt-fallback.png' /tmp/initramfs.txt
+grep -q 'plymouth/themes/cosmic-blue/cosmic-blue.plymouth' /tmp/initramfs.txt
 
 # cosmic-blue signing key and policy, and the signed image reference
 test -s /etc/pki/containers/cosmic-blue.pub
@@ -37,7 +51,12 @@ for f in bin/ujust share/ublue-os/just/00-entry.just share/ublue-os/just/apps.ju
     test -e "/usr/${f}"
 done
 
-test -f /usr/share/flatpak/preinstall.d/bazaar.preinstall
+test ! -e /usr/share/flatpak/preinstall.d/bazaar.preinstall
+! grep -q Bazaar /usr/share/ublue-os/homebrew/system-flatpaks.Brewfile
+for remote in flathub cosmic; do
+    grep -q '^\[Flatpak Repo\]' "/usr/share/flatpak/remotes.d/${remote}.flatpakrepo"
+    flatpak remotes --system --columns=name | grep -qx "${remote}"
+done
 test -f /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
 test ! -e /usr/lib/systemd/system/flatpak-add-fedora-repos.service
 # No Bluefin GNOME dconf settings (the folder itself may come from Fedora)
@@ -49,6 +68,7 @@ IMPORTANT_PACKAGES=(
     cosmic-session
     cosmic-greeter
     cosmic-comp
+    cosmic-store
     cosmic-files
     cosmic-term
     distrobox
@@ -79,6 +99,9 @@ for package in cosmic-session cosmic-comp; do
 done
 
 systemctl is-enabled cosmic-greeter.service
+# docker CLI works through the rootless Podman socket (ujust devmode installs docker)
+systemctl --global is-enabled podman.socket
+test -x /usr/share/ublue-os/user-setup.hooks.d/30-docker-podman.sh
 test "$(systemctl get-default)" = graphical.target
 
 # Installer keyboard layout and clock format copied to COSMIC user settings

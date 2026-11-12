@@ -14,6 +14,7 @@ dnf5 -y install \
     cosmic-edit \
     cosmic-files \
     cosmic-player \
+    cosmic-store \
     cosmic-term
 
 # (no power-profiles-daemon: base-main already ships tuned-ppd)
@@ -79,10 +80,28 @@ find /usr/share/backgrounds -mindepth 1 -type d -empty -delete
 echo "Wallpapers kept:"
 find /usr/share/backgrounds -printf '%y %p %l\n' | sort
 
-# cosmic-blue defaults (wallpaper, theme) and boot logo (Plymouth watermark)
+# cosmic-blue defaults (wallpaper, theme) and boot screen (Plymouth theme)
 # were copied before these packages were installed; apply them again so they
 # win over the packaged files.
 cp -a /ctx/system_files/cosmic-blue/usr/share/cosmic/. /usr/share/cosmic/
 cp -a /ctx/system_files/cosmic-blue/usr/share/plymouth/. /usr/share/plymouth/
+
+# cosmic-blue boot screen: Fedora's BGRT theme (the PC maker's logo from the
+# firmware, so the boot stays flicker-free) with our images. When the firmware
+# has no logo (virtual machines, some PCs), the cosmic-blue mark is shown in
+# its place (bgrt-fallback.png). The spinner is tinted blue and the cosmic-blue
+# logo replaces Fedora's at the bottom (watermark.png). The other images
+# (password prompt...) are Fedora's spinner ones. The background stays black
+# to match the firmware screen. The initramfs is regenerated in 60-initramfs.sh.
+PLYMOUTH_THEME=/usr/share/plymouth/themes/cosmic-blue
+for image in /usr/share/plymouth/themes/spinner/*.png; do
+    [[ -e "${PLYMOUTH_THEME}/$(basename "${image}")" ]] || cp -a "${image}" "${PLYMOUTH_THEME}/"
+done
+sed -e 's|^Name=.*|Name=cosmic-blue|' \
+    -e 's|^Description=.*|Description=cosmic-blue boot screen, based on the BGRT theme|' \
+    -e "s|^ImageDir=.*|ImageDir=${PLYMOUTH_THEME}|" \
+    /usr/share/plymouth/themes/bgrt/bgrt.plymouth > "${PLYMOUTH_THEME}/cosmic-blue.plymouth"
+cat "${PLYMOUTH_THEME}/cosmic-blue.plymouth"
+plymouth-set-default-theme cosmic-blue
 # Dark GTK defaults (zz1-cosmic-blue.gschema.override)
 glib-compile-schemas /usr/share/glib-2.0/schemas
