@@ -112,7 +112,8 @@ errors=0
 # - mcelog: "AMD Processor family 26: mcelog does not support this processor"
 # - EXTRA_IGNORED_UNITS (e.g. "nvidia-persistenced|nvidia-cdi-refresh"):
 #   units that need hardware the virtual machine lacks, such as an NVIDIA GPU
-IGNORED_UNITS="^(mcelog${EXTRA_IGNORED_UNITS:+|${EXTRA_IGNORED_UNITS}})\\.service "
+#   (nvidia-cdi-refresh.path fails with its service)
+IGNORED_UNITS="^(mcelog${EXTRA_IGNORED_UNITS:+|${EXTRA_IGNORED_UNITS}})\\.(service|path) "
 all_failed="$(vm 'systemctl --failed --no-legend --plain' || true)"
 failed="$(grep -vE "${IGNORED_UNITS}" <<< "${all_failed}" | grep -v '^$' || true)"
 if [[ -n "${all_failed}" ]]; then
