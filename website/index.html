@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>cosmic-blue</title>
-  <meta name="description" content="cosmic-blue: an atomic Fedora desktop with COSMIC, built on Universal Blue. Updates in the background, rollback in one command.">
+  <meta name="description" content="cosmic-blue: the COSMIC desktop, built on Universal Blue like Bluefin and Aurora. Updates in the background, rollback in one command.">
   <meta name="theme-color" content="#060b1c">
   <meta property="og:title" content="cosmic-blue">
-  <meta property="og:description" content="An atomic Fedora desktop with COSMIC, built on Universal Blue.">
+  <meta property="og:description" content="The COSMIC desktop, built on Universal Blue like Bluefin and Aurora.">
   <meta property="og:image" content="https://cosmic-blue-os.github.io/cosmic-blue/img/wallpaper-1280.jpg">
   <meta property="og:type" content="website">
   <link rel="icon" href="img/cosmic-blue-logo.svg" type="image/svg+xml">
@@ -25,13 +25,13 @@
     </nav>
     <div class="hero-text">
       <h1><img src="img/cosmic-blue-logo-horizontal-dark.svg" alt="cosmic-blue" width="560" height="100"></h1>
-      <p class="tagline">The COSMIC desktop on an atomic Fedora system.<br>Updates itself, rolls back in one command.</p>
+      <p class="tagline">The COSMIC desktop, built on Universal Blue<br>like Bluefin and Aurora.</p>
       <div class="actions">
         <!-- Filled in by build.sh -->
         <a class="button primary" href="@ISO_URL@">Download the live ISO</a>
-        <a class="button" href="#install">Other ways to install</a>
+        <a class="button" href="#install">How to install</a>
       </div>
-      <p class="fine">x86-64 · Fedora 44 · about 4.5 GB<!-- checksum --> · <a href="@ISO_URL@.sha256">SHA-256</a><!-- /checksum --></p>
+      <p class="fine">x86-64 · about 4.5 GB<!-- checksum --> · <a href="@ISO_URL@.sha256">SHA-256</a><!-- /checksum --></p>
     </div>
   </header>
 
@@ -50,8 +50,8 @@
         previous version.</p>
       </article>
       <article>
-        <h2>Universal Blue inside</h2>
-        <p>The same tools as Bluefin: <code>ujust</code> commands, Homebrew for
+        <h2>Bluefin and Aurora's foundation</h2>
+        <p>The Universal Blue base and tools they share: <code>ujust</code> commands, Homebrew for
         command line tools, Flathub apps in the COSMIC Store, and
         <code>ujust devmode</code> for developer tools.</p>
       </article>
@@ -70,7 +70,7 @@
       </ol>
 
       <h3>From another bootc system</h3>
-      <p>Already on Bluefin, Aurora, Bazzite or Fedora Atomic? Switch in place:</p>
+      <p>Already on Bluefin, Aurora, Bazzite or a Fedora Atomic desktop (Silverblue, Kinoite...)? Switch in place:</p>
       <div class="code">
         <pre><code>sudo bootc switch ghcr.io/cosmic-blue-os/cosmic-blue:latest
 sudo systemctl reboot</code></pre>
