@@ -27,6 +27,14 @@ FROM registry.fedoraproject.org/fedora:${BASE_TAG} AS initial_setup
 COPY build_files/initial_setup /initial_setup
 RUN /initial_setup/build.sh
 
+# Login and lock screens, rebuilt from Fedora's source package with the
+# cosmic-blue wallpaper as their built-in background
+# (see build_files/greeter/build.sh)
+FROM registry.fedoraproject.org/fedora:${BASE_TAG} AS greeter
+COPY build_files/greeter /greeter
+COPY system_files/usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg /greeter/background.jpg
+RUN /greeter/build.sh /greeter/background.jpg
+
 # Boot screen spinner frames, tinted with the logo blue
 # (see build_files/plymouth/tint.py)
 FROM registry.fedoraproject.org/fedora:${BASE_TAG} AS plymouth
@@ -50,6 +58,7 @@ COPY --from=brew /system_files /system_files/brew
 COPY system_files /system_files/cosmic-blue
 COPY --from=theme /out/cosmic /system_files/cosmic-blue/usr/share/cosmic
 COPY --from=initial_setup /out /initial_setup
+COPY --from=greeter /out /greeter
 COPY --from=plymouth /out /system_files/cosmic-blue/usr/share/plymouth/themes/cosmic-blue
 COPY --from=icons /out /icons
 # Public key used to verify the image signature on update

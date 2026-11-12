@@ -161,6 +161,10 @@ test -f /etc/skel/.config/gnome-initial-setup-done
 cmp /ctx/initial_setup/cosmic-initial-setup /usr/bin/cosmic-initial-setup
 rpm -q spice-vdagent
 
+# Login and lock screens: our rebuild, with the cosmic-blue wallpaper as the
+# background shown before a user has a saved one
+cmp /ctx/greeter/cosmic-greeter /usr/bin/cosmic-greeter
+
 # Frosted glass on by default, in the theme apps read and in the builder
 for theme in Dark Light; do
     grep -qx true "/usr/share/cosmic/com.system76.CosmicTheme.${theme}/v2/frosted_windows"
