@@ -42,10 +42,30 @@
       "enabled": false
     },
     {
+      "description": "Tela circle icons (no releases: latest master commit), once a week",
+      "matchDepNames": ["https://github.com/vinceliuice/Tela-circle-icon-theme.git"],
+      "groupName": "Tela circle icons",
+      "schedule": ["* 0-7 * * 1"]
+    },
+    {
       // Major versions can break the build: open the pull request, a human
       // merges it.
       "matchUpdateTypes": ["major"],
       "automerge": false
+    }
+  ],
+
+  // Tela circle is fetched by git at a pinned commit in
+  // build_files/icon_theme/tela.sh
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^build_files/icon_theme/tela\\.sh$/"],
+      "matchStrings": [
+        "TELA_REPO=\"(?<depName>[^\"]+)\"\\s+TELA_COMMIT=\"(?<currentDigest>[0-9a-f]{40})\""
+      ],
+      "datasourceTemplate": "git-refs",
+      "currentValueTemplate": "master"
     }
   ],
 

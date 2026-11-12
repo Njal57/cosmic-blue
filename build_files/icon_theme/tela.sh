@@ -7,8 +7,9 @@
 # (light monochrome icons for dark themes, links to the first one for the rest).
 set -euxo pipefail
 
+# Updated by Renovate (latest commit of the master branch, see .github/renovate.json5)
 TELA_REPO="https://github.com/vinceliuice/Tela-circle-icon-theme.git"
-TELA_COMMIT="ee3cf47bcb05c3d99a0860b54254d2ff3d1d2c69" # 2026-08-16
+TELA_COMMIT="ee3cf47bcb05c3d99a0860b54254d2ff3d1d2c69"
 # Dark accent of build_files/theme/src/main.rs, without '#'
 ACCENT="4f8dff"
 
