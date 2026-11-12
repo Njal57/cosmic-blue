@@ -10,6 +10,13 @@ test ! -e /usr/share/backgrounds/bluefin
 test -s /usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg
 grep -q 'Path("/usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg")' \
     /usr/share/cosmic/com.system76.CosmicBackground/v1/all
+# Per-theme defaults (used by COSMIC releases after 1.11): the dark wallpaper
+# for the dark theme, the light one for the light theme
+test -s /usr/share/backgrounds/cosmic-blue/cosmic-blue-light.jpg
+grep -q 'Path("/usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg")' \
+    /usr/share/cosmic/com.system76.CosmicBackground.Dark/v1/all
+grep -q 'Path("/usr/share/backgrounds/cosmic-blue/cosmic-blue-light.jpg")' \
+    /usr/share/cosmic/com.system76.CosmicBackground.Light/v1/all
 test -s /usr/share/icons/hicolor/scalable/apps/cosmic-blue-logo.svg
 # Dark theme by default (COSMIC and GTK)
 grep -qx true /usr/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark

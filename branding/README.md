@@ -32,16 +32,28 @@ Regenerate the SVGs with `python3 logo/build.py`.
 
 ## Wallpaper
 
-`system_files/usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg` (5120x2880),
-the default COSMIC wallpaper. Keep the main elements inside the centre so they
-survive cropping to 16:10, 4:3 and 21:9.
+Two versions of the same scene, 5120x2880, in
+`system_files/usr/share/backgrounds/cosmic-blue/`:
 
-It is built from two layers:
+- `cosmic-blue.jpg`: night sky, the default COSMIC wallpaper
+- `cosmic-blue-light.jpg`: pale sky, for the light theme
 
-- `wallpaper/sky.py`: sky gradient, procedural Milky Way and stars (numpy)
-- `wallpaper/foreground.py`: the logo as a scene, a planet inside a glowing
-  open orbit with a moon in the gap (SVG, rendered by `wallpaper/render.js`
-  with Playwright's Chromium)
+Keep the main elements inside the centre so they survive cropping to 16:10,
+4:3 and 21:9.
 
-`wallpaper/build.sh` renders both, dims the sky behind the planet, adds a fine grain against banding and
-writes the JPEG. The output is deterministic (fixed seeds).
+COSMIC 1.11 has one wallpaper for both themes (`com.system76.CosmicBackground`),
+so the light one is offered in Settings. Later COSMIC releases read a wallpaper
+per theme (`com.system76.CosmicBackground.Dark` / `.Light`); those defaults are
+already set, so the wallpaper will follow the theme once Fedora ships them.
+
+Each wallpaper is built from two layers:
+
+- `wallpaper/sky.py`: sky gradient, procedural Milky Way and stars (numpy);
+  writes the night sky and the pale sky from the same Milky Way
+- `wallpaper/foreground.py dark|light`: the logo as a scene, a planet inside a
+  glowing open orbit with a moon in the gap (SVG, rendered by
+  `wallpaper/render.js` with Playwright's Chromium)
+
+`wallpaper/build.sh` renders both versions; `wallpaper/compose.py` dims the
+sky behind the planet (dark) or lightens it (light), adds a fine grain against
+banding and writes the JPEG. The output is deterministic (fixed seeds).
