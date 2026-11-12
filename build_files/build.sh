@@ -14,6 +14,7 @@ for step in \
     10-system-files.sh \
     20-cosmic.sh \
     22-initial-setup.sh \
+    23-greeter.sh \
     25-icon-theme.sh \
     30-packages.sh \
     35-nvidia.sh \
