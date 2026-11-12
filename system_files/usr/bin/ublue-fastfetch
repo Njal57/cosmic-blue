@@ -1,0 +1,23 @@
+#!/usr/bin/bash
+# cosmic-blue fastfetch (`fastfetch`, `neofetch` are aliases of this command):
+# the cosmic-blue logo and config, in place of projectbluefin/common's
+# Bluefin version. The logo follows the COSMIC dark/light mode, and keys the
+# COSMIC accent color (ublue-bling-fastfetch).
+# A user's own config (~/.config/fastfetch/config.jsonc) is used instead when
+# it exists.
+
+if ! type -P fastfetch >/dev/null 2>&1; then
+    exit 0
+fi
+
+USER_CONFIG="${XDG_CONFIG_HOME:-${HOME}/.config}/fastfetch"
+if [[ -f "${USER_CONFIG}/config.jsonc" || -f "${USER_CONFIG}/config.json" ]]; then
+    exec fastfetch "$@"
+fi
+
+MODE="$(ublue-bling-fastfetch --mode)"
+exec fastfetch \
+    --config /usr/share/ublue-os/fastfetch.jsonc \
+    --logo "/usr/share/ublue-os/fastfetch/cosmic-blue-${MODE}.txt" \
+    --color "$(ublue-bling-fastfetch)" \
+    "$@"

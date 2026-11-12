@@ -1,0 +1,107 @@
+// cosmic-blue fastfetch config, used by `fastfetch` (ublue-fastfetch), in
+// place of Bluefin's. Keys and title get the COSMIC accent color
+// (ublue-bling-fastfetch), the logo comes from branding/fastfetch/build.py.
+// Icons are Nerd Font symbols (nerd-fonts package).
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "file-raw",
+    "source": "/usr/share/ublue-os/fastfetch/cosmic-blue-dark.txt",
+    "padding": {
+      "top": 1,
+      "left": 1,
+      "right": 3
+    }
+  },
+  "display": {
+    "separator": "  "
+  },
+  "modules": [
+    {
+      "type": "title",
+      "key": ""
+    },
+    "break",
+    {
+      "type": "command",
+      "key": "󱋩",
+      "text": "/usr/bin/ublue-image-info.sh"
+    },
+    {
+      "type": "os",
+      "key": "󰀘",
+      "format": "{pretty-name}"
+    },
+    {
+      "type": "command",
+      "key": "󰕮",
+      "text": "printf 'COSMIC %s' \"$(rpm -q --qf '%{VERSION}' cosmic-settings)\"",
+      "shell": "/bin/bash"
+    },
+    {
+      "type": "kernel",
+      "key": "",
+      "format": "{release}"
+    },
+    {
+      "type": "uptime",
+      "key": "󰅐"
+    },
+    {
+      "type": "command",
+      "key": "󱓞",
+      "text": "date -d \"$(ls -alct /var/log --time-style=full-iso | tail -1 | awk '{print $6}')\" +'Launched on %b %d %Y'",
+      "shell": "/bin/bash"
+    },
+    "break",
+    {
+      "type": "host",
+      "key": "󰾰"
+    },
+    {
+      "type": "cpu",
+      "key": "󰻠"
+    },
+    {
+      "type": "gpu",
+      "key": "󰍛"
+    },
+    {
+      "type": "memory",
+      "key": "󰧑"
+    },
+    {
+      "type": "disk",
+      "key": "󰋊",
+      "hideFS": "overlay"
+    },
+    {
+      "type": "display",
+      "key": "󰍹"
+    },
+    {
+      "type": "battery",
+      "key": ""
+    },
+    "break",
+    {
+      "type": "shell",
+      "key": ""
+    },
+    {
+      "type": "terminal",
+      "key": ""
+    },
+    {
+      "type": "packages",
+      "key": "󰏖",
+      "disabled": ["rpm"]
+    },
+    "break",
+    {
+      "type": "colors",
+      "paddingLeft": 2,
+      "symbol": "circle"
+    }
+  ]
+}

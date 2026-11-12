@@ -18,6 +18,22 @@ grep -q 'Path("/usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg")' \
 grep -q 'Path("/usr/share/backgrounds/cosmic-blue/cosmic-blue-light.jpg")' \
     /usr/share/cosmic/com.system76.CosmicBackground.Light/v1/all
 test -s /usr/share/icons/hicolor/scalable/apps/cosmic-blue-logo.svg
+# fastfetch: cosmic-blue logo and config instead of Bluefin's, a valid
+# config, keys in the accent color, and Nerd Font symbols for its icons
+test ! -e /usr/share/ublue-os/bluefin-logos
+test ! -e /etc/ublue-os/fastfetch.json
+test -s /usr/share/ublue-os/fastfetch/cosmic-blue-dark.txt
+test -s /usr/share/ublue-os/fastfetch/cosmic-blue-light.txt
+grep -q 'cosmic-blue-${MODE}.txt' /usr/bin/ublue-fastfetch
+sed '/^ *\/\//d' /usr/share/ublue-os/fastfetch.jsonc | jq empty
+if grep -qE 'fastfetch-user-count|bazaar' /usr/share/ublue-os/fastfetch.jsonc; then
+    echo "Bluefin fastfetch config left in place"; exit 1
+fi
+test "$(HOME=/tmp/fastfetch-test ublue-bling-fastfetch)" = "38;2;79;141;255"
+test "$(HOME=/tmp/fastfetch-test ublue-bling-fastfetch --mode)" = dark
+HOME=/tmp/fastfetch-test fastfetch --config /usr/share/ublue-os/fastfetch.jsonc \
+    --pipe true --structure os:kernel | grep cosmic-blue
+fc-list | grep -q 'Symbols Nerd Font'
 # Dark theme by default (COSMIC and GTK)
 grep -qx true /usr/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark
 test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'"

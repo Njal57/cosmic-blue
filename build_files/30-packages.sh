@@ -89,6 +89,12 @@ dnf5 -y copr enable ublue-os/packages
 dnf5 -y install --repo="copr:copr.fedorainfracloud.org:ublue-os:packages" uupd
 dnf5 -y copr disable ublue-os/packages
 
+# Nerd Font symbols (icons of fastfetch and Starship), from the che/nerd-fonts
+# COPR as in Bluefin, enabled only during the install
+dnf5 -y copr enable che/nerd-fonts
+dnf5 -y install --repo="copr:copr.fedorainfracloud.org:che:nerd-fonts" nerd-fonts
+dnf5 -y copr disable che/nerd-fonts
+
 # Starship (shell prompt), official binary
 curl -fsSL --retry 3 -o /tmp/starship.tar.gz \
     https://github.com/starship/starship/releases/latest/download/starship-x86_64-unknown-linux-gnu.tar.gz

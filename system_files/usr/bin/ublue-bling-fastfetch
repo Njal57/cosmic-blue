@@ -1,0 +1,44 @@
+#!/usr/bin/bash
+# Colors for ublue-fastfetch, from the COSMIC theme instead of GNOME's accent
+# color (projectbluefin/common's version reads GNOME settings).
+#   ublue-bling-fastfetch          the accent color, as "38;2;R;G;B"
+#   ublue-bling-fastfetch --mode   "dark" or "light"
+# FASTFETCH_FORCE_COLOR="#rrggbb" overrides the accent color.
+
+# A COSMIC setting: the user's value, else the system default
+cosmic_config() {
+    local file
+    for file in "${XDG_CONFIG_HOME:-${HOME}/.config}/cosmic/$1" "/usr/share/cosmic/$1"; do
+        if [[ -s "${file}" ]]; then
+            cat "${file}"
+            return
+        fi
+    done
+}
+
+MODE=dark
+if [[ "$(cosmic_config com.system76.CosmicTheme.Mode/v1/is_dark)" == false ]]; then
+    MODE=light
+fi
+if [[ "$1" == "--mode" ]]; then
+    echo "${MODE}"
+    exit 0
+fi
+
+# Theme builder accent, e.g. Some("#4f8dff"); None when COSMIC's default is
+# used. Fallback: the cosmic-blue accents (build_files/theme).
+DEFAULT_DARK="#4f8dff"
+DEFAULT_LIGHT="#1d47c4"
+if [[ "${MODE}" == light ]]; then
+    BUILDER=com.system76.CosmicTheme.Light.Builder/v2/accent
+    DEFAULT="${DEFAULT_LIGHT}"
+else
+    BUILDER=com.system76.CosmicTheme.Dark.Builder/v2/accent
+    DEFAULT="${DEFAULT_DARK}"
+fi
+ACCENT="${FASTFETCH_FORCE_COLOR:-$(cosmic_config "${BUILDER}" | grep -oiE '#[0-9a-f]{6}' | head -n 1)}"
+if [[ ! "${ACCENT}" =~ ^#[0-9a-fA-F]{6}$ ]]; then
+    ACCENT="${DEFAULT}"
+fi
+
+printf '38;2;%d;%d;%d\n' "0x${ACCENT:1:2}" "0x${ACCENT:3:2}" "0x${ACCENT:5:2}"
