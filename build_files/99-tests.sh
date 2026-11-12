@@ -110,12 +110,10 @@ broken="$(find /usr/share/icons/cosmic-blue -xtype l)"
 [[ -z "${broken}" ]] || { echo "Broken icon links:"; echo "${broken}"; exit 1; }
 
 # Theme colors built around the logo blue (see build_files/theme/src/main.rs).
-# Prints the first red/green/blue triple of a COSMIC config file as #rrggbb.
+# Prints the first color of a COSMIC config file as #rrggbb
+# (colors are stored as hex strings, e.g. Some("#4F8DFFFF")).
 first_color() {
-    tr -d ' \t\n' < "$1" \
-        | grep -oE 'red:[0-9.e-]+,green:[0-9.e-]+,blue:[0-9.e-]+' | head -n 1 \
-        | sed -E 's/red:|green:|blue:/ /g; s/,/ /g' \
-        | awk '{ printf "#%02x%02x%02x", int($1 * 255 + 0.5), int($2 * 255 + 0.5), int($3 * 255 + 0.5) }'
+    grep -oiE '#[0-9a-f]{6}' "$1" | head -n 1 | tr 'A-F' 'a-f'
 }
 check_color() {
     local file="$1" expected="$2" actual
