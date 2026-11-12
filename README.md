@@ -21,9 +21,13 @@ boot it and start the installer from the desktop icon.
 **From another bootc system** (Bluefin, Aurora, Bazzite, Fedora Atomic...):
 
 ```bash
-sudo bootc switch ghcr.io/cosmic-blue-os/cosmic-blue:latest
+sudo bootc switch ghcr.io/cosmic-blue-os/cosmic-blue:stable
 sudo systemctl reboot
 ```
+
+`stable` moves once a week to a build that has spent a week on `latest`.
+`latest` gets every daily build; use it instead of `stable` to get changes
+sooner.
 
 ## Updates and rollback
 
@@ -45,7 +49,7 @@ installed systems refuse unsigned updates. To check by hand with
 [`cosign.pub`](cosign.pub):
 
 ```bash
-cosign verify --key cosign.pub ghcr.io/cosmic-blue-os/cosmic-blue:latest
+cosign verify --key cosign.pub ghcr.io/cosmic-blue-os/cosmic-blue:stable
 ```
 
 ## Credits
