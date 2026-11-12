@@ -2,7 +2,7 @@
 # cosmic-settings package). The theme tool (build_files/theme/Cargo.toml pins
 # the matching libcosmic revision) and the cosmic-initial-setup patches
 # (build_files/initial_setup/patch.py) follow it.
-# .github/workflows/check-cosmic-version.yml opens an issue when Fedora ships
-# another version: update the libcosmic revision, check the patches, then
-# update this line.
+# When Fedora ships another version, .github/workflows/check-cosmic-version.yml
+# opens a pull request that updates the libcosmic revision and this line, and
+# merges it once the image builds.
 1.11.0

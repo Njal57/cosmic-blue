@@ -2,23 +2,16 @@
 name: Check COSMIC version
 # When Fedora ships a COSMIC version other than the one in
 # build_files/cosmic-version, this workflow:
-#   1. opens an issue (label cosmic-update) to track the update,
-#   2. opens a pull request that moves the theme tool to the libcosmic revision
+#   1. opens a pull request that moves the theme tool to the libcosmic revision
 #      of the new release and updates build_files/cosmic-version,
-#   3. builds the image from that branch (build.yml, nothing is published),
-#   4. merges the pull request and starts the main build if it is green.
-# If the build fails, the pull request and the issue stay open with a link to
-# the failed run, and this workflow fails too (GitHub sends an email); later
-# daily runs leave them alone until the pull request is fixed by hand.
+#   2. builds the image from that branch (build.yml, nothing is published),
+#   3. merges the pull request and starts the main build if it is green.
+# If the build fails, the pull request stays open with a link to the failed
+# run, and this workflow fails too (GitHub sends an email); later daily runs
+# leave it alone until it is fixed by hand.
 on:
   schedule:
     - cron: '0 6 * * *'  # every day at 06:00 UTC, before the image build
-  push:
-    branches:
-      - main
-    paths:
-      - 'build_files/cosmic-version'
-      - '.github/workflows/check-cosmic-version.yml'
   pull_request:
     branches:
       - main
@@ -40,7 +33,6 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-      issues: write
     outputs:
       base_tag: ${{ steps.fedora.outputs.base_tag }}
       pinned: ${{ steps.fedora.outputs.pinned }}
@@ -78,51 +70,6 @@ jobs:
             echo "current=${current}"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Open or close the issue
-        if: github.event_name != 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BASE_TAG: ${{ steps.fedora.outputs.base_tag }}
-          PINNED: ${{ steps.fedora.outputs.pinned }}
-          CURRENT: ${{ steps.fedora.outputs.current }}
-        run: |
-          set -euo pipefail
-          gh label create "${LABEL}" --force \
-            --color 4f8dff --description "A new COSMIC version is available in Fedora"
-          issue="$(gh issue list --state open --label "${LABEL}" \
-            --json number --jq '.[0].number // empty')"
-
-          if [ "${CURRENT}" = "${PINNED}" ]; then
-            if [ -n "${issue}" ]; then
-              gh issue close "${issue}" \
-                --comment "build_files/cosmic-version matches Fedora ${BASE_TAG} (COSMIC ${CURRENT})."
-            fi
-            exit 0
-          fi
-
-          title="COSMIC ${CURRENT} is available in Fedora ${BASE_TAG}"
-          {
-            echo "Fedora ${BASE_TAG} now ships COSMIC **${CURRENT}**, cosmic-blue is pinned to **${PINNED}**."
-            echo
-            echo '```'
-            cat packages.txt
-            echo '```'
-            echo
-            echo "The daily image build already uses the new packages. This workflow opens a"
-            echo "pull request that moves the theme tool (\`build_files/theme/Cargo.toml\`) to"
-            echo "the libcosmic revision of cosmic-settings ${CURRENT}, builds the image from it"
-            echo "(which also rebuilds cosmic-initial-setup with \`build_files/initial_setup/patch.py\`)"
-            echo "and merges it when the build is green. This issue then closes itself."
-            echo
-            echo "If the build fails, fix the pull request by hand."
-          } > body.md
-
-          if [ -z "${issue}" ]; then
-            gh issue create --title "${title}" --label "${LABEL}" --body-file body.md
-          elif [ "$(gh issue view "${issue}" --json title --jq .title)" != "${title}" ]; then
-            gh issue edit "${issue}" --title "${title}" --body-file body.md
-          fi
-
   update:
     name: Update, test and merge
     needs: check
@@ -132,7 +79,6 @@ jobs:
     permissions:
       actions: write
       contents: write
-      issues: write
       pull-requests: write
     env:
       GH_TOKEN: ${{ github.token }}
@@ -206,7 +152,8 @@ jobs:
           set -euo pipefail
           pr="$(gh pr list --head "${BRANCH}" --state open --json number --jq '.[0].number // empty')"
           if [ -z "${pr}" ]; then
-            issue="$(gh issue list --state open --label "${LABEL}" --json number --jq '.[0].number // empty')"
+            gh label create "${LABEL}" --force \
+              --color 4f8dff --description "Update to a new COSMIC version from Fedora"
             {
               echo "Fedora ${BASE_TAG} ships COSMIC ${CURRENT} (cosmic-blue was pinned to ${PINNED})."
               echo
@@ -214,7 +161,6 @@ jobs:
               echo "- \`build_files/cosmic-version\`: ${CURRENT}."
               echo
               echo "Opened by the [Check COSMIC version](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) workflow, which merges it once the image build from this branch is green."
-              if [ -n "${issue}" ]; then echo; echo "Closes #${issue}"; fi
             } > pr.md
             gh pr create --base main --head "${BRANCH}" --label "${LABEL}" \
               --title "Update to COSMIC ${CURRENT}" --body-file pr.md
@@ -264,11 +210,6 @@ jobs:
           # The merge was made with the workflow token: start the build on main
           gh workflow run build.yml --ref main
 
-          issue="$(gh issue list --state open --label "${LABEL}" --json number --jq '.[0].number // empty')"
-          if [ -n "${issue}" ]; then
-            gh issue close "${issue}" --comment "Updated to COSMIC ${CURRENT} in #${PR}."
-          fi
-
       - name: Report a failure
         if: failure()
         env:
@@ -282,7 +223,6 @@ jobs:
             url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           fi
           msg="The automatic update to COSMIC ${CURRENT} failed and needs a manual fix: ${url}"
-          issue="$(gh issue list --state open --label "${LABEL}" --json number --jq '.[0].number // empty')"
-          [ -n "${issue}" ] && gh issue comment "${issue}" --body "${msg}"
-          [ -n "${PR}" ] && gh pr comment "${PR}" --body "${msg}"
-          true
+          if [ -n "${PR}" ]; then
+            gh pr comment "${PR}" --body "${msg}"
+          fi
