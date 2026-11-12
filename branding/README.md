@@ -10,8 +10,23 @@ SVGs need no font.
 - `logo/cosmic-blue-logo.png`: the mark, 512 px (Artifact Hub)
 - `logo/cosmic-blue-logo-horizontal-dark.svg` / `-light.svg`: mark + wordmark,
   for dark and light backgrounds
-- `system_files/usr/share/plymouth/themes/spinner/watermark.png`: the dark
-  horizontal logo at 392x70, shown on the boot screen
+
+## Boot screen
+
+The `cosmic-blue` Plymouth theme, in
+`system_files/usr/share/plymouth/themes/cosmic-blue/`. It is Fedora's BGRT
+theme (the PC maker's logo from the firmware, for a flicker-free boot) with
+our images:
+
+- `bgrt-fallback.png`: the mark at 192x192, shown in the middle when the
+  firmware has no logo (virtual machines, some PCs). Regenerate it with
+  `node plymouth/render.js` (Playwright).
+- `watermark.png`: the dark horizontal logo at 392x70, at the bottom
+- the spinner: Fedora's frames tinted with the orbit blues at build time
+  (`build_files/plymouth/tint.py`)
+
+The theme file itself is generated from Fedora's `bgrt.plymouth` during the
+build (`build_files/20-cosmic.sh`), so it follows Fedora's settings.
 
 Regenerate the SVGs with `python3 logo/build.py`.
 

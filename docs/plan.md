@@ -148,8 +148,10 @@ DevToolbox and Builder flatpaks.
   `registries.d` file, so the image is referenced as `ostree-image-signed` and
   bootc verifies updates.
 
-- Disk images (`build-disk.yml`, bootc-image-builder): a qcow2 VM disk and an
-  Anaconda installer ISO.
+- Disk images (bootc-image-builder): a qcow2 VM disk and an Anaconda installer
+  ISO, built locally only (`just build-qcow2`, `just build-iso`). The CI workflow
+  was removed: the live ISO replaces the installer ISO and the boot test in
+  `build.yml` replaces the qcow2.
 - Live ISO (`build-live-iso.yml`, ublue-os/titanoboa as in projectbluefin/iso):
   boots into a COSMIC live session with a shortcut to Anaconda, which installs
   the image embedded in the ISO. Live-only changes are in

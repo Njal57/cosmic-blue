@@ -1,5 +1,4 @@
 # cosmic-blue default flatpaks (ujust install-system-flatpaks)
-flatpak "io.github.kolunmi.Bazaar"
 flatpak "com.github.tchx84.Flatseal"
 flatpak "com.ranfdev.DistroShelf"
 flatpak "io.github.flattool.Ignition"

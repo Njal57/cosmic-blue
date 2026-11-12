@@ -54,6 +54,12 @@ GNOME_ONLY+=(
     usr/share/pixmaps/fedora_whitelogo_med.png
     usr/share/pixmaps/system-logo-white.png
 )
+# Bazaar, Bluefin's Flathub store: COSMIC Store already covers it (Flathub and
+# the COSMIC repository), and one store is enough.
+GNOME_ONLY+=(
+    usr/share/flatpak/preinstall.d/bazaar.preinstall
+    usr/share/ublue-os/bazaar
+)
 for path in "${GNOME_ONLY[@]}"; do
     rm -rf "${STAGE:?}/${path}"
 done
