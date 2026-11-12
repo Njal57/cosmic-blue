@@ -33,7 +33,8 @@ test "$(HOME=/tmp/fastfetch-test ublue-bling-fastfetch)" = "38;2;79;141;255"
 test "$(HOME=/tmp/fastfetch-test ublue-bling-fastfetch --mode)" = dark
 HOME=/tmp/fastfetch-test fastfetch --config /usr/share/ublue-os/fastfetch.jsonc \
     --pipe true --structure os:kernel | grep cosmic-blue
-fc-list | grep -q 'Symbols Nerd Font'
+# (no grep -q: it would end fc-list with SIGPIPE, exit 141 under pipefail)
+fc-list : family | grep 'Symbols Nerd Font' >/dev/null
 # Dark theme by default (COSMIC and GTK)
 grep -qx true /usr/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark
 test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'"
