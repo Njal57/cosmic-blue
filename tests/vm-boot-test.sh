@@ -7,6 +7,7 @@
 #   <image> must be in the root (sudo) podman storage.
 # Needs: podman, qemu-system-x86_64, OVMF, socat, openssh-client, KVM.
 set -euo pipefail
+trap 'echo "::error::Command failed at line ${LINENO}: ${BASH_COMMAND}"' ERR
 
 IMAGE="$1"
 OUT="$(realpath -m "$2")"
@@ -46,10 +47,16 @@ sudo podman run --rm --privileged --pid=host \
         /output/disk.raw
 
 # 2. Boot it (UEFI, like most PCs and GNOME Boxes)
-ovmf_code="$(ls /usr/share/OVMF/OVMF_CODE_4M.fd /usr/share/OVMF/OVMF_CODE.fd \
-    /usr/share/edk2/ovmf/OVMF_CODE.fd 2>/dev/null | head -n 1)"
-ovmf_vars="$(ls /usr/share/OVMF/OVMF_VARS_4M.fd /usr/share/OVMF/OVMF_VARS.fd \
-    /usr/share/edk2/ovmf/OVMF_VARS.fd 2>/dev/null | head -n 1)"
+first_file() {
+    local f
+    for f in "$@"; do
+        if [[ -f "${f}" ]]; then echo "${f}"; return; fi
+    done
+}
+ovmf_code="$(first_file /usr/share/OVMF/OVMF_CODE_4M.fd /usr/share/OVMF/OVMF_CODE.fd \
+    /usr/share/edk2/ovmf/OVMF_CODE.fd)"
+ovmf_vars="$(first_file /usr/share/OVMF/OVMF_VARS_4M.fd /usr/share/OVMF/OVMF_VARS.fd \
+    /usr/share/edk2/ovmf/OVMF_VARS.fd)"
 [[ -n "${ovmf_code}" && -n "${ovmf_vars}" ]] || fail "OVMF firmware not found"
 cp "${ovmf_vars}" "${WORK}/vars.fd"
 sudo chown "$(id -u):$(id -g)" "${WORK}/disk.raw"
