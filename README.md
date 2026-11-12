@@ -83,9 +83,6 @@ cosign verify --key cosign.pub ghcr.io/cosmic-blue-os/cosmic-blue:latest
 
 - The image is rebuilt every day at 10:30 UTC, and on every push to `main`.
 - The live ISO is rebuilt every Monday at 11:30 UTC.
-- An Anaconda installer ISO and a qcow2 VM disk can be built on demand with the
-  [Build disk images](https://github.com/cosmic-blue-os/cosmic-blue/actions/workflows/build-disk.yml)
-  workflow.
 
 To build locally, with [just](https://just.systems/) and podman:
 
@@ -100,9 +97,9 @@ just run-vm       # boot it
 - `Containerfile`: image definition.
 - `build_files/`: build steps, run in order by `build.sh`.
 - `system_files/`: files copied into the image.
-- `disk_config/`: bootc-image-builder settings for the installer ISO and VM disks.
+- `disk_config/`: bootc-image-builder settings for local `just build-qcow2` / `just build-iso`.
 - `iso_files/`: live ISO setup.
-- `.github/workflows/`: image, disk image and live ISO builds.
+- `.github/workflows/`: image and live ISO builds.
 
 ## Credits
 
