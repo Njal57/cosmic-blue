@@ -1,11 +1,17 @@
 ---
-name: Check COSMIC version
-# When Fedora ships a COSMIC version other than the one in
-# build_files/cosmic-version, this workflow:
-#   1. opens a pull request that moves the theme tool to the libcosmic revision
-#      of the new release and updates build_files/cosmic-version,
+name: Check Fedora and COSMIC versions
+# Every day, this workflow compares the image with:
+#   - the Fedora release of Bluefin's stable tag (ghcr.io/ublue-os/bluefin),
+#     which moves to a new Fedora once Universal Blue has tested it,
+#   - the COSMIC version that this Fedora release ships.
+# When one of them changed, it:
+#   1. opens a pull request that moves BASE_TAG and BASE_IMAGE to the new
+#      Fedora release, the theme tool to the libcosmic revision of the COSMIC
+#      release and updates build_files/cosmic-version,
 #   2. builds the image from that branch (build.yml, nothing is published),
-#   3. merges the pull request and starts the main build if it is green.
+#   3. if it is green, merges the pull request and starts the main build. A
+#      move to a new Fedora release is merged by hand unless FEDORA_AUTOMERGE
+#      is true: the build only boot-tests the image, not the live ISO install.
 # If the build fails, the pull request stays open with a link to the failed
 # run, and this workflow fails too (GitHub sends an email); later daily runs
 # leave it alone until it is fixed by hand.
@@ -17,6 +23,7 @@ on:
       - main
     paths:
       - 'build_files/cosmic-version'
+      - 'Containerfile'
       - '.github/workflows/check-cosmic-version.yml'
   workflow_dispatch:
 
@@ -26,15 +33,19 @@ concurrency:
 
 env:
   LABEL: cosmic-update
+  # Follow the Fedora release of this image
+  REFERENCE_IMAGE: ghcr.io/ublue-os/bluefin:stable
+  FEDORA_AUTOMERGE: "false"
 
 jobs:
   check:
-    name: Compare with Fedora
+    name: Compare with Bluefin and Fedora
     runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
       base_tag: ${{ steps.fedora.outputs.base_tag }}
+      target_tag: ${{ steps.fedora.outputs.target_tag }}
       pinned: ${{ steps.fedora.outputs.pinned }}
       current: ${{ steps.fedora.outputs.current }}
 
@@ -51,9 +62,27 @@ jobs:
           pinned="$(grep -v '^#' build_files/cosmic-version | tr -d '[:space:]')"
           test -n "${pinned}"
 
-          # Latest versions in the Fedora release the image is based on
+          # Fedora release of the reference image: its version label is
+          # <fedora>.<date>.<n> (latest-<fedora>... on its latest tag)
+          version="$(skopeo inspect --retry-times 3 "docker://${REFERENCE_IMAGE}" \
+            | jq -r '.Labels["org.opencontainers.image.version"] // empty')"
+          reference="$(printf '%s' "${version}" | sed -n 's/^\([0-9][0-9]*\)\..*/\1/p')"
+          if [ -z "${reference}" ]; then
+            echo "::error::Unexpected version label on ${REFERENCE_IMAGE}: '${version}'"
+            exit 1
+          fi
+          # Only ever move forward
+          target_tag="${base_tag}"
+          if [ "${reference}" -gt "${base_tag}" ]; then
+            target_tag="${reference}"
+            skopeo inspect --retry-times 3 --raw \
+              "docker://ghcr.io/ublue-os/base-main:${target_tag}" > /dev/null
+          fi
+          echo "${REFERENCE_IMAGE}: Fedora ${reference} (${version}), image: Fedora ${base_tag}"
+
+          # Latest versions in the target Fedora release
           # (fedora + updates repositories, as in the image build)
-          docker run --rm "registry.fedoraproject.org/fedora:${base_tag}" \
+          docker run --rm "registry.fedoraproject.org/fedora:${target_tag}" \
             dnf5 -q repoquery --latest-limit=1 \
               --qf '%{name} %{version}-%{release}\n' \
               cosmic-settings cosmic-comp cosmic-session cosmic-initial-setup \
@@ -62,10 +91,11 @@ jobs:
 
           current="$(awk '$1 == "cosmic-settings" { sub(/-[^-]*$/, "", $2); print $2 }' packages.txt)"
           test -n "${current}"
-          echo "Fedora ${base_tag}: COSMIC ${current}, pinned: ${pinned}"
+          echo "Fedora ${target_tag}: COSMIC ${current}, pinned: ${pinned}"
 
           {
             echo "base_tag=${base_tag}"
+            echo "target_tag=${target_tag}"
             echo "pinned=${pinned}"
             echo "current=${current}"
           } >> "${GITHUB_OUTPUT}"
@@ -73,7 +103,10 @@ jobs:
   update:
     name: Update, test and merge
     needs: check
-    if: github.event_name != 'pull_request' && needs.check.outputs.current != needs.check.outputs.pinned
+    if: >-
+      github.event_name != 'pull_request' &&
+      (needs.check.outputs.current != needs.check.outputs.pinned ||
+       needs.check.outputs.target_tag != needs.check.outputs.base_tag)
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     permissions:
@@ -83,6 +116,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       BASE_TAG: ${{ needs.check.outputs.base_tag }}
+      TARGET_TAG: ${{ needs.check.outputs.target_tag }}
       PINNED: ${{ needs.check.outputs.pinned }}
       CURRENT: ${{ needs.check.outputs.current }}
 
@@ -96,8 +130,17 @@ jobs:
         id: branch
         run: |
           set -euo pipefail
-          branch="cosmic-update/${CURRENT//\~/-}"
-          echo "branch=${branch}" >> "${GITHUB_OUTPUT}"
+          if [ "${TARGET_TAG}" != "${BASE_TAG}" ]; then
+            branch="fedora-update/${TARGET_TAG}"
+            title="Move to Fedora ${TARGET_TAG} (COSMIC ${CURRENT})"
+          else
+            branch="cosmic-update/${CURRENT//\~/-}"
+            title="Update to COSMIC ${CURRENT}"
+          fi
+          {
+            echo "branch=${branch}"
+            echo "title=${title}"
+          } >> "${GITHUB_OUTPUT}"
 
           if git ls-remote --exit-code --heads origin "${branch}" > /dev/null; then
             # Already tried: a failed update waits for a manual fix (the pull
@@ -107,11 +150,25 @@ jobs:
               echo "${branch} already exists, testing it again"
               echo "run=true" >> "${GITHUB_OUTPUT}"
             else
-              echo "${branch} already exists, waiting for a manual fix"
+              echo "${branch} already exists, waiting for a manual fix or merge"
             fi
             exit 0
           fi
           echo "run=true" >> "${GITHUB_OUTPUT}"
+          git switch -c "${branch}"
+
+          if [ "${TARGET_TAG}" != "${BASE_TAG}" ]; then
+            # Pin the new base image digest (Renovate keeps it updated)
+            digest="$(skopeo inspect --retry-times 3 --format '{{.Digest}}' \
+              "docker://ghcr.io/ublue-os/base-main:${TARGET_TAG}")"
+            sed -i \
+              -e "s|^ARG BASE_TAG=\"${BASE_TAG}\"\$|ARG BASE_TAG=\"${TARGET_TAG}\"|" \
+              -e "s|^\(ARG BASE_IMAGE=\"ghcr.io/ublue-os/base-main:\)[^\"]*\"|\1${TARGET_TAG}@${digest}\"|" \
+              Containerfile
+            sed -i "s|based on Fedora ${BASE_TAG}|based on Fedora ${TARGET_TAG}|" README.md
+            grep -qx "ARG BASE_TAG=\"${TARGET_TAG}\"" Containerfile
+            grep -q "base-main:${TARGET_TAG}@${digest}\"" Containerfile
+          fi
 
           # libcosmic revision locked by cosmic-settings for this release
           # (upstream tags are epoch-<version>; Fedora writes pre-releases with ~)
@@ -126,21 +183,22 @@ jobs:
           fi
           echo "libcosmic revision for COSMIC ${CURRENT}: ${rev}"
 
-          git switch -c "${branch}"
           sed -i \
             -e "s|\(libcosmic\", rev = \"\)[0-9a-f]\{40\}|\1${rev}|g" \
-            -e "s|COSMIC [0-9][^ ]* packages in Fedora [0-9]*|COSMIC ${CURRENT} packages in Fedora ${BASE_TAG}|" \
+            -e "s|COSMIC [0-9][^ ]* packages in Fedora [0-9]*|COSMIC ${CURRENT} packages in Fedora ${TARGET_TAG}|" \
             -e "s|cosmic-settings epoch-[^ ]* Cargo.lock|cosmic-settings ${tag} Cargo.lock|" \
             build_files/theme/Cargo.toml
-          sed -i "s|^${PINNED//./\\.}\$|${CURRENT}|" build_files/cosmic-version
+          if [ "${CURRENT}" != "${PINNED}" ]; then
+            sed -i "s|^${PINNED//./\\.}\$|${CURRENT}|" build_files/cosmic-version
+          fi
           git diff --stat
           grep -q "rev = \"${rev}\"" build_files/theme/Cargo.toml
           grep -qx "${CURRENT}" build_files/cosmic-version
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "Update to COSMIC ${CURRENT}" \
-            -m "Fedora ${BASE_TAG} ships COSMIC ${CURRENT}: move the theme tool to libcosmic ${rev} (cosmic-settings ${tag} Cargo.lock)."
+          git commit -am "${title}" \
+            -m "Fedora ${TARGET_TAG} ships COSMIC ${CURRENT}: move the theme tool to libcosmic ${rev} (cosmic-settings ${tag} Cargo.lock)."
           git push origin "${branch}"
 
       - name: Open the pull request
@@ -148,22 +206,39 @@ jobs:
         id: pr
         env:
           BRANCH: ${{ steps.branch.outputs.branch }}
+          TITLE: ${{ steps.branch.outputs.title }}
         run: |
           set -euo pipefail
           pr="$(gh pr list --head "${BRANCH}" --state open --json number --jq '.[0].number // empty')"
           if [ -z "${pr}" ]; then
             gh label create "${LABEL}" --force \
               --color 4f8dff --description "Update to a new COSMIC version from Fedora"
+            if [ "${TARGET_TAG}" != "${BASE_TAG}" ]; then
+              label="fedora-update"
+              gh label create "${label}" --force \
+                --color 1d47c4 --description "Move to a new Fedora release"
+            else
+              label="${LABEL}"
+            fi
             {
-              echo "Fedora ${BASE_TAG} ships COSMIC ${CURRENT} (cosmic-blue was pinned to ${PINNED})."
-              echo
+              if [ "${TARGET_TAG}" != "${BASE_TAG}" ]; then
+                echo "\`${REFERENCE_IMAGE}\` is now based on Fedora ${TARGET_TAG}: move cosmic-blue from Fedora ${BASE_TAG} to Fedora ${TARGET_TAG}."
+                echo
+                echo "- \`Containerfile\`: \`BASE_TAG\` ${TARGET_TAG}, \`BASE_IMAGE\` \`ghcr.io/ublue-os/base-main:${TARGET_TAG}\` (pinned digest)."
+                echo "- \`README.md\`: Fedora ${TARGET_TAG}."
+              fi
+              echo "- Fedora ${TARGET_TAG} ships COSMIC ${CURRENT} (cosmic-blue was pinned to ${PINNED})."
               echo "- \`build_files/theme/Cargo.toml\`: libcosmic revision locked by cosmic-settings ${CURRENT}."
               echo "- \`build_files/cosmic-version\`: ${CURRENT}."
               echo
-              echo "Opened by the [Check COSMIC version](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) workflow, which merges it once the image build from this branch is green."
+              if [ "${TARGET_TAG}" != "${BASE_TAG}" ] && [ "${FEDORA_AUTOMERGE}" != "true" ]; then
+                echo "Opened by the [Check Fedora and COSMIC versions](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) workflow. It builds and boot-tests the image from this branch; a new Fedora release is then merged by hand (test the live ISO install first)."
+              else
+                echo "Opened by the [Check Fedora and COSMIC versions](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) workflow, which merges it once the image build from this branch is green."
+              fi
             } > pr.md
-            gh pr create --base main --head "${BRANCH}" --label "${LABEL}" \
-              --title "Update to COSMIC ${CURRENT}" --body-file pr.md
+            gh pr create --base main --head "${BRANCH}" --label "${label}" \
+              --title "${TITLE}" --body-file pr.md
             pr="$(gh pr list --head "${BRANCH}" --state open --json number --jq '.[0].number')"
           fi
           echo "pr=${pr}" >> "${GITHUB_OUTPUT}"
@@ -201,11 +276,17 @@ jobs:
         env:
           PR: ${{ steps.pr.outputs.pr }}
           RUN: ${{ steps.build.outputs.run }}
+          TITLE: ${{ steps.branch.outputs.title }}
         run: |
           set -euo pipefail
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${RUN}"
+          if [ "${TARGET_TAG}" != "${BASE_TAG}" ] && [ "${FEDORA_AUTOMERGE}" != "true" ]; then
+            gh pr comment "${PR}" --body "The image build and boot test from this branch passed: ${run_url}. Fedora ${TARGET_TAG} is ready to be merged by hand."
+            exit 0
+          fi
           gh pr merge "${PR}" --squash --delete-branch \
-            --subject "Update to COSMIC ${CURRENT} (#${PR})" \
-            --body "Fedora ${BASE_TAG} ships COSMIC ${CURRENT}: move the theme tool to the libcosmic revision of this release. Image build from the branch passed: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${RUN}"
+            --subject "${TITLE} (#${PR})" \
+            --body "Fedora ${TARGET_TAG} ships COSMIC ${CURRENT}: move the theme tool to the libcosmic revision of this release. Image build from the branch passed: ${run_url}"
 
           # The merge was made with the workflow token: start the build on main
           gh workflow run build.yml --ref main
@@ -222,7 +303,7 @@ jobs:
           else
             url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           fi
-          msg="The automatic update to COSMIC ${CURRENT} failed and needs a manual fix: ${url}"
+          msg="The automatic update to Fedora ${TARGET_TAG} and COSMIC ${CURRENT} failed and needs a manual fix: ${url}"
           if [ -n "${PR}" ]; then
             gh pr comment "${PR}" --body "${msg}"
           fi
