@@ -40,6 +40,12 @@ FROM registry.fedoraproject.org/fedora:${BASE_TAG} AS icons
 COPY build_files/icon_theme/tela.sh /tela.sh
 RUN /tela.sh
 
+# Bibata Modern cursors, recolored with the cosmic-blue colors
+# (see build_files/cursor_theme/bibata.py)
+FROM registry.fedoraproject.org/fedora:${BASE_TAG} AS cursors
+COPY build_files/cursor_theme /cursor_theme
+RUN /cursor_theme/bibata.sh
+
 # Build context: scripts + system files, never copied as-is into the final image
 FROM scratch AS ctx
 COPY build_files /build_files
@@ -52,6 +58,7 @@ COPY --from=theme /out/cosmic /system_files/cosmic-blue/usr/share/cosmic
 COPY --from=initial_setup /out /initial_setup
 COPY --from=plymouth /out /system_files/cosmic-blue/usr/share/plymouth/themes/cosmic-blue
 COPY --from=icons /out /icons
+COPY --from=cursors /out /system_files/cosmic-blue/usr/share/icons
 # Public key used to verify the image signature on update
 COPY cosign.pub /system_files/cosmic-blue/etc/pki/containers/cosmic-blue.pub
 

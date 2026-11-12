@@ -5,3 +5,5 @@ color-scheme='prefer-dark'
 gtk-theme='adw-gtk3-dark'
 # Same icon theme as COSMIC (com.system76.CosmicTk icon_theme)
 icon-theme='cosmic-blue'
+# Same cursor theme as COSMIC (/usr/share/icons/default/index.theme)
+cursor-theme='Bibata-Modern-cosmic-blue'

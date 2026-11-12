@@ -1,0 +1,4 @@
+# Default cursor theme, for the COSMIC compositor (which falls back to the
+# "default" theme when XCURSOR_THEME is not set), the login screen and X11 apps
+[Icon Theme]
+Inherits=Bibata-Modern-cosmic-blue

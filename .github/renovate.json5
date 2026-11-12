@@ -56,7 +56,8 @@
   ],
 
   // Tela circle is fetched by git at a pinned commit in
-  // build_files/icon_theme/tela.sh
+  // build_files/icon_theme/tela.sh, the Bibata cursors at a pinned tag in
+  // build_files/cursor_theme/bibata.sh
   "customManagers": [
     {
       "customType": "regex",
@@ -66,6 +67,14 @@
       ],
       "datasourceTemplate": "git-refs",
       "currentValueTemplate": "master"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^build_files/cursor_theme/bibata\\.sh$/"],
+      "matchStrings": [
+        "BIBATA_REPO=\"https://github\\.com/(?<depName>[^\"]+)\\.git\"\\s+BIBATA_VERSION=\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "github-tags"
     }
   ],
 
