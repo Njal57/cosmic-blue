@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """Build the cosmic-blue icon theme in /usr/share/icons/cosmic-blue.
 
-The theme combines two themes from the Fedora repositories:
-
-- symbolic (monochrome) icons from COSMIC's own themes (Cosmic, then Pop),
-  because those are drawn for COSMIC's panel, applets and header bars;
-- everything else (applications, folders, file types) from Papirus-Dark,
-  with its default blue folders.
+The theme takes everything from the dark variant of Tela circle, recolored
+with the cosmic-blue accent (installed by build_files/icon_theme/tela.sh):
+applications, folders, file types and symbolic (monochrome) icons. COSMIC's
+own themes (Cosmic, then Pop) only provide the symbolic icons that Tela
+lacks, mostly COSMIC-specific ones (settings pages, applets).
 
 Only symlinks and an index.theme are created: the icons themselves stay in
-the packages, so they are updated with them.
+their themes.
 """
 
 import configparser
@@ -19,13 +18,16 @@ import sys
 ICONS = os.environ.get("ICONS_DIR", "/usr/share/icons")
 THEME = "cosmic-blue"
 
+TELA = "Tela-circle-4f8dff-dark"
 # Themes whose symbolic icons we take, in order of preference.
-SYMBOLIC_SOURCES = ["Cosmic", "Pop"]
+SYMBOLIC_SOURCES = [TELA, "Cosmic", "Pop"]
+# Tela's "panel" icons are drawn for light-on-dark tray areas only.
+SKIP_DIRS = ("/panel",)
 # Full-color icons and fallback for any other name.
-INHERITS = ["Papirus-Dark", "Cosmic", "Pop", "Adwaita", "hicolor"]
+INHERITS = [TELA, "Cosmic", "Pop", "Adwaita", "hicolor"]
 
-# Papirus has no icons for the COSMIC applications (their IDs are
-# com.system76.*). Point them to the matching Papirus icon.
+# Tela has no icons for the COSMIC applications (their IDs are
+# com.system76.*). Point them to the matching Tela icon.
 COSMIC_APPS = {
     "com.system76.CosmicEdit": "accessories-text-editor",
     "com.system76.CosmicFiles": "system-file-manager",
@@ -35,7 +37,6 @@ COSMIC_APPS = {
     "com.system76.CosmicStore": "system-software-install",
     "com.system76.CosmicTerm": "utilities-terminal",
 }
-PAPIRUS = "Papirus-Dark"
 
 
 def read_index(theme):
@@ -71,38 +72,41 @@ def main():
         for subdir in index.get("Icon Theme", "Directories").split(","):
             subdir = subdir.strip()
             path = os.path.join(ICONS, source, subdir)
-            if not subdir or not index.has_section(subdir) or not os.path.isdir(path):
+            if (not subdir or subdir.endswith(SKIP_DIRS) or not index.has_section(subdir)
+                    or not os.path.isdir(path)):
                 continue
-            ours = f"{source.lower()}/{subdir}"
+            ours = f"{source.split('-')[0].lower()}/{subdir}"
             for name in sorted(os.listdir(path)):
                 stem, _ = os.path.splitext(name)
                 if not stem.endswith("-symbolic") or stem in before:
                     continue
+                if not os.path.exists(os.path.join(path, name)):
+                    continue  # dangling upstream link
                 link(os.path.join(path, name), os.path.join(root, ours, name))
                 taken.add(stem)
                 links += 1
                 directories[ours] = section(index, subdir)
 
-    papirus = read_index(PAPIRUS)
+    tela = read_index(TELA)
     count = 0
-    for subdir in papirus.get("Icon Theme", "Directories").split(","):
+    for subdir in tela.get("Icon Theme", "Directories").split(","):
         subdir = subdir.strip()
         if not subdir.endswith("/apps") or "symbolic" in subdir:
             continue
         for app_id, icon in COSMIC_APPS.items():
-            target = os.path.join(ICONS, PAPIRUS, subdir, f"{icon}.svg")
+            target = os.path.join(ICONS, TELA, subdir, f"{icon}.svg")
             if not os.path.exists(target):
                 continue
-            ours = f"papirus/{subdir}"
+            ours = f"tela/{subdir}"
             link(target, os.path.join(root, ours, f"{app_id}.svg"))
-            directories[ours] = section(papirus, subdir)
+            directories[ours] = section(tela, subdir)
             count += 1
 
     out = configparser.ConfigParser(interpolation=None)
     out.optionxform = str
     out["Icon Theme"] = {
         "Name": THEME,
-        "Comment": "COSMIC symbolic icons with Papirus-Dark applications and folders",
+        "Comment": "Tela circle (cosmic-blue accent) with COSMIC symbolic icons as fallback",
         "Inherits": ",".join(INHERITS),
         "Example": "folder",
         "Directories": ",".join(sorted(directories)),

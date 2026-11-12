@@ -167,14 +167,17 @@ for theme in Dark Light; do
     grep -qx true "/usr/share/cosmic/com.system76.CosmicTheme.${theme}.Builder/v2/frosted_panel"
 done
 
-# Icon theme: COSMIC symbolic icons + Papirus-Dark, default for COSMIC and GTK
-rpm -q papirus-icon-theme papirus-icon-theme-dark
+# Icon theme: Tela circle dark (+ COSMIC symbolic icons it lacks), default for COSMIC and GTK
+test -s /usr/share/icons/Tela-circle-4f8dff-dark/index.theme
+test -s /usr/share/icons/Tela-circle-4f8dff/scalable/places/default-folder.svg
+grep -q '4f8dff' /usr/share/icons/Tela-circle-4f8dff/scalable/places/default-folder.svg
 test -s /usr/share/icons/cosmic-blue/index.theme
-grep -qx 'Inherits=Papirus-Dark,Cosmic,Pop,Adwaita,hicolor' /usr/share/icons/cosmic-blue/index.theme
+grep -qx 'Inherits=Tela-circle-4f8dff-dark,Cosmic,Pop,Adwaita,hicolor' /usr/share/icons/cosmic-blue/index.theme
 grep -qx '"cosmic-blue"' /usr/share/cosmic/com.system76.CosmicTk/v1/icon_theme
 test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface icon-theme)" = "'cosmic-blue'"
+test -n "$(find /usr/share/icons/cosmic-blue/tela/symbolic -name 'audio-volume-high-symbolic.svg' -print -quit)"
 test -n "$(find /usr/share/icons/cosmic-blue/cosmic -name '*-symbolic.svg' -print -quit)"
-test -n "$(find /usr/share/icons/cosmic-blue/papirus -name 'com.system76.CosmicFiles.svg' -print -quit)"
+test -n "$(find /usr/share/icons/cosmic-blue/tela -name 'com.system76.CosmicFiles.svg' -print -quit)"
 # Every link of the theme points to an existing icon
 broken="$(find /usr/share/icons/cosmic-blue -xtype l)"
 [[ -z "${broken}" ]] || { echo "Broken icon links:"; echo "${broken}"; exit 1; }
