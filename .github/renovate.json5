@@ -1,28 +1,55 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:best-practices",
-  ],
+  "extends": ["config:best-practices"],
+  "timezone": "Etc/UTC",
 
-  "rebaseWhen": "never",
+  // Merge non-major updates once every check of the pull request is green
+  // (image build + VM boot test). Renovate merges them itself:
+  // GitHub's native auto-merge would merge at once, as main has no required
+  // status checks.
+  "automerge": true,
+  "automergeType": "pr",
+  "platformAutomerge": false,
 
   "packageRules": [
     {
-      "automerge": true,
-      "matchUpdateTypes": ["pin", "pinDigest"]
+      // Base images are rebuilt every day (ublue-os/base-main around 01:10
+      // and 04:10 UTC): one grouped pull request at 04:00-04:59 UTC. Its
+      // merge (after ~1 hour of CI) builds the image, and the daily build of
+      // build.yml then sees a recent build and skips.
+      "description": "Container images in the Containerfile",
+      "matchManagers": ["dockerfile"],
+      "groupName": "base images",
+      "schedule": ["* 4 * * *"]
     },
-    // This prevents the default demo image used in ublue-os/image-template
-    // from being pinned as it serves no purpose there
     {
+      "description": "GitHub Actions, once a week",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
+      "groupName": "GitHub Actions",
+      "schedule": ["* 0-7 * * 1"]
+    },
+    {
+      // Moving to a new Fedora release is a deliberate choice (see the
+      // Containerfile): never propose it.
+      "description": "Stay on the current Fedora release",
       "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/ublue-os/bazzite"],
-      "pinDigests": false
+      "matchPackageNames": [
+        "ghcr.io/ublue-os/base-main",
+        "registry.fedoraproject.org/fedora"
+      ],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     },
     {
-      "enabled": false,
-      "matchUpdateTypes": ["digest", "pinDigest", "pin"],
-      "matchDepTypes": ["container"],
-      "matchFileNames": [".github/workflows/**.yaml", ".github/workflows/**.yml"],
-    },
-  ]
+      // Major versions can break the build: open the pull request, a human
+      // merges it.
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    }
+  ],
+
+  // libcosmic follows the Fedora COSMIC packages through
+  // .github/workflows/check-cosmic-version.yml, not Renovate.
+  "cargo": { "enabled": false }
 }
