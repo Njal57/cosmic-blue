@@ -1,0 +1,44 @@
+// cosmic-blue dark terminal colors, the default of COSMIC Terminal.
+// The blue is the cosmic-blue accent; the other colors share its cool
+// tint and a matching lightness (OKLCH), readable on the theme background.
+// The background is left unset, so the terminal keeps the theme's night
+// blue (and its frosted glass) like COSMIC's own built-in schemes.
+{
+    1: (
+        name: "cosmic-blue",
+        foreground: "#D7DEEC",
+        cursor: "#4F8DFF",
+        bright_foreground: "#EEF2F9",
+        dim_foreground: "#808693",
+        normal: (
+            black: "#2A3342",
+            red: "#FB817A",
+            green: "#69C27E",
+            yellow: "#EBC75E",
+            blue: "#4F8DFF",
+            magenta: "#C190F6",
+            cyan: "#45BCD6",
+            white: "#BDC4D1",
+        ),
+        bright: (
+            black: "#7B879C",
+            red: "#FEABA4",
+            green: "#8FD99E",
+            yellow: "#FFE295",
+            blue: "#86B1FF",
+            magenta: "#D5B2FE",
+            cyan: "#77D4EA",
+            white: "#EEF2F9",
+        ),
+        dim: (
+            black: "#101621",
+            red: "#A74D48",
+            green: "#3A7D4B",
+            yellow: "#9A7E2D",
+            blue: "#3860AC",
+            magenta: "#7D59A4",
+            cyan: "#18798C",
+            white: "#808693",
+        ),
+    ),
+}

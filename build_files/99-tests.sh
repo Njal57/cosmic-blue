@@ -41,6 +41,21 @@ for combo in '\[Ctrl, Alt\], key: "t"' '\[Super\], key: "e"' \
     grep -q "${combo}" "${SHORTCUTS}/custom"
     if grep -q "${combo}" "${SHORTCUTS}/defaults"; then exit 1; fi
 done
+# Terminal: the cosmic-blue color schemes are the defaults, dark and light
+TERM_CONFIG=/usr/share/cosmic/com.system76.CosmicTerm/v1
+for kind in dark light; do
+    grep -qx '"cosmic-blue"' "${TERM_CONFIG}/syntax_theme_${kind}"
+    grep -q 'name: "cosmic-blue"' "${TERM_CONFIG}/color_schemes_${kind}"
+done
+# Shell prompt: the cosmic-blue Starship config is valid and renders a path
+# segment (Starship prints a warning for each config error)
+mkdir -p /tmp/starship-test
+PROMPT_OUT="$(cd /tmp && HOME=/tmp/starship-test \
+    STARSHIP_CONFIG=/usr/share/cosmic-blue/starship.toml starship prompt --status=1 2>&1)"
+printf '%s\n' "${PROMPT_OUT}" | cat -v
+if printf '%s' "${PROMPT_OUT}" | grep -qiE 'warn|error'; then exit 1; fi
+printf '%s' "${PROMPT_OUT}" | grep -q '/tmp'
+grep -q 'STARSHIP_CONFIG="${COSMIC_BLUE_STARSHIP}"' /etc/profile.d/90-starship.sh
 grep -q 'io.missioncenter.MissionCenter' /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
 # Fedora's own wallpapers stay available
 rpm -q "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
