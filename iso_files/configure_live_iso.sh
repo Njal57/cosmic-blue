@@ -12,6 +12,7 @@ IMAGE_REF="$(jq -c -r '."image-ref"' <<<"$IMAGE_INFO")"
 IMAGE_REF="${IMAGE_REF##*:docker://}"
 IMAGE_REF="${IMAGE_REF##ostree-unverified-registry:}"
 IMAGE_FLAVOR="$(jq -c -r '."image-flavor"' <<<"$IMAGE_INFO")"
+IMAGE_NAME="$(jq -c -r '."image-name"' <<<"$IMAGE_INFO")"
 # The tag the ISO was built from (stable, or latest for PR test builds) is the
 # one embedded in the ISO and followed by installed systems. The workflow
 # writes it into the titanoboa checkout, mounted at /app.
@@ -51,7 +52,7 @@ dnf install -y \
     libblockdev-lvm
 
 # Profile matched on os-release (ID=fedora, VARIANT_ID=cosmic-blue or
-# cosmic-blue-nvidia)
+# cosmic-blue-nvidia, the image name)
 . /etc/os-release
 mkdir -p /etc/anaconda/profile.d
 tee /etc/anaconda/profile.d/cosmic-blue.conf <<EOF
@@ -62,7 +63,7 @@ profile_id = cosmic-blue
 
 [Profile Detection]
 os_id = fedora
-variant_id = ${VARIANT_ID}
+variant_id = ${IMAGE_NAME}
 
 [Network]
 default_on_boot = FIRST_WIRED_WITH_LINK
