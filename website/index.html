@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cosmic-blue</title>
+  <meta name="description" content="cosmic-blue: the COSMIC desktop, built on Universal Blue like Bluefin and Aurora. Updates in the background, rollback in one command.">
+  <meta name="theme-color" content="#060b1c">
+  <meta property="og:title" content="cosmic-blue">
+  <meta property="og:description" content="The COSMIC desktop, built on Universal Blue like Bluefin and Aurora.">
+  <meta property="og:image" content="https://cosmic-blue-os.github.io/cosmic-blue/img/wallpaper-1280.jpg">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="img/cosmic-blue-logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <picture class="hero-bg">
+      <source media="(max-width: 900px)" srcset="img/wallpaper-1280.jpg">
+      <img src="img/wallpaper-2560.jpg" alt="" fetchpriority="high">
+    </picture>
+    <nav class="top">
+      <a class="brand" href="./"><img src="img/cosmic-blue-logo.svg" alt="" width="28" height="28">cosmic-blue</a>
+      <a href="https://github.com/cosmic-blue-os/cosmic-blue">GitHub</a>
+    </nav>
+    <div class="hero-text">
+      <h1><img src="img/cosmic-blue-logo-horizontal-dark.svg" alt="cosmic-blue" width="560" height="100"></h1>
+      <p class="tagline">The COSMIC desktop, built on Universal Blue<br>like Bluefin and Aurora.</p>
+      <div class="actions">
+        <!-- Filled in by build.sh -->
+        <a class="button primary" href="@ISO_URL@">Download the live ISO</a>
+        <a class="button" href="#install">How to install</a>
+      </div>
+      <p class="fine">x86-64 · about 4.5 GB<!-- checksum --> · <a href="@ISO_URL@.sha256">SHA-256</a><!-- /checksum --></p>
+    </div>
+  </header>
+
+  <main>
+    <section class="features" aria-label="Features">
+      <article>
+        <h2>COSMIC, ready to use</h2>
+        <p>System76's Rust desktop from the official Fedora packages, with a
+        blue theme, frosted glass panels, Papirus icons and a matching boot
+        screen out of the box.</p>
+      </article>
+      <article>
+        <h2>Atomic and reversible</h2>
+        <p>The system is a signed container image. Updates download in the
+        background and apply on the next boot. If something breaks, boot the
+        previous version.</p>
+      </article>
+      <article>
+        <h2>Bluefin and Aurora's foundation</h2>
+        <p>The Universal Blue base and tools they share: <code>ujust</code> commands, Homebrew for
+        command line tools, Flathub apps in the COSMIC Store, and
+        <code>ujust devmode</code> for developer tools.</p>
+      </article>
+    </section>
+
+    <section id="install" class="block">
+      <h2>Install</h2>
+
+      <h3>From the live ISO</h3>
+      <ol>
+        <li>Download the live ISO above.</li>
+        <li>Write it to a USB stick with
+          <a href="https://fedoraproject.org/workstation/download">Fedora Media Writer</a>.</li>
+        <li>Boot from the stick: you get a full COSMIC desktop to try.</li>
+        <li>Start the installer from the desktop icon.</li>
+      </ol>
+
+      <h3>From another bootc system</h3>
+      <p>Already on Bluefin, Aurora, Bazzite or a Fedora Atomic desktop (Silverblue, Kinoite...)? Switch in place:</p>
+      <div class="code">
+        <pre><code>sudo bootc switch ghcr.io/cosmic-blue-os/cosmic-blue:latest
+sudo systemctl reboot</code></pre>
+        <button type="button" class="copy" data-copy>Copy</button>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Updates and rollback</h2>
+      <div class="code">
+        <pre><code>ujust update          # update now instead of waiting
+sudo bootc rollback   # go back to the previous version on next boot</code></pre>
+        <button type="button" class="copy" data-copy>Copy</button>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Signed images</h2>
+      <p>Every image is signed with <a href="https://github.com/sigstore/cosign">cosign</a>,
+      and installed systems refuse unsigned updates. Check by hand with
+      <a href="https://github.com/cosmic-blue-os/cosmic-blue/blob/main/cosign.pub"><code>cosign.pub</code></a>:</p>
+      <div class="code">
+        <pre><code>cosign verify --key cosign.pub ghcr.io/cosmic-blue-os/cosmic-blue:latest</code></pre>
+        <button type="button" class="copy" data-copy>Copy</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Built on <a href="https://universal-blue.org/">Universal Blue</a>,
+    <a href="https://projectbluefin.io/">Bluefin</a>,
+    <a href="https://fedoraproject.org/">Fedora</a> and
+    <a href="https://system76.com/cosmic">COSMIC</a>.
+    Not affiliated with these projects.</p>
+    <p><a href="https://github.com/cosmic-blue-os/cosmic-blue">Source code</a> ·
+    <a href="https://github.com/cosmic-blue-os/cosmic-blue/issues">Report a problem</a></p>
+  </footer>
+
+  <script>
+    for (const button of document.querySelectorAll("[data-copy]")) {
+      button.addEventListener("click", async () => {
+        const text = button.previousElementSibling.textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          button.textContent = "Copied";
+        } catch {
+          button.textContent = "Select and copy";
+        }
+        setTimeout(() => { button.textContent = "Copy"; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

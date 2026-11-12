@@ -19,7 +19,8 @@ on:
 env:
   IMAGE_NAME: ${{ github.event.repository.name }} # output of build.yml, keep in sync
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
-  DEFAULT_TAG: "latest"
+  # Installed systems follow this tag. PR test builds use latest.
+  DEFAULT_TAG: ${{ github.event_name == 'pull_request' && 'latest' || 'stable' }}
   # Same titanoboa revision as projectbluefin/iso
   TITANOBOA_REF: "840217d97bd0bc9a52466508c54d8dda5c5ba2fd"
 
@@ -62,6 +63,7 @@ jobs:
           # The post-rootfs hook only sees the titanoboa checkout (mounted at
           # /app), so ship the welcome tour files inside it.
           cp -r iso_files/welcome "${titanoboa_dir}/cosmic-blue-welcome"
+          echo "${DEFAULT_TAG}" > "${titanoboa_dir}/cosmic-blue-image-tag"
 
           # Arguments: image, livesys, flatpaks file, compression, extra kargs,
           # image embedded for the installer, polkit rules.
@@ -91,3 +93,32 @@ jobs:
           retention-days: 0
           compression-level: 0
           overwrite: true
+
+      # Public download for the website: the ISO and its checksum, under fixed
+      # names so each build replaces the previous one (R2 free tier: 10 GB).
+      # Skipped on pull requests and until the R2 secrets are set.
+      - name: Upload ISO to Cloudflare R2
+        if: github.event_name != 'pull_request'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          ISO_NAME: ${{ steps.build.outputs.name }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${AWS_ACCESS_KEY_ID}" || -z "${AWS_SECRET_ACCESS_KEY}" || -z "${R2_ACCOUNT_ID}" || -z "${R2_BUCKET}" ]]; then
+            echo "::notice::R2 secrets or R2_BUCKET variable not set, skipping the public upload"
+            exit 0
+          fi
+          cd output
+          sha256sum "${ISO_NAME}.iso" > "${ISO_NAME}.iso.sha256"
+          endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          # ISO first, then its checksum
+          aws s3 cp --endpoint-url "${endpoint}" --no-progress \
+            "${ISO_NAME}.iso" "s3://${R2_BUCKET}/${ISO_NAME}.iso"
+          aws s3 cp --endpoint-url "${endpoint}" --no-progress \
+            "${ISO_NAME}.iso.sha256" "s3://${R2_BUCKET}/${ISO_NAME}.iso.sha256"

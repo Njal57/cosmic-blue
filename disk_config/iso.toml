@@ -4,7 +4,7 @@
 [customizations.installer.kickstart]
 contents = """
 %post
-bootc switch --mutate-in-place --enforce-container-sigpolicy --transport registry ghcr.io/cosmic-blue-os/cosmic-blue:latest
+bootc switch --mutate-in-place --enforce-container-sigpolicy --transport registry ghcr.io/cosmic-blue-os/cosmic-blue:stable
 %end
 """
 

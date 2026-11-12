@@ -80,7 +80,12 @@ find /usr/share/backgrounds -mindepth 1 -type d -empty -delete
 echo "Wallpapers kept:"
 find /usr/share/backgrounds -printf '%y %p %l\n' | sort
 
-# cosmic-blue defaults (wallpaper, theme) and boot screen (Plymouth theme)
+# For the build log: the dock favorites and shortcuts as packaged by Fedora
+cat /usr/share/cosmic/com.system76.CosmicAppList/v1/favorites || true
+ls /usr/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/ || true
+
+# cosmic-blue defaults (wallpaper, theme, dock, extra shortcuts) and boot
+# screen (Plymouth theme)
 # were copied before these packages were installed; apply them again so they
 # win over the packaged files.
 cp -a /ctx/system_files/cosmic-blue/usr/share/cosmic/. /usr/share/cosmic/

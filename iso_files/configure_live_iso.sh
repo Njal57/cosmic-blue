@@ -11,6 +11,12 @@ IMAGE_TAG="$(jq -c -r '."image-tag"' <<<"$IMAGE_INFO")"
 IMAGE_REF="$(jq -c -r '."image-ref"' <<<"$IMAGE_INFO")"
 IMAGE_REF="${IMAGE_REF##*:docker://}"
 IMAGE_REF="${IMAGE_REF##ostree-unverified-registry:}"
+# The tag the ISO was built from (stable, or latest for PR test builds) is the
+# one embedded in the ISO and followed by installed systems. The workflow
+# writes it into the titanoboa checkout, mounted at /app.
+if [[ -s /app/cosmic-blue-image-tag ]]; then
+    IMAGE_TAG="$(< /app/cosmic-blue-image-tag)"
+fi
 
 ### Live session
 

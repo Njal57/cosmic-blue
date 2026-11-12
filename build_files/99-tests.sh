@@ -14,6 +14,27 @@ test -s /usr/share/icons/hicolor/scalable/apps/cosmic-blue-logo.svg
 # Dark theme by default (COSMIC and GTK)
 grep -qx true /usr/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark
 test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'"
+# Dock: Firefox and Thunderbird are flatpaks (COSMIC's default lists the
+# Firefox RPM id "firefox"); the other favorites are installed apps
+APP_LIST=/usr/share/cosmic/com.system76.CosmicAppList/v1/favorites
+for app in org.mozilla.firefox org.mozilla.thunderbird; do
+    grep -q "\"${app}\"" "${APP_LIST}"
+    grep -q "^\[Flatpak Preinstall ${app}\]" /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
+done
+for app in $(grep -o '"com\.system76\.[A-Za-z]*"' "${APP_LIST}" | tr -d '"'); do
+    test -e "/usr/share/applications/${app}.desktop"
+done
+# Extra shortcuts (custom, so they show and can be changed in COSMIC Settings)
+# next to COSMIC's own defaults, without taking one of their key combinations
+SHORTCUTS=/usr/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1
+test -s "${SHORTCUTS}/defaults"
+grep -q 'System(Terminal)' "${SHORTCUTS}/custom"
+for combo in '\[Ctrl, Alt\], key: "t"' '\[Super\], key: "e"' \
+             '\[Super, Shift\], key: "s"' '\[Ctrl, Shift\], key: "Escape"'; do
+    grep -q "${combo}" "${SHORTCUTS}/custom"
+    if grep -q "${combo}" "${SHORTCUTS}/defaults"; then exit 1; fi
+done
+grep -q 'io.missioncenter.MissionCenter' /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
 # Fedora's own wallpapers stay available
 rpm -q "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
 # Each wallpaper is listed once in COSMIC Settings: no aliases, no copies
@@ -49,6 +70,11 @@ jq -e '."image-ref" | startswith("ostree-image-signed:")' /usr/share/ublue-os/im
 for f in bin/ujust share/ublue-os/just/00-entry.just share/ublue-os/just/apps.just \
          share/ublue-os/just/default.just share/ublue-os/just/update.just; do
     test -e "/usr/${f}"
+done
+# cosmic-blue recipes (60-custom.just) parse and are listed by ujust
+recipes="$(just --justfile /usr/share/ublue-os/just/00-entry.just --summary)"
+for recipe in toggle-dark-mode reset-cosmic-theme reset-cosmic-config; do
+    grep -qw -- "${recipe}" <<<"${recipes}"
 done
 
 test ! -e /usr/share/flatpak/preinstall.d/bazaar.preinstall
