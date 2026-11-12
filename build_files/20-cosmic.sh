@@ -14,6 +14,7 @@ dnf5 -y install \
     cosmic-edit \
     cosmic-files \
     cosmic-player \
+    cosmic-store \
     cosmic-term
 
 # (no power-profiles-daemon: base-main already ships tuned-ppd)

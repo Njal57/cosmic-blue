@@ -20,8 +20,20 @@ systemctl --global enable \
 # uupd replaces rpm-ostree automatic updates
 systemctl disable rpm-ostreed-automatic.timer || true
 
-# Flathub instead of the Fedora flatpak remote
-flatpak remote-add --system --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+# Flathub and the COSMIC flatpak repository (COSMIC applets and apps from
+# System76) instead of the Fedora flatpak remote, both shown in COSMIC Store.
+# Files in /usr/share/flatpak/remotes.d are added by flatpak itself the first
+# time it opens the system installation, so systems installed before this
+# change get them too; the remotes are also added now for new installs.
+mkdir -p /usr/share/flatpak/remotes.d
+curl --fail --retry 3 -sSL -o /usr/share/flatpak/remotes.d/flathub.flatpakrepo \
+    https://dl.flathub.org/repo/flathub.flatpakrepo
+curl --fail --retry 3 -sSL -o /usr/share/flatpak/remotes.d/cosmic.flatpakrepo \
+    https://apt.pop-os.org/cosmic/cosmic.flatpakrepo
+for remote in flathub cosmic; do
+    flatpak remote-add --system --if-not-exists "${remote}" \
+        "/usr/share/flatpak/remotes.d/${remote}.flatpakrepo"
+done
 systemctl disable flatpak-add-fedora-repos.service || true
 rm -f /usr/lib/systemd/system/flatpak-add-fedora-repos.service
 

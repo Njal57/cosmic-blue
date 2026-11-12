@@ -37,7 +37,12 @@ for f in bin/ujust share/ublue-os/just/00-entry.just share/ublue-os/just/apps.ju
     test -e "/usr/${f}"
 done
 
-test -f /usr/share/flatpak/preinstall.d/bazaar.preinstall
+test ! -e /usr/share/flatpak/preinstall.d/bazaar.preinstall
+! grep -q Bazaar /usr/share/ublue-os/homebrew/system-flatpaks.Brewfile
+for remote in flathub cosmic; do
+    grep -q '^\[Flatpak Repo\]' "/usr/share/flatpak/remotes.d/${remote}.flatpakrepo"
+    flatpak remotes --system --columns=name | grep -qx "${remote}"
+done
 test -f /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
 test ! -e /usr/lib/systemd/system/flatpak-add-fedora-repos.service
 # No Bluefin GNOME dconf settings (the folder itself may come from Fedora)
@@ -49,6 +54,7 @@ IMPORTANT_PACKAGES=(
     cosmic-session
     cosmic-greeter
     cosmic-comp
+    cosmic-store
     cosmic-files
     cosmic-term
     distrobox
