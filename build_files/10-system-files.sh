@@ -69,6 +69,12 @@ GNOME_ONLY+=(
     usr/share/flatpak/preinstall.d/bazaar.preinstall
     usr/share/ublue-os/bazaar
 )
+# Bluefin's Firefox prefs force hardware video decoding past Firefox's GPU
+# blocklist: Firefox's own defaults are safer. Our Firefox defaults are
+# policies (usr/lib/tmpfiles.d/cosmic-blue-firefox.conf).
+GNOME_ONLY+=(
+    usr/share/ublue-os/firefox-config
+)
 for path in "${GNOME_ONLY[@]}"; do
     rm -rf "${STAGE:?}/${path}"
 done

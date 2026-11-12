@@ -58,6 +58,19 @@ for combo in '\[Ctrl, Alt\], key: "t"' '\[Super\], key: "e"' \
     grep -q "${combo}" "${SHORTCUTS}/custom"
     if grep -q "${combo}" "${SHORTCUTS}/defaults"; then exit 1; fi
 done
+# Firefox defaults (policies), linked into the flatpak's systemconfig
+# extension at boot; Bluefin's prefs and copy hook are gone
+FIREFOX_POLICIES=/usr/share/cosmic-blue/firefox/policies/policies.json
+jq -e '.policies.DisableTelemetry and .policies.DisableAppUpdate
+    and .policies.ExtensionSettings."uBlock0@raymondhill.net".installation_mode == "normal_installed"' \
+    "${FIREFOX_POLICIES}" >/dev/null
+SYSTEMCONFIG=/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/x86_64/stable
+SYSTEMD_LOG_LEVEL=warning systemd-tmpfiles --create --root=/tmp/tmpfiles-root - \
+    </usr/lib/tmpfiles.d/cosmic-blue-firefox.conf
+test "$(readlink "/tmp/tmpfiles-root${SYSTEMCONFIG}")" = /usr/share/cosmic-blue/firefox
+rm -rf /tmp/tmpfiles-root
+test ! -e /usr/share/ublue-os/firefox-config
+test ! -e /usr/share/ublue-os/privileged-setup.hooks.d/99-flatpaks.sh
 # Terminal: the cosmic-blue color schemes are the defaults, dark and light
 TERM_CONFIG=/usr/share/cosmic/com.system76.CosmicTerm/v1
 for kind in dark light; do

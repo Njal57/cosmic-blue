@@ -50,6 +50,9 @@ dnf install -y \
     libblockdev-btrfs \
     libblockdev-dm \
     libblockdev-lvm
+# Same Firefox defaults as the installed system's flatpak
+mkdir -p /etc/firefox/policies
+ln -sf /usr/share/cosmic-blue/firefox/policies/policies.json /etc/firefox/policies/policies.json
 
 # Profile matched on os-release (ID=fedora, VARIANT_ID=cosmic-blue or
 # cosmic-blue-nvidia, the image name)
