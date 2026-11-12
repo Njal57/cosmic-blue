@@ -12,17 +12,17 @@
 add_newline = false
 
 format = """\
-($status[](fg:#c9403a bg:#1d47c4))\
+($status[\ue0b0](fg:#c9403a bg:#1d47c4))\
 $os$username$hostname\
-[](fg:#1d47c4 bg:#4f8dff)\
+[\ue0b0](fg:#1d47c4 bg:#4f8dff)\
 $directory\
 ($git_branch$git_status$git_state)\
-[ ](fg:#4f8dff)\
+[\ue0b0 ](fg:#4f8dff)\
 """
 
 [status]
 disabled = false
-format = "[  $status ]($style)"
+format = "[ \uf00d $status ]($style)"
 style = "fg:#ffffff bg:#c9403a"
 
 [os]
@@ -31,8 +31,8 @@ format = "[ $symbol]($style)"
 style = "fg:#ffffff bg:#1d47c4"
 
 [os.symbols]
-Fedora = " "
-Linux = " "
+Fedora = "\uf30a "
+Linux = "\uf17c "
 
 [username]
 show_always = true
@@ -51,11 +51,11 @@ style = "bold fg:#0b1736 bg:#4f8dff"
 read_only = " \U000f033e"
 read_only_style = "fg:#0b1736 bg:#4f8dff"
 truncation_length = 3
-truncation_symbol = "…/"
+truncation_symbol = "\u2026/"
 
 [git_branch]
-format = "[ $symbol$branch ]($style)"
-symbol = " "
+format = "[\ue0b1 $symbol$branch ]($style)"
+symbol = "\ue725 "
 style = "fg:#0b1736 bg:#4f8dff"
 
 [git_status]
