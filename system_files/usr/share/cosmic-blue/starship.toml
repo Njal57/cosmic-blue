@@ -1,0 +1,67 @@
+# cosmic-blue default Starship prompt: powerline segments in the logo blues.
+#
+#   [ x status ] > [ user ] > [ ~/path | branch status ] >
+#
+# The status segment only shows after a command that failed. The arrows and
+# icons are Nerd Font symbols, written as \u escapes so they stay readable
+# here. To change the prompt, copy this file to ~/.config/starship.toml:
+# Starship then uses yours instead (https://starship.rs/config/).
+"$schema" = "https://starship.rs/config-schema.json"
+
+# One line per prompt, no blank line between them
+add_newline = false
+
+format = """\
+($status[](fg:#c9403a bg:#1d47c4))\
+$os$username$hostname\
+[](fg:#1d47c4 bg:#4f8dff)\
+$directory\
+($git_branch$git_status$git_state)\
+[ ](fg:#4f8dff)\
+"""
+
+[status]
+disabled = false
+format = "[  $status ]($style)"
+style = "fg:#ffffff bg:#c9403a"
+
+[os]
+disabled = false
+format = "[ $symbol]($style)"
+style = "fg:#ffffff bg:#1d47c4"
+
+[os.symbols]
+Fedora = " "
+Linux = " "
+
+[username]
+show_always = true
+format = "[$user ]($style)"
+style_user = "fg:#ffffff bg:#1d47c4"
+style_root = "bold fg:#ffd479 bg:#1d47c4"
+
+[hostname]
+ssh_only = true
+format = "[@$hostname ]($style)"
+style = "fg:#c9dbff bg:#1d47c4"
+
+[directory]
+format = "[ $path]($style)[$read_only]($read_only_style)[ ]($style)"
+style = "bold fg:#0b1736 bg:#4f8dff"
+read_only = " \U000f033e"
+read_only_style = "fg:#0b1736 bg:#4f8dff"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[git_branch]
+format = "[ $symbol$branch ]($style)"
+symbol = " "
+style = "fg:#0b1736 bg:#4f8dff"
+
+[git_status]
+format = "[($all_status$ahead_behind )]($style)"
+style = "fg:#0b1736 bg:#4f8dff"
+
+[git_state]
+format = "[\\($state( $progress_current/$progress_total)\\) ]($style)"
+style = "bold fg:#0b1736 bg:#4f8dff"
