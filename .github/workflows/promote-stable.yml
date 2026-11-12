@@ -1,0 +1,117 @@
+---
+# Promotes an already published image to the `stable` tag.
+#
+# Every image on GHCR has passed the CI boot test (build.yml does not push or
+# sign an image that fails it). `latest` gets each daily build; `stable` moves
+# once a week to the daily build from 7 days earlier, so every `stable` image
+# has spent a week on `latest` first. If a regression shows up during that
+# week, run this workflow by hand with a known good tag (e.g. 20261105) to
+# point `stable` back to it, or disable the workflow to freeze `stable`.
+#
+# The tag is copied by digest, so the cosign signature made by build.yml stays
+# valid: nothing is rebuilt or re-signed here.
+name: Promote stable image
+
+on:
+  schedule:
+    # Every Tuesday at 12:00 UTC, after the daily image build
+    - cron: '0 12 * * 2'
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: "Tag to promote (e.g. latest or 20261105). Empty: the daily build from 7 days ago."
+        required: false
+        default: ""
+
+env:
+  IMAGE_NAME: ${{ github.event.repository.name }} # output of build.yml, keep in sync
+  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
+  SOAK_DAYS: 7
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Promote to stable
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: 'v3.1.4'
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote
+        env:
+          SOURCE_TAG: ${{ inputs.source_tag }}
+          GH_ACTOR: ${{ github.actor }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          image="${IMAGE_REGISTRY,,}/${IMAGE_NAME,,}"
+          creds="${GH_ACTOR}:${GH_TOKEN}"
+
+          digest_of() {
+            skopeo inspect --creds "${creds}" --format '{{.Digest}}' "docker://${image}:$1" 2>/dev/null
+          }
+
+          # Pick the source: the given tag, or the most recent daily build
+          # that is at least SOAK_DAYS old (a day without a green build has
+          # no date tag, so look back up to a week further).
+          source=""
+          if [[ -n "${SOURCE_TAG}" ]]; then
+            digest_of "${SOURCE_TAG}" >/dev/null || { echo "::error::Tag ${SOURCE_TAG} not found"; exit 1; }
+            source="${SOURCE_TAG}"
+          else
+            for days in $(seq "${SOAK_DAYS}" $((SOAK_DAYS + 7))); do
+              tag="$(date -u -d "${days} days ago" +%Y%m%d)"
+              if digest_of "${tag}" >/dev/null; then
+                source="${tag}"
+                break
+              fi
+            done
+            [[ -n "${source}" ]] || { echo "::error::No daily build found between ${SOAK_DAYS} and $((SOAK_DAYS + 7)) days ago"; exit 1; }
+          fi
+          digest="$(digest_of "${source}")"
+          echo "Source: ${image}:${source} (${digest})"
+
+          # Only promote images signed by build.yml with our key
+          cosign verify --key cosign.pub "${image}@${digest}" >/dev/null
+
+          if [[ "$(digest_of stable || true)" == "${digest}" ]]; then
+            echo "stable already points to ${digest}, nothing to do"
+            exit 0
+          fi
+
+          # Copy by digest so the signature still applies; also keep a dated
+          # stable tag to make rollbacks to an earlier stable easy.
+          for tag in stable "stable-$(date -u +%Y%m%d)"; do
+            skopeo copy --all --preserve-digests \
+              --src-creds "${creds}" --dest-creds "${creds}" \
+              "docker://${image}@${digest}" "docker://${image}:${tag}"
+          done
+
+          [[ "$(digest_of stable)" == "${digest}" ]] || { echo "::error::stable digest mismatch after copy"; exit 1; }
+          cosign verify --key cosign.pub "${image}:stable" >/dev/null
+
+          {
+            echo "### stable promoted"
+            echo
+            echo "- Source: \`${image}:${source}\`"
+            echo "- Digest: \`${digest}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
