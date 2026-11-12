@@ -11,7 +11,7 @@ name: Check COSMIC version
 # leave it alone until it is fixed by hand.
 on:
   schedule:
-    - cron: '0 6 * * *'  # every day at 06:00 UTC, before the image build
+    - cron: '0 5 * * *'  # every day at 05:00 UTC, before the image build (06:00)
   pull_request:
     branches:
       - main

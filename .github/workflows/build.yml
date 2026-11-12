@@ -5,7 +5,10 @@ on:
     branches:
       - main
   schedule:
-    - cron: '30 10 * * *'  # every day at 10:30 UTC (11:30 in Paris in winter, 12:30 in summer)
+    # Every day at 06:00 UTC (07:00 in Paris in winter, 08:00 in summer):
+    # ublue-os/base-main is rebuilt around 01:10 and 04:10 UTC, this leaves
+    # a margin for a late upstream build.
+    - cron: '0 6 * * *'
   push:
     branches:
       - main
