@@ -14,6 +14,25 @@ test -s /usr/share/icons/hicolor/scalable/apps/cosmic-blue-logo.svg
 # Dark theme by default (COSMIC and GTK)
 grep -qx true /usr/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark
 test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'"
+# Dock: Firefox is the flatpak (org.mozilla.firefox), not the RPM's "firefox"
+# id that COSMIC uses by default; the other favorites are installed apps
+APP_LIST=/usr/share/cosmic/com.system76.CosmicAppList/v1/favorites
+grep -q '"org.mozilla.firefox"' "${APP_LIST}"
+grep -q 'org.mozilla.firefox' /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
+for app in $(grep -o '"com\.system76\.[A-Za-z]*"' "${APP_LIST}" | tr -d '"'); do
+    test -e "/usr/share/applications/${app}.desktop"
+done
+# Extra shortcuts (custom, so they show and can be changed in COSMIC Settings)
+# next to COSMIC's own defaults, without taking one of their key combinations
+SHORTCUTS=/usr/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1
+test -s "${SHORTCUTS}/defaults"
+grep -q 'System(Terminal)' "${SHORTCUTS}/custom"
+for combo in '\[Ctrl, Alt\], key: "t"' '\[Super\], key: "e"' \
+             '\[Super, Shift\], key: "s"' '\[Ctrl, Shift\], key: "Escape"'; do
+    grep -q "${combo}" "${SHORTCUTS}/custom"
+    if grep -q "${combo}" "${SHORTCUTS}/defaults"; then exit 1; fi
+done
+grep -q 'io.missioncenter.MissionCenter' /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
 # Fedora's own wallpapers stay available
 rpm -q "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
 # Each wallpaper is listed once in COSMIC Settings: no aliases, no copies
