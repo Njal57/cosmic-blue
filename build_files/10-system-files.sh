@@ -61,9 +61,10 @@ done
 cp -a "${STAGE}/." /
 cp -a /ctx/system_files/cosmic-blue/. /
 
-# Only accept key-signed cosmic-blue images (cosign.pub, signed by build.yml)
+# Only accept key-signed cosmic-blue images (cosign.pub, signed by build.yml),
+# including the developer variant, so that switching to it is verified too.
 IMAGE="ghcr.io/${IMAGE_VENDOR}/${IMAGE_NAME}"
-jq --arg image "$IMAGE" '.transports.docker[$image] = [{
+jq --arg image "$IMAGE" '.transports.docker[$image, $image + "-dx"] = [{
     "type": "sigstoreSigned",
     "keyPath": "/etc/pki/containers/cosmic-blue.pub",
     "signedIdentity": {"type": "matchRepository"}
@@ -73,6 +74,8 @@ mkdir -p /etc/containers/registries.d
 cat > /etc/containers/registries.d/cosmic-blue.yaml <<EOF
 docker:
   ${IMAGE}:
+    use-sigstore-attachments: true
+  ${IMAGE}-dx:
     use-sigstore-attachments: true
 EOF
 

@@ -1,0 +1,30 @@
+#!/usr/bin/bash
+# Add administrators (members of wheel) to the docker, incus-admin and libvirt
+# groups, once per user. Runs at every boot, so that accounts created after the
+# first boot are handled too; a user removed from a group later stays removed.
+set -euo pipefail
+
+STATE_FILE="/var/lib/cosmic-blue/dx-groups"
+GROUPS_TO_ADD=(docker incus-admin libvirt)
+
+mkdir -p "$(dirname "${STATE_FILE}")"
+touch "${STATE_FILE}"
+
+# Groups created at build time live in /usr/lib/group; usermod needs them in /etc/group.
+for group in "${GROUPS_TO_ADD[@]}"; do
+    if ! grep -q "^${group}:" /etc/group && grep -q "^${group}:" /usr/lib/group; then
+        grep "^${group}:" /usr/lib/group >>/etc/group
+    fi
+done
+
+IFS=',' read -r -a admins <<<"$(getent group wheel | cut -d: -f4)"
+for user in "${admins[@]}"; do
+    [[ -n "${user}" ]] || continue
+    grep -qx "${user}" "${STATE_FILE}" && continue
+    for group in "${GROUPS_TO_ADD[@]}"; do
+        if getent group "${group}" >/dev/null; then
+            usermod -aG "${group}" "${user}"
+        fi
+    done
+    echo "${user}" >>"${STATE_FILE}"
+done

@@ -1,0 +1,10 @@
+[Unit]
+Description=Add administrators to the docker, incus-admin and libvirt groups
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/cosmic-blue-dx-groups
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,30 @@
+# cosmic-blue-dx: the cosmic-blue image plus developer tools (Docker, VS Code,
+# virtual machines, incus, cockpit, tracing tools), like Bluefin DX.
+# Built on top of the published cosmic-blue image by .github/workflows/build-dx.yml.
+
+ARG BASE_IMAGE="ghcr.io/cosmic-blue-os/cosmic-blue"
+ARG BASE_TAG="latest"
+
+# Build context: scripts + system files, never copied as-is into the final image
+FROM scratch AS ctx
+COPY build_files /build_files
+COPY system_files_dx /system_files_dx
+# Public key used to verify the image signature on update
+COPY cosign.pub /cosign.pub
+
+FROM ${BASE_IMAGE}:${BASE_TAG}
+
+ARG IMAGE_NAME="cosmic-blue-dx"
+ARG IMAGE_VENDOR="cosmic-blue-os"
+ARG UBLUE_IMAGE_TAG="latest"
+ARG VERSION=""
+
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=tmpfs,dst=/tmp \
+    IMAGE_NAME="${IMAGE_NAME}" IMAGE_VENDOR="${IMAGE_VENDOR}" \
+    UBLUE_IMAGE_TAG="${UBLUE_IMAGE_TAG}" VERSION="${VERSION}" \
+    /ctx/build_files/dx/build.sh
+
+RUN bootc container lint

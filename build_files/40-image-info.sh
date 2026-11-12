@@ -2,7 +2,8 @@
 # Image identity: image-info.json (used by ujust, uupd...) and os-release.
 set -euox pipefail
 
-IMAGE_PRETTY_NAME="cosmic-blue"
+# "cosmic-blue", or "cosmic-blue-dx" for the developer variant
+IMAGE_PRETTY_NAME="${IMAGE_NAME}"
 HOME_URL="https://github.com/${IMAGE_VENDOR}/${IMAGE_NAME}"
 VERSION="${VERSION:-${FEDORA_MAJOR_VERSION}.$(date +%Y%m%d)}"
 
@@ -18,7 +19,7 @@ mkdir -p /usr/share/ublue-os
 cat > /usr/share/ublue-os/image-info.json <<JSON
 {
   "image-name": "${IMAGE_NAME}",
-  "image-flavor": "main",
+  "image-flavor": "${IMAGE_FLAVOR:-main}",
   "image-vendor": "${IMAGE_VENDOR}",
   "image-ref": "${IMAGE_REF}",
   "image-tag": "${UBLUE_IMAGE_TAG}",

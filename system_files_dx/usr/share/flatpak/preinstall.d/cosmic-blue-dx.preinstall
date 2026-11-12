@@ -1,0 +1,10 @@
+# Developer flatpaks installed on first boot (flatpak-preinstall.service), on
+# top of the cosmic-blue list.
+
+[Flatpak Preinstall io.podman_desktop.PodmanDesktop]
+Branch=stable
+IsRuntime=false
+
+[Flatpak Preinstall me.iepure.devtoolbox]
+Branch=stable
+IsRuntime=false
