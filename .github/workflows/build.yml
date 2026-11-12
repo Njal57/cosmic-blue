@@ -14,15 +14,18 @@ on:
   pull_request:
     branches:
       - main
-    paths-ignore: &not-in-image
+    paths-ignore:
       - '**/README.md'
       - 'docs/**'
       - 'website/**'
       - 'artifacthub-repo.yml'
       - '.github/renovate.json5'
       - '.github/scripts/**'
-      - '.github/workflows/**'
-      - '!.github/workflows/build.yml'
+      - '.github/workflows/build-live-iso.yml'
+      - '.github/workflows/check-cosmic-version.yml'
+      - '.github/workflows/pages.yml'
+      - '.github/workflows/promote-stable.yml'
+      - '.github/workflows/release-notes.yml'
   schedule:
     # Every day at 06:00 UTC (07:00 in Paris in winter, 08:00 in summer):
     # ublue-os/base-main is rebuilt around 01:10 and 04:10 UTC, this leaves
@@ -31,7 +34,18 @@ on:
   push:
     branches:
       - main
-    paths-ignore: *not-in-image
+    paths-ignore:
+      - '**/README.md'
+      - 'docs/**'
+      - 'website/**'
+      - 'artifacthub-repo.yml'
+      - '.github/renovate.json5'
+      - '.github/scripts/**'
+      - '.github/workflows/build-live-iso.yml'
+      - '.github/workflows/check-cosmic-version.yml'
+      - '.github/workflows/pages.yml'
+      - '.github/workflows/promote-stable.yml'
+      - '.github/workflows/release-notes.yml'
   workflow_dispatch:
 
 env:
