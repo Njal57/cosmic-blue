@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cosmic-blue</title>
+  <meta name="description" content="cosmic-blue : le bureau COSMIC, construit sur Universal Blue comme Bluefin et Aurora. Mises à jour en arrière-plan, retour en arrière en une commande.">
+  <meta name="theme-color" content="#060b1c">
+  <meta property="og:title" content="cosmic-blue">
+  <meta property="og:description" content="Le bureau COSMIC, construit sur Universal Blue comme Bluefin et Aurora.">
+  <meta property="og:image" content="https://cosmic-blue-os.github.io/cosmic-blue/img/wallpaper-1280.jpg">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fr_FR">
+  <link rel="alternate" hreflang="en" href="https://cosmic-blue-os.github.io/cosmic-blue/">
+  <link rel="alternate" hreflang="fr" href="https://cosmic-blue-os.github.io/cosmic-blue/fr/">
+  <link rel="alternate" hreflang="x-default" href="https://cosmic-blue-os.github.io/cosmic-blue/">
+  <link rel="icon" href="../img/cosmic-blue-logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="hero">
+    <picture class="hero-bg">
+      <source media="(max-width: 900px)" srcset="../img/wallpaper-1280.jpg">
+      <img src="../img/wallpaper-2560.jpg" alt="" fetchpriority="high">
+    </picture>
+    <nav class="top">
+      <a class="brand" href="./"><img src="../img/cosmic-blue-logo.svg" alt="" width="28" height="28">cosmic-blue</a>
+      <span class="links">
+        <a href="../" hreflang="en" lang="en">English</a>
+        <a href="https://github.com/cosmic-blue-os/cosmic-blue">GitHub</a>
+      </span>
+    </nav>
+    <div class="hero-text">
+      <h1><img src="../img/cosmic-blue-logo-horizontal-dark.svg" alt="cosmic-blue" width="560" height="100"></h1>
+      <p class="tagline">Le bureau COSMIC, construit sur Universal&nbsp;Blue comme Bluefin et&nbsp;Aurora.</p>
+      <div class="gpu" role="radiogroup" aria-labelledby="gpu-label">
+        <span id="gpu-label">Carte graphique</span>
+        <label><input type="radio" name="gpu" value="main" checked> AMD ou Intel</label>
+        <label><input type="radio" name="gpu" value="nvidia"> NVIDIA</label>
+      </div>
+      <div class="actions">
+        <!-- Filled in by build.sh -->
+        <a class="button primary" href="@ISO_URL@" data-nvidia-href="@ISO_NVIDIA_URL@">Télécharger l’ISO live</a>
+        <a class="button" href="#install">Comment l’installer</a>
+      </div>
+      <p class="fine">x86-64 · environ 4,5&nbsp;Go<!-- checksum --> · <a href="@ISO_URL@.sha256" data-nvidia-href="@ISO_NVIDIA_URL@.sha256">SHA-256</a><!-- /checksum --></p>
+      <p class="fine" data-nvidia-only hidden>Avec le pilote NVIDIA, pour les cartes GTX 16xx, RTX 20xx et plus récentes.
+      Carte NVIDIA plus ancienne&nbsp;? Prenez la version AMD ou Intel, qui utilise le pilote libre.</p>
+    </div>
+  </header>
+
+  <main>
+    <section class="features" aria-label="Fonctionnalités">
+      <article>
+        <h2>COSMIC, prêt à l’emploi</h2>
+        <p>Le bureau en Rust de System76, issu des paquets officiels de Fedora,
+        avec un thème bleu, des panneaux en verre dépoli, les icônes Tela circle
+        et un écran de démarrage assorti, dès l’installation.</p>
+      </article>
+      <article>
+        <h2>Atomique et réversible</h2>
+        <p>Le système est une image de conteneur signée. Les mises à jour se
+        téléchargent en arrière-plan et s’appliquent au démarrage suivant. En cas
+        de problème, démarrez sur la version précédente.</p>
+      </article>
+      <article>
+        <h2>Les fondations de Bluefin et Aurora</h2>
+        <p>La base Universal Blue et les outils qu’ils partagent&nbsp;: les commandes
+        <code>ujust</code>, Homebrew pour les outils en ligne de commande, les
+        applications Flathub dans le COSMIC Store, et <code>ujust devmode</code>
+        pour les outils de développement.</p>
+      </article>
+    </section>
+
+    <section id="install" class="block">
+      <h2>Installation</h2>
+
+      <h3>Depuis l’ISO live</h3>
+      <ol>
+        <li>Téléchargez l’ISO live ci-dessus.</li>
+        <li>Écrivez-la sur une clé USB avec
+          <a href="https://fedoraproject.org/workstation/download">Fedora Media Writer</a>.</li>
+        <li>Démarrez sur la clé&nbsp;: vous obtenez un bureau COSMIC complet à essayer.</li>
+        <li>Lancez l’installateur depuis l’icône du bureau.</li>
+        <li data-nvidia-only hidden>Si Secure Boot est activé, un écran bleu s’affiche au premier
+          redémarrage&nbsp;: choisissez <em>Enroll MOK</em>, puis <em>Continue</em>, et tapez le
+          mot de passe <code>universalblue</code> (clavier QWERTY). Cela permet au pilote
+          NVIDIA de se charger.</li>
+      </ol>
+
+      <h3>Depuis un autre système bootc</h3>
+      <p>Déjà sur Bluefin, Aurora, Bazzite ou un bureau Fedora Atomic (Silverblue, Kinoite…)&nbsp;? Basculez sur place&nbsp;:</p>
+      <div class="code">
+        <pre><code><span data-nvidia-only hidden>ujust enroll-secure-boot-key   # seulement si Secure Boot est activé
+</span>sudo bootc switch ghcr.io/cosmic-blue-os/<span data-image>cosmic-blue</span>:latest
+sudo systemctl reboot</code></pre>
+        <button type="button" class="copy" data-copy>Copier</button>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Mises à jour et retour en arrière</h2>
+      <div class="code">
+        <pre><code>ujust update          # mettre à jour maintenant sans attendre
+sudo bootc rollback   # revenir à la version précédente au prochain démarrage</code></pre>
+        <button type="button" class="copy" data-copy>Copier</button>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Images signées</h2>
+      <p>Chaque image est signée avec <a href="https://github.com/sigstore/cosign">cosign</a>,
+      et les systèmes installés refusent les mises à jour non signées. Pour vérifier
+      à la main avec
+      <a href="https://github.com/cosmic-blue-os/cosmic-blue/blob/main/cosign.pub"><code>cosign.pub</code></a>&nbsp;:</p>
+      <div class="code">
+        <pre><code>cosign verify --key cosign.pub ghcr.io/cosmic-blue-os/<span data-image>cosmic-blue</span>:latest</code></pre>
+        <button type="button" class="copy" data-copy>Copier</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Construit sur <a href="https://universal-blue.org/">Universal Blue</a>,
+    <a href="https://projectbluefin.io/">Bluefin</a>,
+    <a href="https://fedoraproject.org/">Fedora</a> et
+    <a href="https://system76.com/cosmic">COSMIC</a>.
+    Sans lien officiel avec ces projets.</p>
+    <p><a href="https://github.com/cosmic-blue-os/cosmic-blue">Code source</a> ·
+    <a href="https://github.com/cosmic-blue-os/cosmic-blue/issues">Signaler un problème</a></p>
+  </footer>
+
+  <script src="../site.js"></script>
+</body>
+</html>

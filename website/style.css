@@ -79,6 +79,11 @@ code { font-family: var(--mono); font-size: .92em; }
   font-weight: 500;
 }
 
+.top .links {
+  display: flex;
+  gap: 20px;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
