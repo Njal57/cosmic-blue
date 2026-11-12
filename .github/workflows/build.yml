@@ -17,7 +17,7 @@ env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.brand_name}}-${{ inputs.stream_name }}
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -28,10 +28,9 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write
 
     steps:
-      # These stage versions are pinned by https://github.com/renovatebot/renovate
+      # Action versions are pinned to commits and updated by Renovate
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -74,23 +73,13 @@ jobs:
             ${IMAGE_NAME} \
             ${DEFAULT_TAG}
 
-      # This is optional, this provides smaller delta updates
+      # Smaller delta updates for installed systems
       - name: Rechunk with rpm-ostree
         id: rechunk
         run: |
           just ostree-rechunk \
             ${IMAGE_NAME} \
             ${DEFAULT_TAG}
-
-      # If you are feeling adventurous, use the new distro agnostic rechunker
-      # https://github.com/coreos/chunkah
-      # You can delete the Rechunk with rpm-ostree portion then if you use this
-      #- name: Rechunk with Chunkah
-      #  id: rechunk
-      #  run: |
-      #    just rechunk \
-      #      ${IMAGE_NAME} \
-      #      ${DEFAULT_TAG}
 
       - name: Generate Build Tags
         id: gen-build-tags
@@ -146,8 +135,8 @@ jobs:
         if: always()
         run: sudo podman rmi -f "localhost/${IMAGE_NAME}:${DEFAULT_TAG}" || true
 
-      # These `if` statements are so that pull requests for your custom images do not make it publish any packages under your name without you knowing
-      # They also check if the runner is on the default branch so that things like the merge queue (if you enable it), are going to work
+      # Only the default branch publishes: pull requests and other branches
+      # (e.g. the COSMIC update branches) build and test the image only.
       - name: Login to GitHub Container Registry
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
@@ -171,10 +160,8 @@ jobs:
 
           echo "digest=${digest}" >> $GITHUB_OUTPUT
 
-      # This section is optional and only needs to be enabled if you plan on distributing
-      # your project for others to consume. You will need to create a public and private key
-      # using Cosign and save the private key as a repository secret in Github for this workflow
-      # to consume. For more details, review the image signing section of the README.
+      # Installed systems only accept updates signed with the key matching
+      # cosign.pub (/etc/containers/policy.json), so an unsigned image is an error.
       - name: Install Cosign
         uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
@@ -194,12 +181,9 @@ jobs:
           # https://github.com/containers/container-libs/issues/388
           # https://github.com/coreos/rpm-ostree/issues/5509
           # use old bundle format, so we can use newer cosign 3.X.X instead of 2.X.X
-          if [[ -n "${COSIGN_PRIVATE_KEY}" ]]; then
-            # Key-based signature (SIGNING_SECRET), verifiable by bootc with cosign.pub
-            cosign sign -y --new-bundle-format=false --use-signing-config=false --key env://COSIGN_PRIVATE_KEY ${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}
-          else
-            # No key yet: "keyless" signature using the GitHub Actions OIDC identity
-            # (verifiable with `cosign verify`, not yet by bootc).
-            cosign sign -y --new-bundle-format=false --use-signing-config=false ${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}
+          if [[ -z "${COSIGN_PRIVATE_KEY}" ]]; then
+            echo "::error::The SIGNING_SECRET secret is missing: installed systems would refuse this image"
+            exit 1
           fi
+          cosign sign -y --new-bundle-format=false --use-signing-config=false --key env://COSIGN_PRIVATE_KEY ${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}
 
