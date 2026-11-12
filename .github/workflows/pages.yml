@@ -38,6 +38,9 @@ jobs:
         run: command -v convert || (sudo apt-get update && sudo apt-get install -y imagemagick)
 
       - name: Build
+        env:
+          # Public URL of the R2 bucket holding the live ISO (repository variable)
+          ISO_BASE_URL: ${{ vars.ISO_BASE_URL }}
         run: website/build.sh _site
 
       - name: Upload site

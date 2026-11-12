@@ -10,7 +10,18 @@ out="${1:-${root}/_site}"
 rm -rf "${out}"
 mkdir -p "${out}/img"
 
-cp "${root}/website/index.html" "${root}/website/style.css" "${out}/"
+# Live ISO download: ISO_BASE_URL is the public URL of the R2 bucket. Until
+# it is set, link to the live ISO workflow runs (needs a GitHub login).
+iso_name="cosmic-blue-live-amd64.iso"
+if [[ -n "${ISO_BASE_URL:-}" ]]; then
+  sed "s|@ISO_URL@|${ISO_BASE_URL%/}/${iso_name}|g" \
+    "${root}/website/index.html" > "${out}/index.html"
+else
+  runs="https://github.com/cosmic-blue-os/cosmic-blue/actions/workflows/build-live-iso.yml?query=branch%3Amain+is%3Asuccess"
+  sed -e 's|<!-- checksum -->.*<!-- /checksum -->||' -e "s|@ISO_URL@|${runs}|g" \
+    "${root}/website/index.html" > "${out}/index.html"
+fi
+cp "${root}/website/style.css" "${out}/"
 cp "${root}/branding/logo/cosmic-blue-logo.svg" \
    "${root}/branding/logo/cosmic-blue-logo-horizontal-dark.svg" "${out}/img/"
 

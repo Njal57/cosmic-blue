@@ -27,11 +27,11 @@
       <h1><img src="img/cosmic-blue-logo-horizontal-dark.svg" alt="cosmic-blue" width="560" height="100"></h1>
       <p class="tagline">The COSMIC desktop on an atomic Fedora system.<br>Updates itself, rolls back in one command.</p>
       <div class="actions">
-        <!-- Live ISO download: replace this link once the ISO has a public home -->
-        <a class="button primary" href="https://github.com/cosmic-blue-os/cosmic-blue/actions/workflows/build-live-iso.yml?query=branch%3Amain+is%3Asuccess">Download the live ISO</a>
+        <!-- Filled in by build.sh -->
+        <a class="button primary" href="@ISO_URL@">Download the live ISO</a>
         <a class="button" href="#install">Other ways to install</a>
       </div>
-      <p class="fine">x86-64 · Fedora 44 · about 4.5 GB</p>
+      <p class="fine">x86-64 · Fedora 44 · about 4.5 GB<!-- checksum --> · <a href="@ISO_URL@.sha256">SHA-256</a><!-- /checksum --></p>
     </div>
   </header>
 
