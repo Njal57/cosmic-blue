@@ -14,11 +14,13 @@ test -s /usr/share/icons/hicolor/scalable/apps/cosmic-blue-logo.svg
 # Dark theme by default (COSMIC and GTK)
 grep -qx true /usr/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark
 test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'"
-# Dock: Firefox is the flatpak (org.mozilla.firefox), not the RPM's "firefox"
-# id that COSMIC uses by default; the other favorites are installed apps
+# Dock: Firefox and Thunderbird are flatpaks (COSMIC's default lists the
+# Firefox RPM id "firefox"); the other favorites are installed apps
 APP_LIST=/usr/share/cosmic/com.system76.CosmicAppList/v1/favorites
-grep -q '"org.mozilla.firefox"' "${APP_LIST}"
-grep -q 'org.mozilla.firefox' /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
+for app in org.mozilla.firefox org.mozilla.thunderbird; do
+    grep -q "\"${app}\"" "${APP_LIST}"
+    grep -q "^\[Flatpak Preinstall ${app}\]" /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
+done
 for app in $(grep -o '"com\.system76\.[A-Za-z]*"' "${APP_LIST}" | tr -d '"'); do
     test -e "/usr/share/applications/${app}.desktop"
 done
