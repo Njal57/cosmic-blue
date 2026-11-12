@@ -81,7 +81,30 @@ code { font-family: var(--mono); font-size: .92em; }
 
 .top .links {
   display: flex;
-  gap: 20px;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Icon links in the top bar: language switch and GitHub */
+.top .icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  min-width: 40px;
+  justify-content: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: .85rem;
+  letter-spacing: .04em;
+  opacity: .85;
+  transition: opacity .15s, background-color .15s;
+}
+
+.top .icon:hover,
+.top .icon:focus-visible {
+  opacity: 1;
+  background: rgb(255 255 255 / .1);
 }
 
 .brand {
