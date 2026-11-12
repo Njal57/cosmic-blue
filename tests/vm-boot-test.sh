@@ -108,8 +108,16 @@ vm 'bootc status' > "${OUT}/bootc-status.txt" || true
 cat "${OUT}/bootc-status.txt"
 errors=0
 
-failed="$(vm 'systemctl --failed --no-legend --plain' || true)"
-if [[ "${state}" != running || -n "${failed}" ]]; then
+# Units that fail because of the CI machine, not the image:
+# - mcelog: "AMD Processor family 26: mcelog does not support this processor"
+IGNORED_UNITS='^(mcelog)\.service '
+all_failed="$(vm 'systemctl --failed --no-legend --plain' || true)"
+failed="$(grep -vE "${IGNORED_UNITS}" <<< "${all_failed}" | grep -v '^$' || true)"
+if [[ -n "${all_failed}" ]]; then
+    echo "Failed units (including the ignored ones):"
+    echo "${all_failed}"
+fi
+if [[ "${state}" != running && "${state}" != degraded ]] || [[ -n "${failed}" ]]; then
     echo "::error::System state is '${state}'. Failed units:"
     echo "${failed}"
     for unit in $(awk '{print $1}' <<< "${failed}"); do
