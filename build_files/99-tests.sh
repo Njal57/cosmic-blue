@@ -204,6 +204,16 @@ test -n "$(find /usr/share/icons/cosmic-blue/tela -name 'com.system76.CosmicFile
 # Every link of the theme points to an existing icon
 broken="$(find /usr/share/icons/cosmic-blue -xtype l)"
 [[ -z "${broken}" ]] || { echo "Broken icon links:"; echo "${broken}"; exit 1; }
+# Cursor theme: Bibata Modern in the cosmic-blue colors, the system default
+# (COSMIC, login screen, X11 apps) and the GTK setting
+CURSORS=/usr/share/icons/Bibata-Modern-cosmic-blue
+grep -qx 'Name=Bibata Modern cosmic-blue' "${CURSORS}/index.theme"
+for cursor in default pointer text wait progress grabbing not-allowed nwse-resize; do
+    test -s "${CURSORS}/cursors/${cursor}"
+done
+test -z "$(find "${CURSORS}" -xtype l)"
+grep -qx 'Inherits=Bibata-Modern-cosmic-blue' /usr/share/icons/default/index.theme
+test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface cursor-theme)" = "'Bibata-Modern-cosmic-blue'"
 
 # Theme colors built around the logo blue (see build_files/theme/src/main.rs).
 # Prints the first color of a COSMIC config file as #rrggbb
