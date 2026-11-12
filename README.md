@@ -32,6 +32,12 @@ ujust update          # update now instead of waiting for the automatic update
 sudo bootc rollback   # go back to the previous version on next boot
 ```
 
+## Developer tools
+
+```bash
+ujust devmode   # Docker, VS Code, Podman Desktop and other developer tools
+```
+
 ## Image signature
 
 Images are signed with [cosign](https://github.com/sigstore/cosign) and
