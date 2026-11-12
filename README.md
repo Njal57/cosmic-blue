@@ -30,8 +30,8 @@ sudo systemctl reboot
 sooner.
 
 **NVIDIA graphics cards** (GTX 16xx, RTX 20xx and newer): use the
-`cosmic-blue-nvidia` image, which ships NVIDIA's driver. Install cosmic-blue
-first, then:
+`cosmic-blue-nvidia` image, which ships NVIDIA's driver. For a new install,
+take `cosmic-blue-nvidia-live-amd64-iso` instead. From an installed system:
 
 ```bash
 ujust enroll-secure-boot-key   # only if Secure Boot is on
@@ -39,7 +39,7 @@ sudo bootc switch ghcr.io/cosmic-blue-os/cosmic-blue-nvidia:stable
 sudo systemctl reboot
 ```
 
-With Secure Boot on, a blue screen (MOK manager) shows up on that reboot:
+With Secure Boot on, a blue screen (MOK manager) shows up on the first reboot:
 choose *Enroll MOK*, then *Continue*, and type the password `universalblue`
 (QWERTY keyboard layout).
 

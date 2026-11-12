@@ -11,6 +11,7 @@ IMAGE_TAG="$(jq -c -r '."image-tag"' <<<"$IMAGE_INFO")"
 IMAGE_REF="$(jq -c -r '."image-ref"' <<<"$IMAGE_INFO")"
 IMAGE_REF="${IMAGE_REF##*:docker://}"
 IMAGE_REF="${IMAGE_REF##ostree-unverified-registry:}"
+IMAGE_FLAVOR="$(jq -c -r '."image-flavor"' <<<"$IMAGE_INFO")"
 # The tag the ISO was built from (stable, or latest for PR test builds) is the
 # one embedded in the ISO and followed by installed systems. The workflow
 # writes it into the titanoboa checkout, mounted at /app.
@@ -49,9 +50,11 @@ dnf install -y \
     libblockdev-dm \
     libblockdev-lvm
 
-# Profile matched on os-release (ID=fedora, VARIANT_ID=cosmic-blue)
+# Profile matched on os-release (ID=fedora, VARIANT_ID=cosmic-blue or
+# cosmic-blue-nvidia)
+. /etc/os-release
 mkdir -p /etc/anaconda/profile.d
-tee /etc/anaconda/profile.d/cosmic-blue.conf <<'EOF'
+tee /etc/anaconda/profile.d/cosmic-blue.conf <<EOF
 # Anaconda configuration file for cosmic-blue
 
 [Profile]
@@ -59,7 +62,7 @@ profile_id = cosmic-blue
 
 [Profile Detection]
 os_id = fedora
-variant_id = cosmic-blue
+variant_id = ${VARIANT_ID}
 
 [Network]
 default_on_boot = FIRST_WIRED_WITH_LINK
@@ -85,7 +88,6 @@ hidden_spokes =
 use_geolocation = False
 EOF
 
-. /etc/os-release
 echo "cosmic-blue release $VERSION_ID" >/etc/system-release
 sed -i 's/ANACONDA_PRODUCTVERSION=.*/ANACONDA_PRODUCTVERSION=""/' /usr/{,s}bin/liveinst || true
 
@@ -111,6 +113,10 @@ ostreecontainer --url=$IMAGE_REF:$IMAGE_TAG --transport=containers-storage --no-
 %include /usr/share/anaconda/post-scripts/install-configure-upgrade.ks
 %include /usr/share/anaconda/post-scripts/disable-fedora-flatpak.ks
 EOF
+if [[ "${IMAGE_FLAVOR}" == nvidia* ]]; then
+    echo '%include /usr/share/anaconda/post-scripts/secureboot-enroll-key.ks' \
+        >> /usr/share/anaconda/interactive-defaults.ks
+fi
 
 tee /usr/share/anaconda/post-scripts/install-configure-upgrade.ks <<EOF
 %post --erroronfail
@@ -121,6 +127,28 @@ EOF
 tee /usr/share/anaconda/post-scripts/disable-fedora-flatpak.ks <<'EOF'
 %post --erroronfail
 systemctl disable flatpak-add-fedora-repos.service || true
+%end
+EOF
+
+# NVIDIA image: queue the Universal Blue akmods key (it signs the NVIDIA
+# modules) for enrollment, as Bluefin's ISO does. With Secure Boot on, the
+# firmware's MOK manager asks to confirm it on the first reboot (password
+# "universalblue"); without Secure Boot, mokutil fails and nothing happens.
+tee /usr/share/anaconda/post-scripts/secureboot-enroll-key.ks <<'EOF'
+%post --erroronfail --nochroot
+set -eu
+readonly ENROLLMENT_PASSWORD="universalblue"
+readonly SECUREBOOT_KEY="/etc/pki/akmods/certs/akmods-ublue.der"
+if [[ ! -d /sys/firmware/efi ]]; then
+    echo "EFI mode not detected. Skipping key enrollment."
+    exit 0
+fi
+if [[ ! -f "${SECUREBOOT_KEY}" ]]; then
+    echo "Secure Boot key not found: ${SECUREBOOT_KEY}"
+    exit 0
+fi
+mokutil --timeout -1 || :
+echo -e "${ENROLLMENT_PASSWORD}\n${ENROLLMENT_PASSWORD}" | mokutil --import "${SECUREBOOT_KEY}" || :
 %end
 EOF
 

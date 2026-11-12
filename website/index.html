@@ -26,12 +26,19 @@
     <div class="hero-text">
       <h1><img src="img/cosmic-blue-logo-horizontal-dark.svg" alt="cosmic-blue" width="560" height="100"></h1>
       <p class="tagline">The COSMIC desktop, built on Universal&nbsp;Blue like Bluefin and&nbsp;Aurora.</p>
+      <div class="gpu" role="radiogroup" aria-labelledby="gpu-label">
+        <span id="gpu-label">Graphics card</span>
+        <label><input type="radio" name="gpu" value="main" checked> AMD or Intel</label>
+        <label><input type="radio" name="gpu" value="nvidia"> NVIDIA</label>
+      </div>
       <div class="actions">
         <!-- Filled in by build.sh -->
-        <a class="button primary" href="@ISO_URL@">Download the live ISO</a>
+        <a class="button primary" href="@ISO_URL@" data-nvidia-href="@ISO_NVIDIA_URL@">Download the live ISO</a>
         <a class="button" href="#install">How to install</a>
       </div>
-      <p class="fine">x86-64 · about 4.5 GB<!-- checksum --> · <a href="@ISO_URL@.sha256">SHA-256</a><!-- /checksum --></p>
+      <p class="fine">x86-64 · about 4.5 GB<!-- checksum --> · <a href="@ISO_URL@.sha256" data-nvidia-href="@ISO_NVIDIA_URL@.sha256">SHA-256</a><!-- /checksum --></p>
+      <p class="fine" data-nvidia-only hidden>With NVIDIA's driver, for GTX 16xx, RTX 20xx and newer cards.
+      Older NVIDIA card? Take the AMD or Intel version, which uses the open source driver.</p>
     </div>
   </header>
 
@@ -67,12 +74,17 @@
           <a href="https://fedoraproject.org/workstation/download">Fedora Media Writer</a>.</li>
         <li>Boot from the stick: you get a full COSMIC desktop to try.</li>
         <li>Start the installer from the desktop icon.</li>
+        <li data-nvidia-only hidden>With Secure Boot on, a blue screen shows up on the first
+          reboot: choose <em>Enroll MOK</em>, then <em>Continue</em>, and type the
+          password <code>universalblue</code> (QWERTY layout). It lets the NVIDIA
+          driver load.</li>
       </ol>
 
       <h3>From another bootc system</h3>
       <p>Already on Bluefin, Aurora, Bazzite or a Fedora Atomic desktop (Silverblue, Kinoite...)? Switch in place:</p>
       <div class="code">
-        <pre><code>sudo bootc switch ghcr.io/cosmic-blue-os/cosmic-blue:latest
+        <pre><code><span data-nvidia-only hidden>ujust enroll-secure-boot-key   # only if Secure Boot is on
+</span>sudo bootc switch ghcr.io/cosmic-blue-os/<span data-image>cosmic-blue</span>:latest
 sudo systemctl reboot</code></pre>
         <button type="button" class="copy" data-copy>Copy</button>
       </div>
@@ -93,7 +105,7 @@ sudo bootc rollback   # go back to the previous version on next boot</code></pre
       and installed systems refuse unsigned updates. Check by hand with
       <a href="https://github.com/cosmic-blue-os/cosmic-blue/blob/main/cosign.pub"><code>cosign.pub</code></a>:</p>
       <div class="code">
-        <pre><code>cosign verify --key cosign.pub ghcr.io/cosmic-blue-os/cosmic-blue:latest</code></pre>
+        <pre><code>cosign verify --key cosign.pub ghcr.io/cosmic-blue-os/<span data-image>cosmic-blue</span>:latest</code></pre>
         <button type="button" class="copy" data-copy>Copy</button>
       </div>
     </section>
@@ -110,9 +122,33 @@ sudo bootc rollback   # go back to the previous version on next boot</code></pre
   </footer>
 
   <script>
+    // Graphics card choice: NVIDIA swaps the ISO links and the image name.
+    // Remembered per browser; ?gpu=nvidia in the address selects it too.
+    const setGpu = (gpu) => {
+      const nvidia = gpu === "nvidia";
+      for (const link of document.querySelectorAll("[data-nvidia-href]")) {
+        link.dataset.mainHref ??= link.getAttribute("href");
+        link.setAttribute("href", nvidia ? link.dataset.nvidiaHref : link.dataset.mainHref);
+      }
+      for (const el of document.querySelectorAll("[data-nvidia-only]")) el.hidden = !nvidia;
+      for (const el of document.querySelectorAll("[data-image]")) {
+        el.textContent = nvidia ? "cosmic-blue-nvidia" : "cosmic-blue";
+      }
+      document.querySelector(`input[name="gpu"][value="${nvidia ? "nvidia" : "main"}"]`).checked = true;
+    };
+    let gpu = new URLSearchParams(location.search).get("gpu");
+    try { gpu ??= localStorage.getItem("gpu"); } catch {}
+    setGpu(gpu);
+    for (const input of document.querySelectorAll('input[name="gpu"]')) {
+      input.addEventListener("change", () => {
+        setGpu(input.value);
+        try { localStorage.setItem("gpu", input.value); } catch {}
+      });
+    }
+
     for (const button of document.querySelectorAll("[data-copy]")) {
       button.addEventListener("click", async () => {
-        const text = button.previousElementSibling.textContent;
+        const text = button.previousElementSibling.innerText;
         try {
           await navigator.clipboard.writeText(text);
           button.textContent = "Copied";
