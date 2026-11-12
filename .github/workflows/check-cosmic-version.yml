@@ -1,0 +1,116 @@
+---
+name: Check COSMIC version
+# Opens (or updates) an issue when Fedora ships a COSMIC version other than the
+# one in build_files/cosmic-version, and closes it once they match again.
+on:
+  schedule:
+    - cron: '0 6 * * *'  # every day at 06:00 UTC, before the image build
+  push:
+    branches:
+      - main
+    paths:
+      - 'build_files/cosmic-version'
+      - '.github/workflows/check-cosmic-version.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'build_files/cosmic-version'
+      - '.github/workflows/check-cosmic-version.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Compare with Fedora
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Query Fedora
+        id: fedora
+        run: |
+          set -euo pipefail
+          base_tag="$(sed -n 's/^ARG BASE_TAG="\(.*\)"/\1/p' Containerfile)"
+          test -n "${base_tag}"
+          pinned="$(grep -v '^#' build_files/cosmic-version | tr -d '[:space:]')"
+          test -n "${pinned}"
+
+          # Latest versions in the Fedora release the image is based on
+          # (fedora + updates repositories, as in the image build)
+          docker run --rm "registry.fedoraproject.org/fedora:${base_tag}" \
+            dnf5 -q repoquery --latest-limit=1 \
+              --qf '%{name} %{version}-%{release}\n' \
+              cosmic-settings cosmic-comp cosmic-session cosmic-initial-setup \
+            | sort -u > packages.txt
+          cat packages.txt
+
+          current="$(awk '$1 == "cosmic-settings" { sub(/-[^-]*$/, "", $2); print $2 }' packages.txt)"
+          test -n "${current}"
+          echo "Fedora ${base_tag}: COSMIC ${current}, pinned: ${pinned}"
+
+          {
+            echo "base_tag=${base_tag}"
+            echo "pinned=${pinned}"
+            echo "current=${current}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Open, update or close the issue
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_TAG: ${{ steps.fedora.outputs.base_tag }}
+          PINNED: ${{ steps.fedora.outputs.pinned }}
+          CURRENT: ${{ steps.fedora.outputs.current }}
+        run: |
+          set -euo pipefail
+          label="cosmic-update"
+          gh label create "${label}" --force \
+            --color 4f8dff --description "A new COSMIC version is available in Fedora"
+          issue="$(gh issue list --state open --label "${label}" \
+            --json number --jq '.[0].number // empty')"
+
+          if [ "${CURRENT}" = "${PINNED}" ]; then
+            if [ -n "${issue}" ]; then
+              gh issue close "${issue}" \
+                --comment "build_files/cosmic-version now matches Fedora ${BASE_TAG} (COSMIC ${CURRENT})."
+            fi
+            exit 0
+          fi
+
+          title="COSMIC ${CURRENT} is available in Fedora ${BASE_TAG}"
+          {
+            echo "Fedora ${BASE_TAG} now ships COSMIC **${CURRENT}**, cosmic-blue is pinned to **${PINNED}**."
+            echo
+            echo "Latest Fedora packages:"
+            echo
+            echo '```'
+            cat packages.txt
+            echo '```'
+            echo
+            echo "To do:"
+            echo
+            echo "- [ ] Update the libcosmic revision in \`build_files/theme/Cargo.toml\` to the one in the \`Cargo.lock\` of cosmic-settings ${CURRENT}."
+            echo "- [ ] Check that \`build_files/initial_setup/patch.py\` still applies to cosmic-initial-setup and does what it should."
+            echo "- [ ] Set \`build_files/cosmic-version\` to \`${CURRENT}\`; this issue then closes itself."
+            echo "- [ ] Test the image in a VM (theme, initial setup)."
+            echo
+            echo "Found by the [Check COSMIC version](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) workflow."
+          } > body.md
+
+          if [ -n "${issue}" ]; then
+            # Rewrite it only for another version, to keep ticked boxes
+            if [ "$(gh issue view "${issue}" --json title --jq .title)" != "${title}" ]; then
+              gh issue edit "${issue}" --title "${title}" --body-file body.md
+            fi
+          else
+            gh issue create --title "${title}" --label "${label}" --body-file body.md
+          fi

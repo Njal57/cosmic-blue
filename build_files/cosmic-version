@@ -1,0 +1,8 @@
+# COSMIC version that cosmic-blue is built and tested against (Fedora's
+# cosmic-settings package). The theme tool (build_files/theme/Cargo.toml pins
+# the matching libcosmic revision) and the cosmic-initial-setup patches
+# (build_files/initial_setup/patch.py) follow it.
+# .github/workflows/check-cosmic-version.yml opens an issue when Fedora ships
+# another version: update the libcosmic revision, check the patches, then
+# update this line.
+1.11.0
