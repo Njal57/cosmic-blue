@@ -12,6 +12,8 @@ It is an atomic (bootc) Fedora system: the whole OS is a container image, update
 are applied in the background and take effect on the next reboot, and you can
 always roll back to the previous version.
 
+<p align="center"><img src="docs/screenshots/wallpaper.jpg" alt="The default cosmic-blue wallpaper: a planet inside the glowing orbit of the logo, over the Milky Way" width="800"></p>
+
 ## What's inside
 
 - **Base:** `ghcr.io/ublue-os/base-main:44` (Fedora 44, like Bluefin), the Universal Blue "main" layer
@@ -43,17 +45,44 @@ always roll back to the previous version.
 
 ## Install
 
+### Requirements
+
+- A 64-bit x86 PC (amd64). ARM images are not built yet.
+- At least 4 GB of RAM (8 GB recommended) and about 50 GB of disk.
+- There is no image with the proprietary Nvidia driver yet: Nvidia GPUs use
+  the open-source nouveau driver.
+
 ### Live ISO (new installs)
 
-A live ISO boots straight into a COSMIC desktop. Start the installer from the
-desktop or dock icon. The installed system then follows
-`ghcr.io/cosmic-blue-os/cosmic-blue:latest` and checks its signature on every
-update.
+The live ISO boots straight into a COSMIC desktop, so you can try cosmic-blue
+before installing it.
 
-The ISO is built every Monday and can be downloaded (when signed in to GitHub)
-from the latest successful
-[Build live ISO](https://github.com/cosmic-blue-os/cosmic-blue/actions/workflows/build-live-iso.yml)
-run, under *Artifacts*.
+1. **Download.** The ISO is rebuilt every Monday. Open the latest successful
+   [Build live ISO](https://github.com/cosmic-blue-os/cosmic-blue/actions/workflows/build-live-iso.yml)
+   run and download `cosmic-blue-live-amd64-iso` under *Artifacts* (you must be
+   signed in to GitHub). It is a zip file that holds
+   `cosmic-blue-live-amd64.iso`.
+2. **Write it to a USB stick** (8 GB or more, it will be erased) with
+   [Fedora Media Writer](https://fedoraproject.org/workstation/download) or
+   any tool that writes raw images, for example:
+
+   ```bash
+   sudo dd if=cosmic-blue-live-amd64.iso of=/dev/sdX bs=4M status=progress oflag=sync
+   ```
+
+   Replace `/dev/sdX` with your USB stick (check with `lsblk`).
+   To try it in a virtual machine instead, open the ISO in GNOME Boxes or
+   virt-manager.
+3. **Boot it.** Pick the USB stick in your firmware's boot menu.
+4. **Install.** Start the installer from the desktop or dock icon, then pick
+   your language, keyboard, disk and user account. A short welcome tour
+   explains the live session.
+5. **Reboot** into the installed system. On first boot, cosmic-blue sets up
+   Flathub and installs the default apps in the background, then
+   COSMIC's first-run assistant offers to set the appearance.
+
+The installed system follows `ghcr.io/cosmic-blue-os/cosmic-blue:latest` and
+checks the signature of every update.
 
 ### Switching an existing system
 
@@ -64,9 +93,38 @@ sudo bootc switch ghcr.io/cosmic-blue-os/cosmic-blue:latest
 sudo systemctl reboot
 ```
 
+Your home folder, Flatpaks, Homebrew packages and changes in `/etc` are kept.
+The desktop settings already saved in your account are kept too:
+cosmic-blue's defaults (theme, icons, wallpaper) only apply to the settings
+you never changed. See [Troubleshooting](#troubleshooting) to reset them.
+
+To go back, switch to your previous image the same way, for example
+`sudo bootc switch ghcr.io/ublue-os/bluefin:stable`.
+
 Systems installed before the move to the `cosmic-blue-os` organization still
 track `ghcr.io/njal57/cosmic-blue`, which no longer receives updates. Run the
 same command to move them to the new image.
+
+## Updates and rollback
+
+Updates are downloaded automatically in the background (by `uupd`, which also
+updates Flatpaks and Homebrew) and applied on the next reboot. To update by
+hand, or to see what is running:
+
+```bash
+ujust update          # update the system, Flatpaks and Homebrew now
+sudo bootc status     # show the booted image and the one staged for next boot
+```
+
+If an update breaks something, boot the previous version, either by picking
+it in the boot menu or with:
+
+```bash
+sudo bootc rollback
+sudo systemctl reboot
+```
+
+Run `ujust` alone to list the other maintenance recipes.
 
 ## Image signature
 
@@ -76,8 +134,30 @@ public key is [`cosign.pub`](cosign.pub) and is also shipped in the image
 accepts cosmic-blue images signed with it. To check an image by hand:
 
 ```bash
+curl -LO https://raw.githubusercontent.com/cosmic-blue-os/cosmic-blue/main/cosign.pub
 cosign verify --key cosign.pub ghcr.io/cosmic-blue-os/cosmic-blue:latest
 ```
+
+On an installed system, `rpm-ostree` and `bootc` refuse an update whose
+signature does not match, so you do not need to check anything by hand.
+
+## Troubleshooting
+
+**The theme is still teal, or the icons or wallpaper are not cosmic-blue's.**
+COSMIC keeps the settings saved in your account (for example after a
+`bootc switch` from another COSMIC system). To return to cosmic-blue's
+defaults, log out, switch to a text console (Ctrl+Alt+F3), log in and run:
+
+```bash
+rm -rf ~/.config/cosmic/com.system76.CosmicTheme.{Dark,Light}{,.Builder}
+rm -rf ~/.config/cosmic/com.system76.CosmicTk ~/.config/cosmic/com.system76.CosmicBackground
+```
+
+The login screen uses the theme of the selected user, so it follows too.
+
+**Something else is wrong.** Please open an
+[issue](https://github.com/cosmic-blue-os/cosmic-blue/issues) with the output
+of `sudo bootc status`.
 
 ## Builds
 
