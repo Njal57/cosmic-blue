@@ -1,7 +1,8 @@
 #!/usr/bin/bash
 # Boot smoke test: installs the image to a virtual disk with `bootc install`,
 # boots it in QEMU (UEFI, KVM) and checks over SSH that the system starts
-# cleanly and that the COSMIC login screen is up. Takes a screenshot.
+# cleanly and that the COSMIC login screen is up. Then logs in a test user
+# and takes screenshots of the desktop (see desktop_tour below).
 #
 # Usage: tests/vm-boot-test.sh <image> <output dir>
 #   <image> must be in the root (sudo) podman storage.
@@ -69,7 +70,7 @@ qemu-system-x86_64 \
     -drive file="${WORK}/disk.raw",format=raw,if=virtio \
     -netdev user,id=net0,hostfwd=tcp:127.0.0.1:${SSH_PORT}-:22 \
     -device virtio-net-pci,netdev=net0 \
-    -device virtio-vga \
+    -device virtio-vga,xres=1920,yres=1080 \
     -display none \
     -serial file:"${OUT}/serial.log" \
     -monitor unix:"${WORK}/monitor.sock",server,nowait \
@@ -79,6 +80,9 @@ vm() {
     ssh -q -i "${WORK}/id_ed25519" -p "${SSH_PORT}" \
         -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
         -o ConnectTimeout=5 -o BatchMode=yes root@127.0.0.1 "$@"
+}
+monitor() {
+    echo "$*" | socat - UNIX-CONNECT:"${WORK}/monitor.sock" >/dev/null
 }
 screenshot() {
     local name="$1"
@@ -158,6 +162,102 @@ done
 sleep 20
 screenshot login-screen
 vm 'journalctl -b -p warning --no-pager' > "${OUT}/journal-warnings.log" || true
+
+# 5. Desktop screenshots, to check the look without a PC: logs a test user
+# in through the login screen, then opens a few views and apps. Problems here
+# are warnings, not failures: they don't keep a working image from shipping.
+# Files are numbered in the order they are taken (tests/screenshot-sheet.py).
+DEMO_USER=demo
+DEMO_PASSWORD=cosmicblue  # letters only: typed as US QWERTY key codes below
+
+type_text() {
+    local i
+    for (( i = 0; i < ${#1}; i++ )); do
+        monitor "sendkey ${1:i:1}"
+        sleep 0.15
+    done
+}
+wait_for() {
+    local seconds="$1"; shift
+    local deadline=$((SECONDS + seconds))
+    until vm "$@" >/dev/null 2>&1; do
+        (( SECONDS > deadline )) && return 1
+        sleep 3
+    done
+}
+warn() { echo "::warning::Desktop screenshots: $*"; }
+
+desktop_tour() {
+    local shots=screenshots
+    mkdir -p "${OUT}/${shots}"
+
+    # A user for the login screen to show (it reads the accounts when it starts)
+    vm "useradd -m -c cosmic-blue ${DEMO_USER} && echo ${DEMO_USER}:${DEMO_PASSWORD} | chpasswd" \
+        || { warn "could not create the test user"; return 1; }
+    vm 'systemctl restart cosmic-greeter.service' \
+        || { warn "could not restart the login screen"; return 1; }
+    wait_for 120 'pgrep -x cosmic-greeter' || { warn "the login screen did not come back"; return 1; }
+    sleep 20
+    screenshot "${shots}/01-login-screen"
+
+    # Log in with the keyboard, as a person would
+    type_text "${DEMO_PASSWORD}"
+    monitor "sendkey ret"
+    if ! wait_for 120 "pgrep -u ${DEMO_USER} -x cosmic-panel"; then
+        screenshot "${shots}/02-login-failed"
+        warn "the test user did not get a COSMIC session"
+        vm 'journalctl -b -u cosmic-greeter.service --no-pager -n 60' || true
+        return 1
+    fi
+    local uid run_dir wayland
+    uid="$(vm "id -u ${DEMO_USER}")"
+    run_dir="/run/user/${uid}"
+    wayland="$(vm "ls ${run_dir} | grep -E '^wayland-[0-9]+\$' | head -n 1")"
+    [[ -n "${wayland}" ]] || { warn "no Wayland socket in ${run_dir}"; return 1; }
+
+    # First login: COSMIC's first-run assistant (cosmic-initial-setup).
+    # Closed without finishing it, so the desktop keeps the image defaults.
+    sleep 30
+    screenshot "${shots}/02-first-run"
+    vm "pkill -u ${DEMO_USER} -f cosmic-initial-setup" || true
+    sleep 8
+    screenshot "${shots}/03-desktop"
+
+    # App Library (Super+A): the application icons
+    monitor "sendkey meta_l-a"
+    sleep 5
+    screenshot "${shots}/04-app-library"
+    monitor "sendkey esc"
+    sleep 3
+
+    # Files (folder icons), Settings (accent, theme), Terminal
+    local entry name cmd
+    for entry in "05-files|cosmic-files" "06-settings|cosmic-settings appearance" \
+            "07-terminal|cosmic-term"; do
+        name="${entry%%|*}"
+        cmd="${entry#*|}"
+        if ! vm "runuser -u ${DEMO_USER} -- env XDG_RUNTIME_DIR=${run_dir} WAYLAND_DISPLAY=${wayland} \
+                DBUS_SESSION_BUS_ADDRESS=unix:path=${run_dir}/bus \
+                setsid -f ${cmd} >/dev/null 2>&1 </dev/null"; then
+            warn "could not start ${cmd}"
+            continue
+        fi
+        sleep 12
+        screenshot "${shots}/${name}"
+        vm "pkill -u ${DEMO_USER} -f '^(/usr/bin/)?${cmd%% *}'" || true
+        sleep 3
+    done
+
+    # Lock screen
+    vm 'loginctl lock-sessions' || { warn "could not lock the session"; return 1; }
+    sleep 8
+    screenshot "${shots}/08-lock-screen"
+}
+
+if (( errors == 0 )); then
+    desktop_tour || true
+    vm "journalctl -b _UID=\$(id -u ${DEMO_USER}) --no-pager" > "${OUT}/journal-${DEMO_USER}.log" 2>/dev/null || true
+fi
 
 (( errors == 0 )) || fail "Boot test failed (see the logs and screenshot in the artifacts)"
 log "Boot test passed"
