@@ -41,6 +41,12 @@ for combo in '\[Ctrl, Alt\], key: "t"' '\[Super\], key: "e"' \
     grep -q "${combo}" "${SHORTCUTS}/custom"
     if grep -q "${combo}" "${SHORTCUTS}/defaults"; then exit 1; fi
 done
+# Terminal: the cosmic-blue color schemes are the defaults, dark and light
+TERM_CONFIG=/usr/share/cosmic/com.system76.CosmicTerm/v1
+for kind in dark light; do
+    grep -qx '"cosmic-blue"' "${TERM_CONFIG}/syntax_theme_${kind}"
+    grep -q 'name: "cosmic-blue"' "${TERM_CONFIG}/color_schemes_${kind}"
+done
 grep -q 'io.missioncenter.MissionCenter' /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
 # Fedora's own wallpapers stay available
 rpm -q "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
