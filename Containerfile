@@ -1,10 +1,13 @@
 # cosmic-blue: a Bluefin-like Universal Blue image with COSMIC instead of GNOME.
 # See docs/plan.md for the choice of base image and the inventory.
 
-ARG BASE_IMAGE="ghcr.io/ublue-os/base-main"
 # Fedora 44, like Bluefin and Aurora: on Fedora 45 the live ISO installer
 # fails while preparing /var (systemd-tmpfiles exits with code 73).
+# BASE_TAG is the Fedora release of the helper stages below: keep it equal to
+# the base image tag. Renovate pins and updates the image digests, but never
+# moves to a new Fedora release (see .github/renovate.json5).
 ARG BASE_TAG="44"
+ARG BASE_IMAGE="ghcr.io/ublue-os/base-main:44"
 ARG COMMON_IMAGE="ghcr.io/projectbluefin/common:latest"
 ARG BREW_IMAGE="ghcr.io/ublue-os/brew:latest"
 
@@ -45,7 +48,7 @@ COPY --from=plymouth /out /system_files/cosmic-blue/usr/share/plymouth/themes/co
 # Public key used to verify the image signature on update
 COPY cosign.pub /system_files/cosmic-blue/etc/pki/containers/cosmic-blue.pub
 
-FROM ${BASE_IMAGE}:${BASE_TAG}
+FROM ${BASE_IMAGE}
 
 ARG IMAGE_NAME="cosmic-blue"
 ARG IMAGE_VENDOR="cosmic-blue-os"
