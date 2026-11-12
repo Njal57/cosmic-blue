@@ -171,6 +171,18 @@ ostree-rechunk $target_image=image_name $tag=default_tag:
     # Use the already-built local image to avoid pulling from a remote registry
     RPM_OSTREE_CHUNKER_IMAGE="localhost/${target_image}:${tag}"
 
+    # The chunked image gets a new config without our labels; keep the OCI and
+    # Artifact Hub ones (not the ostree ones, which describe the old image), in
+    # particular org.opencontainers.image.version (without it `bootc install`
+    # writes a null version that bootupd fails to read on every boot).
+    LABEL_ARGS=()
+    while IFS= read -r label; do
+        LABEL_ARGS+=("--label" "${label}")
+    done < <(podman inspect "${RPM_OSTREE_CHUNKER_IMAGE}" \
+        | jq -r '.[0].Config.Labels // {} | to_entries[]
+                 | select(.key | test("^(org\\.opencontainers\\.image|io\\.artifacthub)\\."))
+                 | "\(.key)=\(.value)"')
+
     GRAPHROOT="$(podman info --format '{{ '{{.Store.GraphRoot}}' }}')"
 
     podman run --rm --pull=never --privileged \
@@ -185,6 +197,13 @@ ostree-rechunk $target_image=image_name $tag=default_tag:
       --bootc \
       --rootfs /rpm-ostree \
       --output "containers-storage:[overlay@/run/host-container-storage+/run/rpm-ostree-storage]localhost/${target_image}:${tag}"
+
+    if (( ${#LABEL_ARGS[@]} > 0 )); then
+        LABEL_CTX="$(mktemp -d)"
+        echo "FROM localhost/${target_image}:${tag}" > "${LABEL_CTX}/Containerfile"
+        podman build --pull=never "${LABEL_ARGS[@]}" --tag "localhost/${target_image}:${tag}" "${LABEL_CTX}"
+        rm -rf "${LABEL_CTX}"
+    fi
 
 # Generate Default Tag
 [group('Utility')]
