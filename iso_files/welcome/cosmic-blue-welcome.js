@@ -38,10 +38,10 @@ const TRANSLATIONS = {
             'Mises à jour automatiques',
         'The whole system updates in the background and applies at the next restart. If something goes wrong, boot the previous version.':
             'Le système entier se met à jour en arrière-plan et s’applique au redémarrage suivant. En cas de souci, démarrez la version précédente.',
-        'Apps from Flathub':
-            'Applications de Flathub',
-        'Install apps with the Bazaar app store. They run sandboxed and update on their own.':
-            'Installez vos applications avec la logithèque Bazaar. Elles tournent isolées et se mettent à jour seules.',
+        'Apps from Flathub and COSMIC':
+            'Applications de Flathub et COSMIC',
+        'Install apps with COSMIC Store, from Flathub and the COSMIC repository. They run sandboxed and update on their own.':
+            'Installez vos applications avec COSMIC Store, depuis Flathub et le dépôt COSMIC. Elles tournent isolées et se mettent à jour seules.',
         'Ready for the terminal':
             'Prêt pour le terminal',
         'Homebrew for command line tools, distrobox for other distributions, and ujust for common tasks.':
@@ -112,8 +112,8 @@ function featureList() {
     const features = [
         ['software-update-available-symbolic', 'Automatic updates',
             'The whole system updates in the background and applies at the next restart. If something goes wrong, boot the previous version.'],
-        ['system-software-install-symbolic', 'Apps from Flathub',
-            'Install apps with the Bazaar app store. They run sandboxed and update on their own.'],
+        ['system-software-install-symbolic', 'Apps from Flathub and COSMIC',
+            'Install apps with COSMIC Store, from Flathub and the COSMIC repository. They run sandboxed and update on their own.'],
         ['utilities-terminal-symbolic', 'Ready for the terminal',
             'Homebrew for command line tools, distrobox for other distributions, and ujust for common tasks.'],
     ];
