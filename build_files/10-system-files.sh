@@ -67,9 +67,12 @@ done
 cp -a "${STAGE}/." /
 cp -a /ctx/system_files/cosmic-blue/. /
 
-# Only accept key-signed cosmic-blue images (cosign.pub, signed by build.yml)
-IMAGE="ghcr.io/${IMAGE_VENDOR}/${IMAGE_NAME}"
-jq --arg image "$IMAGE" '.transports.docker[$image] = [{
+# Only accept key-signed cosmic-blue images (cosign.pub, signed by build.yml).
+# The scope is the whole namespace, so that switching between cosmic-blue and
+# cosmic-blue-nvidia is verified too.
+IMAGE="ghcr.io/${IMAGE_VENDOR}"
+jq --arg image "$IMAGE" 'del(.transports.docker[$image + "/cosmic-blue"])
+    | .transports.docker[$image] = [{
     "type": "sigstoreSigned",
     "keyPath": "/etc/pki/containers/cosmic-blue.pub",
     "signedIdentity": {"type": "matchRepository"}

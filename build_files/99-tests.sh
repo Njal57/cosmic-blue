@@ -68,7 +68,7 @@ grep -q 'plymouth/themes/cosmic-blue/cosmic-blue.plymouth' /tmp/initramfs.txt
 
 # cosmic-blue signing key and policy, and the signed image reference
 test -s /etc/pki/containers/cosmic-blue.pub
-jq -e '.transports.docker."ghcr.io/cosmic-blue-os/cosmic-blue"[0].keyPath == "/etc/pki/containers/cosmic-blue.pub"' \
+jq -e '.transports.docker."ghcr.io/cosmic-blue-os"[0].keyPath == "/etc/pki/containers/cosmic-blue.pub"' \
     /etc/containers/policy.json >/dev/null
 grep -q 'use-sigstore-attachments: true' /etc/containers/registries.d/cosmic-blue.yaml
 jq -e '."image-ref" | startswith("ostree-image-signed:")' /usr/share/ublue-os/image-info.json >/dev/null
@@ -199,3 +199,39 @@ check_color "${builder}.Light.Builder/v2/bg_color" '#d3d8e0'
 # The active window outline follows the accent
 grep -qx None "${builder}.Dark.Builder/v2/window_hint"
 grep -qx None "${builder}.Light.Builder/v2/window_hint"
+
+# Secure Boot: the Universal Blue akmods key (enrolled with
+# `ujust enroll-secure-boot-key`) is in every image, so it can be enrolled
+# before switching to cosmic-blue-nvidia
+AKMODS_CERT=/etc/pki/akmods/certs/akmods-ublue.der
+test -s "${AKMODS_CERT}"
+grep -q '^enroll-secure-boot-key:' /usr/share/ublue-os/just/default.just
+command -v mokutil
+
+if [[ "${IMAGE_NAME}" == *-nvidia ]]; then
+    jq -e '."image-flavor" == "nvidia-open"' /usr/share/ublue-os/image-info.json >/dev/null
+    # Driver and modules of the same version, for the image's kernel
+    rpm -q kmod-nvidia nvidia-driver egl-wayland libva-nvidia-driver nvidia-container-toolkit
+    test "$(rpm -q --qf '%{VERSION}' kmod-nvidia)" = "$(rpm -q --qf '%{VERSION}' nvidia-driver)"
+    modinfo -k "${KVER}" nvidia nvidia-drm nvidia-modeset nvidia-uvm >/dev/null
+    # Open modules, signed with the akmods key: Secure Boot accepts them once
+    # that key is enrolled
+    modinfo -k "${KVER}" -F license nvidia | grep -q 'Dual MIT/GPL'
+    # (PKCS#7 module signatures name the key by its certificate serial number)
+    module_key="$(modinfo -k "${KVER}" -F sig_key nvidia | tr -d ': \n' | tr 'a-f' 'A-F')"
+    cert_key="$(openssl x509 -inform der -in "${AKMODS_CERT}" -noout -serial \
+        | cut -d = -f 2 | tr -d ': \n' | tr 'a-f' 'A-F')"
+    [[ -n "${module_key}" && "${module_key}" == "${cert_key}" ]] \
+        || { echo "nvidia.ko is signed by ${module_key:-nothing}, not the akmods key ${cert_key}"; exit 1; }
+    # nvidia modules in the initramfs (black screen on boot otherwise), and
+    # nouveau kept away
+    grep -q 'nvidia-drm' /tmp/initramfs.txt
+    grep -q 'nvidia-drm.modeset=1' /usr/lib/bootc/kargs.d/00-nvidia.toml
+    grep -q 'modprobe.blacklist=nouveau' /usr/lib/bootc/kargs.d/00-nvidia.toml
+    # The NVIDIA repositories used for the install are disabled again
+    if dnf5 repolist --enabled | grep -i nvidia; then
+        echo "NVIDIA repositories left enabled"; exit 1
+    fi
+elif rpm -q kmod-nvidia; then
+    echo "kmod-nvidia in a non-NVIDIA image"; exit 1
+fi

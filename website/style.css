@@ -111,6 +111,58 @@ code { font-family: var(--mono); font-size: .92em; }
   text-shadow: 0 2px 12px rgb(0 0 0 / .7);
 }
 
+/* Graphics card choice: a two-option segmented switch */
+.gpu {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 18px;
+  padding: 4px;
+  border: 1px solid rgb(230 243 255 / .25);
+  border-radius: 999px;
+  background: rgb(13 22 48 / .55);
+  backdrop-filter: blur(10px);
+}
+
+.gpu #gpu-label {
+  padding: 0 10px 0 14px;
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+.gpu label {
+  position: relative;
+  padding: 6px 16px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: .95rem;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+
+@media (max-width: 420px) {
+  .gpu #gpu-label { padding: 0 4px 0 8px; font-size: .85rem; }
+  .gpu label { padding: 6px 12px; font-size: .9rem; white-space: nowrap; }
+}
+
+.gpu input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gpu label:has(input:checked) {
+  background: var(--accent);
+  color: #fff;
+}
+
+.gpu label:has(input:focus-visible) {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

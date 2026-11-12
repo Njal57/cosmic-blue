@@ -110,7 +110,10 @@ errors=0
 
 # Units that fail because of the CI machine, not the image:
 # - mcelog: "AMD Processor family 26: mcelog does not support this processor"
-IGNORED_UNITS='^(mcelog)\.service '
+# - EXTRA_IGNORED_UNITS (e.g. "nvidia-persistenced|nvidia-cdi-refresh"):
+#   units that need hardware the virtual machine lacks, such as an NVIDIA GPU
+#   (nvidia-cdi-refresh.path fails with its service)
+IGNORED_UNITS="^(mcelog${EXTRA_IGNORED_UNITS:+|${EXTRA_IGNORED_UNITS}})\\.(service|path) "
 all_failed="$(vm 'systemctl --failed --no-legend --plain' || true)"
 failed="$(grep -vE "${IGNORED_UNITS}" <<< "${all_failed}" | grep -v '^$' || true)"
 if [[ -n "${all_failed}" ]]; then
@@ -129,6 +132,12 @@ fi
 vm "bootc status --json" | jq -e --arg ref "${TARGET_IMGREF}" \
     '.status.booted.image.image.image == $ref' >/dev/null \
     || { echo "::error::The booted image is not ${TARGET_IMGREF}"; errors=1; }
+
+# NVIDIA image: bootc applied its kernel arguments (usr/lib/bootc/kargs.d)
+if [[ "${TARGET_IMGREF}" == *-nvidia:* ]]; then
+    vm 'grep -q nvidia-drm.modeset=1 /proc/cmdline && grep -q modprobe.blacklist=nouveau /proc/cmdline' \
+        || { echo "::error::The NVIDIA kernel arguments are missing"; vm 'cat /proc/cmdline' || true; errors=1; }
+fi
 
 vm 'systemctl is-active cosmic-greeter.service' \
     || { echo "::error::cosmic-greeter.service is not active"; errors=1; }

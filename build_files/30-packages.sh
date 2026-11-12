@@ -42,10 +42,12 @@ FEDORA_PACKAGES=(
     lm_sensors
     make
     mesa-libGLU
+    mokutil  # ujust enroll-secure-boot-key (Secure Boot keys)
     mozc
     oddjob-mkhomedir
     opendyslexic-fonts
     openssh-askpass
+    openssl
     powerstat
     powertop
     printer-driver-brlaser
