@@ -91,6 +91,14 @@ for remote in flathub cosmic; do
     flatpak remotes --system --columns=name | grep -qx "${remote}"
 done
 test -f /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
+# First-boot flatpaks and `ujust install-system-flatpaks` install the same apps
+diff <(sed -n 's/^\[Flatpak Preinstall \(.*\)\]$/\1/p' /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall | sort) \
+     <(sed -n 's/^flatpak "\(.*\)"$/\1/p' /usr/share/ublue-os/homebrew/system-flatpaks.Brewfile | sort)
+# No flatpak that duplicates a COSMIC app or needs GNOME
+for app in io.github.flattool.Ignition org.gnome.FileRoller org.gnome.Showtime \
+           org.gnome.Decibels page.tesk.Refine org.gnome.Calendar org.gnome.Contacts; do
+    if grep -q "${app}" /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall; then exit 1; fi
+done
 test ! -e /usr/lib/systemd/system/flatpak-add-fedora-repos.service
 # No Bluefin GNOME dconf settings (the folder itself may come from Fedora)
 if compgen -G '/etc/dconf/db/distro.d/*bluefin*' >/dev/null; then

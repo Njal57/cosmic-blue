@@ -1,16 +1,18 @@
 # Flatpaks installed on first boot (flatpak-preinstall.service).
-# Taken from Bluefin's list (system-flatpaks.Brewfile), minus apps replaced by COSMIC
-# (Text Editor -> COSMIC Edit) and GNOME Shell-only ones (Extension Manager, Nautilus Previewer).
+# Based on Bluefin's list, keeping only apps COSMIC has no equivalent for.
+# Left out because COSMIC already covers them: Text Editor (COSMIC Edit),
+# File Roller (COSMIC Files extracts and compresses archives), Showtime and
+# Decibels (COSMIC Player), Ignition (startup apps page in COSMIC Settings).
+# Left out because they need GNOME: Extension Manager, Nautilus Previewer,
+# Refine (GNOME settings), Calendar and Contacts (online accounts come from
+# GNOME Settings; Thunderbird syncs calendars and contacts instead).
+# Keep in sync with /usr/share/ublue-os/homebrew/system-flatpaks.Brewfile.
 
 [Flatpak Preinstall com.github.tchx84.Flatseal]
 Branch=stable
 IsRuntime=false
 
 [Flatpak Preinstall com.ranfdev.DistroShelf]
-Branch=stable
-IsRuntime=false
-
-[Flatpak Preinstall io.github.flattool.Ignition]
 Branch=stable
 IsRuntime=false
 
@@ -30,23 +32,11 @@ IsRuntime=false
 Branch=stable
 IsRuntime=false
 
-[Flatpak Preinstall org.gnome.Calendar]
-Branch=stable
-IsRuntime=false
-
 [Flatpak Preinstall org.gnome.Characters]
 Branch=stable
 IsRuntime=false
 
-[Flatpak Preinstall org.gnome.Contacts]
-Branch=stable
-IsRuntime=false
-
 [Flatpak Preinstall org.gnome.DejaDup]
-Branch=stable
-IsRuntime=false
-
-[Flatpak Preinstall org.gnome.FileRoller]
 Branch=stable
 IsRuntime=false
 
@@ -67,14 +57,6 @@ Branch=stable
 IsRuntime=false
 
 [Flatpak Preinstall org.gnome.Papers]
-Branch=stable
-IsRuntime=false
-
-[Flatpak Preinstall org.gnome.Showtime]
-Branch=stable
-IsRuntime=false
-
-[Flatpak Preinstall org.gnome.Decibels]
 Branch=stable
 IsRuntime=false
 
@@ -103,10 +85,6 @@ Branch=stable
 IsRuntime=false
 
 [Flatpak Preinstall io.gitlab.adhami3310.Impression]
-Branch=stable
-IsRuntime=false
-
-[Flatpak Preinstall page.tesk.Refine]
 Branch=stable
 IsRuntime=false
 
