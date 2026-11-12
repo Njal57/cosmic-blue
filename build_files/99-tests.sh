@@ -217,9 +217,10 @@ if [[ "${IMAGE_NAME}" == *-nvidia ]]; then
     # Open modules, signed with the akmods key: Secure Boot accepts them once
     # that key is enrolled
     modinfo -k "${KVER}" -F license nvidia | grep -q 'Dual MIT/GPL'
+    # (PKCS#7 module signatures name the key by its certificate serial number)
     module_key="$(modinfo -k "${KVER}" -F sig_key nvidia | tr -d ': \n' | tr 'a-f' 'A-F')"
-    cert_key="$(openssl x509 -inform der -in "${AKMODS_CERT}" -noout -ext subjectKeyIdentifier \
-        | tail -n 1 | tr -d ': \n' | tr 'a-f' 'A-F')"
+    cert_key="$(openssl x509 -inform der -in "${AKMODS_CERT}" -noout -serial \
+        | cut -d = -f 2 | tr -d ': \n' | tr 'a-f' 'A-F')"
     [[ -n "${module_key}" && "${module_key}" == "${cert_key}" ]] \
         || { echo "nvidia.ko is signed by ${module_key:-nothing}, not the akmods key ${cert_key}"; exit 1; }
     # nvidia modules in the initramfs (black screen on boot otherwise), and
