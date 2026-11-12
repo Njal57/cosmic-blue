@@ -13,8 +13,11 @@ systemctl enable \
     ublue-system-setup.service \
     uupd.timer
 
+# podman.socket: rootless Docker-compatible API, used by the docker CLI through
+# the "podman" context (user-setup hook 30-docker-podman.sh)
 systemctl --global enable \
     podman-auto-update.timer \
+    podman.socket \
     ublue-user-setup.service
 
 # uupd replaces rpm-ostree automatic updates
