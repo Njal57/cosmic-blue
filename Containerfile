@@ -24,6 +24,13 @@ FROM registry.fedoraproject.org/fedora:${BASE_TAG} AS initial_setup
 COPY build_files/initial_setup /initial_setup
 RUN /initial_setup/build.sh
 
+# Boot screen spinner frames, tinted with the logo blue
+# (see build_files/plymouth/tint.py)
+FROM registry.fedoraproject.org/fedora:${BASE_TAG} AS plymouth
+COPY build_files/plymouth /plymouth
+RUN dnf5 -y install plymouth-theme-spinner python3-pillow \
+    && python3 /plymouth/tint.py /usr/share/plymouth/themes/spinner /out
+
 # Build context: scripts + system files, never copied as-is into the final image
 FROM scratch AS ctx
 COPY build_files /build_files
@@ -34,6 +41,7 @@ COPY --from=brew /system_files /system_files/brew
 COPY system_files /system_files/cosmic-blue
 COPY --from=theme /out/cosmic /system_files/cosmic-blue/usr/share/cosmic
 COPY --from=initial_setup /out /initial_setup
+COPY --from=plymouth /out /system_files/cosmic-blue/usr/share/plymouth/themes/cosmic-blue
 # Public key used to verify the image signature on update
 COPY cosign.pub /system_files/cosmic-blue/etc/pki/containers/cosmic-blue.pub
 
