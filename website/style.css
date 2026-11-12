@@ -115,8 +115,10 @@ code { font-family: var(--mono); font-size: .92em; }
   letter-spacing: .01em;
 }
 
+/* Placed from the top, not the bottom: the French text is longer, and a
+   bottom anchor would move the logo when switching languages. */
 .hero-text {
-  margin: auto auto 12vh;
+  margin: max(16px, calc(55svh - 330px)) auto 12vh;
   padding: 0 24px;
   max-width: 760px;
   text-align: center;
@@ -125,7 +127,7 @@ code { font-family: var(--mono); font-size: .92em; }
 .hero h1 { margin: 0 0 20px; }
 
 /* Keep the room of the NVIDIA note when it is hidden, so switching the
-   graphics card does not move the hero text. */
+   graphics card does not change the hero height. */
 .hero-text [data-nvidia-only][hidden] {
   display: block;
   visibility: hidden;
