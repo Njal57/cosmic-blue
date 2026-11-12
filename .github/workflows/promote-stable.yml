@@ -51,6 +51,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    # Written by the cosmic-blue instance only (the nvidia one writes none of
+    # these, so they are not overwritten): release notes and the live ISO
+    # follow the main image.
     outputs:
       promoted: ${{ steps.promote.outputs.promoted }}
       previous: ${{ steps.promote.outputs.previous }}
@@ -82,6 +85,8 @@ jobs:
         run: |
           set -euo pipefail
           image="${IMAGE_REGISTRY,,}/${IMAGE_NAME,,}"
+          outputs=/dev/null
+          if [[ -z "${{ matrix.image_suffix }}" ]]; then outputs="${GITHUB_OUTPUT}"; fi
           creds="${GH_ACTOR}:${GH_TOKEN}"
 
           digest_of() {
@@ -114,7 +119,7 @@ jobs:
           previous="$(digest_of stable || true)"
           if [[ "${previous}" == "${digest}" ]]; then
             echo "stable already points to ${digest}, nothing to do"
-            echo "promoted=false" >> "${GITHUB_OUTPUT}"
+            echo "promoted=false" >> "${outputs}"
             exit 0
           fi
           release_tag="stable-$(date -u +%Y%m%d)"
@@ -135,7 +140,7 @@ jobs:
             echo "previous=${previous}"
             echo "digest=${digest}"
             echo "release_tag=${release_tag}"
-          } >> "${GITHUB_OUTPUT}"
+          } >> "${outputs}"
 
           {
             echo "### stable promoted"
@@ -147,7 +152,8 @@ jobs:
   release-notes:
     name: Release notes
     needs: promote
-    if: needs.promote.outputs.promoted == 'true'
+    # Also when the nvidia promotion failed (e.g. no week-old build yet)
+    if: ${{ !cancelled() && needs.promote.outputs.promoted == 'true' }}
     permissions:
       contents: write
       packages: read
@@ -160,7 +166,7 @@ jobs:
   live-iso:
     name: Start the live ISO build
     needs: promote
-    if: needs.promote.outputs.promoted == 'true'
+    if: ${{ !cancelled() && needs.promote.outputs.promoted == 'true' }}
     runs-on: ubuntu-26.04
     permissions:
       actions: write
