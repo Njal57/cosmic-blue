@@ -137,6 +137,20 @@ systemctl --global is-enabled podman.socket
 test -x /usr/share/ublue-os/user-setup.hooks.d/30-docker-podman.sh
 test "$(systemctl get-default)" = graphical.target
 
+# Power profiles for laptops: tuned-ppd answers COSMIC's power profile
+# requests, with battery detection; power-profiles-daemon conflicts with it
+rpm -q tuned tuned-ppd thermald upower
+if rpm -q power-profiles-daemon; then
+    echo "power-profiles-daemon conflicts with tuned-ppd"; exit 1
+fi
+systemctl is-enabled tuned.service tuned-ppd.service thermald.service
+test -f /usr/share/dbus-1/system-services/net.hadess.PowerProfiles.service
+test -f /usr/share/dbus-1/system-services/org.freedesktop.UPower.PowerProfiles.service
+grep -qx 'battery_detection=true' /etc/tuned/ppd.conf
+grep -qx 'balanced=balanced-battery' /etc/tuned/ppd.conf
+test -f /usr/lib/tuned/profiles/balanced-battery/tuned.conf ||
+    test -f /usr/lib/tuned/balanced-battery/tuned.conf
+
 # Installer keyboard layout and clock format copied to COSMIC user settings
 test -x /usr/libexec/cosmic-blue-user-defaults
 systemctl is-enabled cosmic-blue-user-defaults.service

@@ -13,6 +13,19 @@ systemctl enable \
     ublue-system-setup.service \
     uupd.timer
 
+# Power management, already in base-main and enabled by Fedora's presets;
+# enabled here too so a change in the base image cannot silently drop it.
+# tuned-ppd is Fedora's power-profiles-daemon replacement: COSMIC's battery
+# applet and Settings > Power use its D-Bus API to switch between power saver,
+# balanced and performance, and on battery "balanced" uses tuned's
+# balanced-battery profile (see /etc/tuned/ppd.conf). thermald (Intel CPUs
+# only) keeps temperatures in check before the firmware throttles; it does not
+# start in virtual machines.
+systemctl enable \
+    thermald.service \
+    tuned.service \
+    tuned-ppd.service
+
 # podman.socket: rootless Docker-compatible API, used by the docker CLI through
 # the "podman" context (user-setup hook 30-docker-podman.sh)
 systemctl --global enable \
