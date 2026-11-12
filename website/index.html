@@ -10,6 +10,9 @@
   <meta property="og:description" content="The COSMIC desktop, built on Universal Blue like Bluefin and Aurora.">
   <meta property="og:image" content="https://cosmic-blue-os.github.io/cosmic-blue/img/wallpaper-1280.jpg">
   <meta property="og:type" content="website">
+  <link rel="alternate" hreflang="en" href="https://cosmic-blue-os.github.io/cosmic-blue/">
+  <link rel="alternate" hreflang="fr" href="https://cosmic-blue-os.github.io/cosmic-blue/fr/">
+  <link rel="alternate" hreflang="x-default" href="https://cosmic-blue-os.github.io/cosmic-blue/">
   <link rel="icon" href="img/cosmic-blue-logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -21,7 +24,10 @@
     </picture>
     <nav class="top">
       <a class="brand" href="./"><img src="img/cosmic-blue-logo.svg" alt="" width="28" height="28">cosmic-blue</a>
-      <a href="https://github.com/cosmic-blue-os/cosmic-blue">GitHub</a>
+      <span class="links">
+        <a class="icon" href="fr/" hreflang="fr" lang="fr" title="Français" aria-label="Français"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><ellipse cx="12" cy="12" rx="4" ry="9.5"/><path d="M2.5 12h19M4.2 7h15.6M4.2 17h15.6"/></svg><span aria-hidden="true">FR</span></a>
+        <a class="icon" href="https://github.com/cosmic-blue-os/cosmic-blue" title="GitHub" aria-label="GitHub"><svg viewBox="0 0 16 16" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+      </span>
     </nav>
     <div class="hero-text">
       <h1><img src="img/cosmic-blue-logo-horizontal-dark.svg" alt="cosmic-blue" width="560" height="100"></h1>
@@ -121,43 +127,6 @@ sudo bootc rollback   # go back to the previous version on next boot</code></pre
     <a href="https://github.com/cosmic-blue-os/cosmic-blue/issues">Report a problem</a></p>
   </footer>
 
-  <script>
-    // Graphics card choice: NVIDIA swaps the ISO links and the image name.
-    // Remembered per browser; ?gpu=nvidia in the address selects it too.
-    const setGpu = (gpu) => {
-      const nvidia = gpu === "nvidia";
-      for (const link of document.querySelectorAll("[data-nvidia-href]")) {
-        link.dataset.mainHref ??= link.getAttribute("href");
-        link.setAttribute("href", nvidia ? link.dataset.nvidiaHref : link.dataset.mainHref);
-      }
-      for (const el of document.querySelectorAll("[data-nvidia-only]")) el.hidden = !nvidia;
-      for (const el of document.querySelectorAll("[data-image]")) {
-        el.textContent = nvidia ? "cosmic-blue-nvidia" : "cosmic-blue";
-      }
-      document.querySelector(`input[name="gpu"][value="${nvidia ? "nvidia" : "main"}"]`).checked = true;
-    };
-    let gpu = new URLSearchParams(location.search).get("gpu");
-    try { gpu ??= localStorage.getItem("gpu"); } catch {}
-    setGpu(gpu);
-    for (const input of document.querySelectorAll('input[name="gpu"]')) {
-      input.addEventListener("change", () => {
-        setGpu(input.value);
-        try { localStorage.setItem("gpu", input.value); } catch {}
-      });
-    }
-
-    for (const button of document.querySelectorAll("[data-copy]")) {
-      button.addEventListener("click", async () => {
-        const text = button.previousElementSibling.innerText;
-        try {
-          await navigator.clipboard.writeText(text);
-          button.textContent = "Copied";
-        } catch {
-          button.textContent = "Select and copy";
-        }
-        setTimeout(() => { button.textContent = "Copy"; }, 2000);
-      });
-    }
-  </script>
+  <script src="site.js"></script>
 </body>
 </html>

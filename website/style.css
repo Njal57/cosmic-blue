@@ -79,6 +79,34 @@ code { font-family: var(--mono); font-size: .92em; }
   font-weight: 500;
 }
 
+.top .links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Icon links in the top bar: language switch and GitHub */
+.top .icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  min-width: 40px;
+  justify-content: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: .85rem;
+  letter-spacing: .04em;
+  opacity: .85;
+  transition: opacity .15s, background-color .15s;
+}
+
+.top .icon:hover,
+.top .icon:focus-visible {
+  opacity: 1;
+  background: rgb(255 255 255 / .1);
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -95,6 +123,13 @@ code { font-family: var(--mono); font-size: .92em; }
 }
 
 .hero h1 { margin: 0 0 20px; }
+
+/* Keep the room of the NVIDIA note when it is hidden, so switching the
+   graphics card does not move the hero text. */
+.hero-text [data-nvidia-only][hidden] {
+  display: block;
+  visibility: hidden;
+}
 
 .hero h1 img {
   width: min(560px, 88vw);
@@ -187,6 +222,34 @@ code { font-family: var(--mono); font-size: .92em; }
   background: rgb(13 22 48 / .85);
   border-color: var(--accent-light);
   color: var(--text);
+}
+
+/* Center the text on its capital letters, not on the line box, which
+   keeps room for descenders and makes the label look too high. */
+@supports (text-box: trim-both cap alphabetic) {
+  .button {
+    padding: 19px 24px;
+    line-height: 1.2;
+    text-box: trim-both cap alphabetic;
+  }
+
+  /* Same for the other pills; the padding keeps their usual height. */
+  .gpu #gpu-label,
+  .top .icon span {
+    text-box: trim-both cap alphabetic;
+  }
+
+  .gpu label {
+    padding-block: 13px;
+    line-height: 1;
+    text-box: trim-both cap alphabetic;
+  }
+
+  .copy {
+    padding-block: 10px;
+    line-height: 1;
+    text-box: trim-both cap alphabetic;
+  }
 }
 
 .button.primary {

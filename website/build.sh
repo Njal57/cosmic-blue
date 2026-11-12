@@ -15,17 +15,22 @@ mkdir -p "${out}/img"
 # One ISO per image: cosmic-blue, and cosmic-blue-nvidia for NVIDIA cards.
 iso_name="cosmic-blue-live-amd64.iso"
 iso_nvidia_name="cosmic-blue-nvidia-live-amd64.iso"
-if [[ -n "${ISO_BASE_URL:-}" ]]; then
-  sed -e "s|@ISO_NVIDIA_URL@|${ISO_BASE_URL%/}/${iso_nvidia_name}|g" \
-      -e "s|@ISO_URL@|${ISO_BASE_URL%/}/${iso_name}|g" \
-    "${root}/website/index.html" > "${out}/index.html"
-else
-  runs="https://github.com/cosmic-blue-os/cosmic-blue/actions/workflows/build-live-iso.yml?query=branch%3Amain+is%3Asuccess"
-  sed -e 's|<!-- checksum -->.*<!-- /checksum -->||' \
-      -e "s|@ISO_NVIDIA_URL@|${runs}|g" -e "s|@ISO_URL@|${runs}|g" \
-    "${root}/website/index.html" > "${out}/index.html"
-fi
-cp "${root}/website/style.css" "${out}/"
+runs="https://github.com/cosmic-blue-os/cosmic-blue/actions/workflows/build-live-iso.yml?query=branch%3Amain+is%3Asuccess"
+
+# One page per language: index.html (English, default) and fr/index.html.
+for page in index.html fr/index.html; do
+  mkdir -p "$(dirname "${out}/${page}")"
+  if [[ -n "${ISO_BASE_URL:-}" ]]; then
+    sed -e "s|@ISO_NVIDIA_URL@|${ISO_BASE_URL%/}/${iso_nvidia_name}|g" \
+        -e "s|@ISO_URL@|${ISO_BASE_URL%/}/${iso_name}|g" \
+      "${root}/website/${page}" > "${out}/${page}"
+  else
+    sed -e 's|<!-- checksum -->.*<!-- /checksum -->||' \
+        -e "s|@ISO_NVIDIA_URL@|${runs}|g" -e "s|@ISO_URL@|${runs}|g" \
+      "${root}/website/${page}" > "${out}/${page}"
+  fi
+done
+cp "${root}/website/style.css" "${root}/website/site.js" "${out}/"
 cp "${root}/branding/logo/cosmic-blue-logo.svg" \
    "${root}/branding/logo/cosmic-blue-logo-horizontal-dark.svg" "${out}/img/"
 
