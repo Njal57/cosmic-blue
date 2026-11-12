@@ -1,0 +1,163 @@
+---
+# Publishes the release notes of a stable image as a GitHub Release: the
+# package changes since the previous stable image (COSMIC first) and the
+# cosmic-blue commits between the two builds. No file is attached (the live
+# ISO is too big for a release).
+#
+# Called by promote-stable.yml each time `stable` moves. On a pull request
+# that changes it, it only previews the notes of `latest` against `stable`
+# in the run summary, without publishing anything.
+name: Release notes
+
+on:
+  workflow_call:
+    inputs:
+      old:
+        description: "Previous stable image: digest (sha256:...) or tag. Empty: no previous image."
+        type: string
+        default: ""
+      new:
+        description: "New stable image: digest (sha256:...) or tag"
+        type: string
+        required: true
+      release_tag:
+        description: "Git tag and name of the release (e.g. stable-20261117)"
+        type: string
+        required: true
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/release-notes.yml'
+      - '.github/scripts/release-notes.py'
+
+env:
+  IMAGE_NAME: ${{ github.event.repository.name }} # output of build.yml, keep in sync
+  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
+
+jobs:
+  notes:
+    name: Write release notes
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+      packages: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Maximize space for the images
+        uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List packages and commits
+        id: lists
+        env:
+          # A pull request previews `latest` against the current `stable`
+          OLD: ${{ github.event_name == 'pull_request' && 'stable' || inputs.old }}
+          NEW: ${{ github.event_name == 'pull_request' && 'latest' || inputs.new }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          image="${IMAGE_REGISTRY,,}/${IMAGE_NAME,,}"
+          out="${RUNNER_TEMP}/notes"
+          mkdir -p "${out}"
+
+          ref_of() {
+            if [[ "$1" == sha256:* ]]; then echo "${image}@$1"; else echo "${image}:$1"; fi
+          }
+
+          # Git commit an image was built from (end of its version label,
+          # e.g. latest.20261110-abc1234), empty if unknown
+          commit_of() {
+            skopeo inspect "docker://$1" \
+              | jq -r '.Labels["org.opencontainers.image.version"] // ""' \
+              | sed -n 's/.*-\([0-9a-f]\{7,40\}\)$/\1/p'
+          }
+
+          # One image at a time to keep the disk usage down
+          packages_of() {
+            podman pull -q "$1" >/dev/null
+            podman run --rm --pull=never --entrypoint rpm "$1" \
+              -qa --qf '%{NAME}\t%{EVR}\n' | sort > "$2"
+            podman rmi -f "$1" >/dev/null
+            echo "$(wc -l < "$2") packages in $1"
+          }
+
+          new_ref="$(ref_of "${NEW}")"
+          packages_of "${new_ref}" "${out}/new.tsv"
+          new_commit="$(commit_of "${new_ref}")"
+          new_sha=""
+          if [[ -n "${new_commit}" ]]; then
+            new_sha="$(gh api "repos/${REPO}/commits/${new_commit}" --jq .sha)"
+          fi
+          echo "new_sha=${new_sha}" >> "${GITHUB_OUTPUT}"
+
+          args=(--new "${out}/new.tsv")
+          if [[ -n "${OLD}" ]]; then
+            old_ref="$(ref_of "${OLD}")"
+            packages_of "${old_ref}" "${out}/old.tsv"
+            args+=(--old "${out}/old.tsv")
+            old_commit="$(commit_of "${old_ref}")"
+            if [[ -n "${old_commit}" && -n "${new_commit}" ]]; then
+              : > "${out}/commits.tsv"
+              if [[ "${old_commit}" != "${new_commit}" ]]; then
+                gh api "repos/${REPO}/compare/${old_commit}...${new_commit}" \
+                  --jq '.commits | reverse | .[] | [.sha, (.commit.message | split("\n")[0])] | @tsv' \
+                  > "${out}/commits.tsv"
+              fi
+              args+=(--commits "${out}/commits.tsv"
+                     --compare-url "https://github.com/${REPO}/compare/${old_commit}...${new_commit}")
+            fi
+          fi
+          printf '%q ' "${args[@]}" > "${out}/args"
+
+      - name: Write the notes
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'pull_request' && 'preview' || inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          image="${IMAGE_REGISTRY,,}/${IMAGE_NAME,,}"
+          out="${RUNNER_TEMP}/notes"
+          if [[ "${GITHUB_EVENT_NAME}" == pull_request ]]; then
+            title="Preview: latest compared with stable"
+            ref="${image}:latest"
+          else
+            # stable-20261117 -> cosmic-blue stable 2026-11-17
+            date="${RELEASE_TAG#stable-}"
+            title="cosmic-blue stable ${date:0:4}-${date:4:2}-${date:6:2}"
+            ref="${image}:${RELEASE_TAG}"
+          fi
+          eval "args=($(< "${out}/args"))"
+          python3 -I .github/scripts/release-notes.py "${args[@]}" \
+            --title "${title}" --image "${ref}" > "${out}/notes.md"
+          cat "${out}/notes.md" >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Publish the release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          TARGET: ${{ steps.lists.outputs.new_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          notes="${RUNNER_TEMP}/notes/notes.md"
+          title="$(head -n 1 "${notes}" | sed 's/^# //')"
+          tail -n +3 "${notes}" > "${RUNNER_TEMP}/body.md"
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            # Promoted again the same day: replace the notes
+            gh release edit "${RELEASE_TAG}" --title "${title}" --notes-file "${RUNNER_TEMP}/body.md" --latest
+          else
+            gh release create "${RELEASE_TAG}" --target "${TARGET}" \
+              --title "${title}" --notes-file "${RUNNER_TEMP}/body.md" --latest
+          fi
+          echo "Release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG}" >> "${GITHUB_STEP_SUMMARY}"
