@@ -1,7 +1,6 @@
 #!/usr/bin/bash
-# Default icon theme: "cosmic-blue", COSMIC's symbolic icons with Tela circle
-# (dark variant, recolored with the cosmic-blue accent) for applications,
-# folders and file types. Tela circle is built in the Containerfile's "icons"
+# Default icon theme: "cosmic-blue", Tela circle (dark variant, recolored with
+# the cosmic-blue accent), with COSMIC's symbolic icons for the ones it lacks. Tela circle is built in the Containerfile's "icons"
 # stage (see build_files/icon_theme/tela.sh).
 set -euox pipefail
 
