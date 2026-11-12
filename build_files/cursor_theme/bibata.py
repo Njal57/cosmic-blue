@@ -21,11 +21,11 @@ import tomllib
 from pathlib import Path
 
 # Placeholder colors of the Bibata SVGs -> cosmic-blue colors.
-# Body: the deep night blue of the wallpaper. Outline: white, for contrast on
-# dark and light surfaces alike. Wait spinner ring: the dark accent of
-# build_files/theme/src/main.rs.
+# Body: the dark blue of the logo (light accent of build_files/theme/src/main.rs).
+# Outline: white, for contrast on dark and light surfaces alike. Wait spinner
+# ring: the dark accent.
 COLORS = {
-    "#00FF00": "#0B1736",  # body
+    "#00FF00": "#1D47C4",  # body
     "#0000FF": "#FFFFFF",  # outline
     "#FF0000": "#4F8DFF",  # wait spinner
 }
