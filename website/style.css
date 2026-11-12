@@ -124,6 +124,13 @@ code { font-family: var(--mono); font-size: .92em; }
 
 .hero h1 { margin: 0 0 20px; }
 
+/* Keep the room of the NVIDIA note when it is hidden, so switching the
+   graphics card does not move the hero text. */
+.hero-text [data-nvidia-only][hidden] {
+  display: block;
+  visibility: hidden;
+}
+
 .hero h1 img {
   width: min(560px, 88vw);
   height: auto;
