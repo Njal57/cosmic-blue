@@ -113,6 +113,39 @@ jobs:
             "${DEFAULT_TAG}" \
             "${ALIAS_TAGS}"
 
+      # Boot smoke test: install the image to a virtual disk, boot it in QEMU
+      # and check the login screen comes up. A failing image is not pushed.
+      - name: Prepare the boot test
+        run: |
+          set -euxo pipefail
+          # Let the runner user use KVM
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf socat
+          # bootc install runs from the root podman storage
+          podman save "localhost/${IMAGE_NAME}:${DEFAULT_TAG}" | sudo podman load
+
+      - name: Boot test
+        timeout-minutes: 40
+        run: |
+          tests/vm-boot-test.sh "localhost/${IMAGE_NAME}:${DEFAULT_TAG}" "${RUNNER_TEMP}/boot-test"
+
+      - name: Upload boot test logs and screenshot
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: boot-test
+          path: ${{ runner.temp }}/boot-test
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Free the boot test space
+        if: always()
+        run: sudo podman rmi -f "localhost/${IMAGE_NAME}:${DEFAULT_TAG}" || true
+
       # These `if` statements are so that pull requests for your custom images do not make it publish any packages under your name without you knowing
       # They also check if the runner is on the default branch so that things like the merge queue (if you enable it), are going to work
       - name: Login to GitHub Container Registry

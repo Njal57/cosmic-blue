@@ -108,3 +108,26 @@ test -n "$(find /usr/share/icons/cosmic-blue/papirus -name 'com.system76.CosmicF
 # Every link of the theme points to an existing icon
 broken="$(find /usr/share/icons/cosmic-blue -xtype l)"
 [[ -z "${broken}" ]] || { echo "Broken icon links:"; echo "${broken}"; exit 1; }
+
+# Theme colors built around the logo blue (see build_files/theme/src/main.rs).
+# Prints the first red/green/blue triple of a COSMIC config file as #rrggbb.
+first_color() {
+    tr -d ' \t\n' < "$1" \
+        | grep -oE 'red:[0-9.e-]+,green:[0-9.e-]+,blue:[0-9.e-]+' | head -n 1 \
+        | sed -E 's/red:|green:|blue:/ /g; s/,/ /g' \
+        | awk '{ printf "#%02x%02x%02x", int($1 * 255 + 0.5), int($2 * 255 + 0.5), int($3 * 255 + 0.5) }'
+}
+check_color() {
+    local file="$1" expected="$2" actual
+    cat "${file}"
+    actual="$(first_color "${file}")"
+    [[ "${actual}" == "${expected}" ]] || { echo "${file}: ${actual}, expected ${expected}"; exit 1; }
+}
+builder=/usr/share/cosmic/com.system76.CosmicTheme
+check_color "${builder}.Dark.Builder/v2/accent" '#4f8dff'
+check_color "${builder}.Light.Builder/v2/accent" '#1d47c4'
+check_color "${builder}.Dark.Builder/v2/bg_color" '#141c2a'
+check_color "${builder}.Light.Builder/v2/bg_color" '#d3d8e0'
+# The active window outline follows the accent
+grep -qx None "${builder}.Dark.Builder/v2/window_hint"
+grep -qx None "${builder}.Light.Builder/v2/window_hint"
