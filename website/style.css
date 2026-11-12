@@ -225,6 +225,24 @@ code { font-family: var(--mono); font-size: .92em; }
     line-height: 1.2;
     text-box: trim-both cap alphabetic;
   }
+
+  /* Same for the other pills; the padding keeps their usual height. */
+  .gpu #gpu-label,
+  .top .icon span {
+    text-box: trim-both cap alphabetic;
+  }
+
+  .gpu label {
+    padding-block: 13px;
+    line-height: 1;
+    text-box: trim-both cap alphabetic;
+  }
+
+  .copy {
+    padding-block: 10px;
+    line-height: 1;
+    text-box: trim-both cap alphabetic;
+  }
 }
 
 .button.primary {
