@@ -14,11 +14,17 @@ else
     IMAGE_REF="ostree-unverified-registry:ghcr.io/${IMAGE_VENDOR}/${IMAGE_NAME}"
 fi
 
+# "nvidia-open" for the NVIDIA image, as in Bluefin (read by ujust recipes)
+IMAGE_FLAVOR="main"
+if [[ "${IMAGE_NAME}" == *-nvidia ]]; then
+    IMAGE_FLAVOR="nvidia-open"
+fi
+
 mkdir -p /usr/share/ublue-os
 cat > /usr/share/ublue-os/image-info.json <<JSON
 {
   "image-name": "${IMAGE_NAME}",
-  "image-flavor": "main",
+  "image-flavor": "${IMAGE_FLAVOR}",
   "image-vendor": "${IMAGE_VENDOR}",
   "image-ref": "${IMAGE_REF}",
   "image-tag": "${UBLUE_IMAGE_TAG}",

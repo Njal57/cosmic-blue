@@ -22,8 +22,14 @@ concurrency:
 
 jobs:
   build_push:
-    name: Build and push image
+    name: Build and push ${{ matrix.image_suffix && format('image ({0})', matrix.image_suffix) || 'image' }}
     runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # cosmic-blue, and cosmic-blue-nvidia with the NVIDIA driver
+        # (build_files/35-nvidia.sh)
+        image_suffix: ["", "nvidia"]
 
     permissions:
       contents: read
@@ -50,6 +56,9 @@ jobs:
         id: image-name
         run: |
           IMAGE_NAME=$(just image_name)
+          if [[ -n "${{ matrix.image_suffix }}" ]]; then
+            IMAGE_NAME="${IMAGE_NAME}-${{ matrix.image_suffix }}"
+          fi
 
           echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
 
@@ -130,6 +139,10 @@ jobs:
 
       - name: Boot test
         timeout-minutes: 40
+        env:
+          TARGET_IMGREF: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          # The virtual machine has no NVIDIA GPU for these to work with
+          EXTRA_IGNORED_UNITS: ${{ matrix.image_suffix == 'nvidia' && 'nvidia-persistenced|nvidia-cdi-refresh' || '' }}
         run: |
           tests/vm-boot-test.sh "localhost/${IMAGE_NAME}:${DEFAULT_TAG}" "${RUNNER_TEMP}/boot-test"
 
@@ -137,7 +150,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: boot-test
+          name: boot-test-${{ env.IMAGE_NAME }}
           path: ${{ runner.temp }}/boot-test
           if-no-files-found: ignore
           retention-days: 7

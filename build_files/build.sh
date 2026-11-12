@@ -16,6 +16,7 @@ for step in \
     22-initial-setup.sh \
     25-icon-theme.sh \
     30-packages.sh \
+    35-nvidia.sh \
     40-image-info.sh \
     50-services.sh \
     60-initramfs.sh \

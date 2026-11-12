@@ -24,7 +24,6 @@ on:
         default: ""
 
 env:
-  IMAGE_NAME: ${{ github.event.repository.name }} # output of build.yml, keep in sync
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
   SOAK_DAYS: 7
 
@@ -34,8 +33,16 @@ concurrency:
 
 jobs:
   promote:
-    name: Promote to stable
+    name: Promote ${{ matrix.image_suffix && format('{0} ', matrix.image_suffix) || '' }}to stable
     runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # Same images as build.yml: cosmic-blue and cosmic-blue-nvidia
+        image_suffix: ["", "nvidia"]
+    env:
+      # output of build.yml, keep in sync
+      IMAGE_NAME: ${{ github.event.repository.name }}${{ matrix.image_suffix && format('-{0}', matrix.image_suffix) || '' }}
     permissions:
       contents: read
       packages: write
