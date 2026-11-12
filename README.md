@@ -36,6 +36,9 @@ ujust update          # update now instead of waiting for the automatic update
 sudo bootc rollback   # go back to the previous version on next boot
 ```
 
+What changed in each `stable` version (packages, COSMIC, cosmic-blue):
+[Releases](https://github.com/cosmic-blue-os/cosmic-blue/releases).
+
 ## Developer tools
 
 ```bash
