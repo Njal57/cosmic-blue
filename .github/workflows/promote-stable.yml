@@ -10,6 +10,10 @@
 #
 # The tag is copied by digest, so the cosign signature made by build.yml stays
 # valid: nothing is rebuilt or re-signed here.
+#
+# Each promotion then publishes release notes (release-notes.yml): a GitHub
+# Release named after the dated stable tag, listing the package changes since
+# the previous stable image.
 name: Promote stable image
 
 on:
@@ -39,6 +43,11 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      promoted: ${{ steps.promote.outputs.promoted }}
+      previous: ${{ steps.promote.outputs.previous }}
+      digest: ${{ steps.promote.outputs.digest }}
+      release_tag: ${{ steps.promote.outputs.release_tag }}
 
     steps:
       - name: Checkout
@@ -57,6 +66,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Promote
+        id: promote
         env:
           SOURCE_TAG: ${{ inputs.source_tag }}
           GH_ACTOR: ${{ github.actor }}
@@ -93,14 +103,17 @@ jobs:
           # Only promote images signed by build.yml with our key
           cosign verify --key cosign.pub "${image}@${digest}" >/dev/null
 
-          if [[ "$(digest_of stable || true)" == "${digest}" ]]; then
+          previous="$(digest_of stable || true)"
+          if [[ "${previous}" == "${digest}" ]]; then
             echo "stable already points to ${digest}, nothing to do"
+            echo "promoted=false" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
+          release_tag="stable-$(date -u +%Y%m%d)"
 
           # Copy by digest so the signature still applies; also keep a dated
           # stable tag to make rollbacks to an earlier stable easy.
-          for tag in stable "stable-$(date -u +%Y%m%d)"; do
+          for tag in stable "${release_tag}"; do
             skopeo copy --all --preserve-digests \
               --src-creds "${creds}" --dest-creds "${creds}" \
               "docker://${image}@${digest}" "docker://${image}:${tag}"
@@ -110,8 +123,28 @@ jobs:
           cosign verify --key cosign.pub "${image}:stable" >/dev/null
 
           {
+            echo "promoted=true"
+            echo "previous=${previous}"
+            echo "digest=${digest}"
+            echo "release_tag=${release_tag}"
+          } >> "${GITHUB_OUTPUT}"
+
+          {
             echo "### stable promoted"
             echo
             echo "- Source: \`${image}:${source}\`"
             echo "- Digest: \`${digest}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
+
+  release-notes:
+    name: Release notes
+    needs: promote
+    if: needs.promote.outputs.promoted == 'true'
+    permissions:
+      contents: write
+      packages: read
+    uses: ./.github/workflows/release-notes.yml
+    with:
+      old: ${{ needs.promote.outputs.previous }}
+      new: ${{ needs.promote.outputs.digest }}
+      release_tag: ${{ needs.promote.outputs.release_tag }}
