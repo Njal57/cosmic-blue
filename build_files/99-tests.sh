@@ -99,6 +99,9 @@ for package in cosmic-session cosmic-comp; do
 done
 
 systemctl is-enabled cosmic-greeter.service
+# docker CLI works through the rootless Podman socket (ujust devmode installs docker)
+systemctl --global is-enabled podman.socket
+test -x /usr/share/ublue-os/user-setup.hooks.d/30-docker-podman.sh
 test "$(systemctl get-default)" = graphical.target
 
 # Installer keyboard layout and clock format copied to COSMIC user settings
