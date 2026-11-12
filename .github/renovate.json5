@@ -19,7 +19,7 @@
       "description": "Container images in the Containerfile",
       "matchManagers": ["dockerfile"],
       "groupName": "base images",
-      "schedule": ["30-59 4 * * *", "* 5 * * *"]
+      "schedule": ["* 5 * * *"]
     },
     {
       "description": "GitHub Actions, once a week",
