@@ -217,6 +217,16 @@ code { font-family: var(--mono); font-size: .92em; }
   color: var(--text);
 }
 
+/* Center the text on its capital letters, not on the line box, which
+   keeps room for descenders and makes the label look too high. */
+@supports (text-box: trim-both cap alphabetic) {
+  .button {
+    padding: 19px 24px;
+    line-height: 1.2;
+    text-box: trim-both cap alphabetic;
+  }
+}
+
 .button.primary {
   border-color: transparent;
   background: linear-gradient(135deg, var(--accent), var(--accent-strong));
