@@ -5,10 +5,9 @@
 name: Build live ISO
 
 on:
+  # Started by promote-stable.yml each time `stable` moves (Tuesdays), so the
+  # ISO always installs the current stable image; can also be run by hand.
   workflow_dispatch:
-  schedule:
-    # Every Monday at 11:00 UTC, an hour after the daily image build
-    - cron: '30 11 * * 1'
   pull_request:
     branches:
       - main
