@@ -54,6 +54,15 @@ GNOME_ONLY+=(
     usr/share/pixmaps/fedora_whitelogo_med.png
     usr/share/pixmaps/system-logo-white.png
 )
+# Bluefin's fastfetch logos (dinosaurs and a chicken), its global config and
+# its Bluefin and Bazaar user counters: cosmic-blue ships its own fastfetch
+# (system_files/usr/bin/ublue-fastfetch and usr/share/ublue-os/fastfetch*).
+GNOME_ONLY+=(
+    etc/ublue-os/fastfetch.json
+    usr/share/ublue-os/bluefin-logos
+    usr/share/ublue-os/fastfetch-user-count
+    usr/share/ublue-os/bazaar-install-count
+)
 # Bazaar, Bluefin's Flathub store: COSMIC Store already covers it (Flathub and
 # the COSMIC repository), and one store is enough.
 GNOME_ONLY+=(

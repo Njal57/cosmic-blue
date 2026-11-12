@@ -57,3 +57,22 @@ Each wallpaper is built from two layers:
 `wallpaper/build.sh` renders both versions; `wallpaper/compose.py` dims the
 sky behind the planet (dark) or lightens it (light), adds a fine grain against
 banding and writes the JPEG. The output is deterministic (fixed seeds).
+
+## fastfetch
+
+`fastfetch` (an alias of `ublue-fastfetch`) shows the mark as terminal art
+next to the system information, in place of Bluefin's dinosaurs:
+
+- `system_files/usr/share/ublue-os/fastfetch/cosmic-blue-dark.txt` /
+  `-light.txt`: the mark in 24-bit color block characters, 40x20 cells; the
+  light version darkens the moon and the planet highlight. Bottom and right
+  edges use reverse video blocks, so they are as smooth as the top and left
+  ones. Regenerate them with `python3 fastfetch/build.py` (needs
+  `rsvg-convert`, numpy and Pillow). The script picks the size and position
+  of the logo on the cell grid that give the cleanest curves.
+- `system_files/usr/share/ublue-os/fastfetch.jsonc`: the modules (image, OS,
+  COSMIC version, hardware...), with Nerd Font icons
+- `system_files/usr/bin/ublue-fastfetch`: picks the logo for the COSMIC
+  dark/light mode; `ublue-bling-fastfetch` gives the keys the COSMIC accent
+  color. A user's own `~/.config/fastfetch/config.jsonc` is used instead
+  when it exists.
