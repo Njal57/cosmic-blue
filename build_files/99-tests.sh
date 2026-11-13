@@ -60,6 +60,15 @@ fi
 test ! -e /usr/share/applications/discourse.desktop
 test ! -e /usr/share/applications/io.projectbluefin.Report.desktop
 grep -q '^Exec=/usr/bin/cosmic-blue-docs$' /usr/share/applications/documentation.desktop
+# No ChairLift (Bluefin's Control Center) or its helpers
+if compgen -G '/usr/share/applications/*chairlift*' >/dev/null \
+    || compgen -G '/usr/share/polkit-1/actions/*chairlift*' >/dev/null \
+    || compgen -G '/usr/share/glib-2.0/schemas/*chairlift*' >/dev/null \
+    || compgen -G '/usr/share/ublue-os/homebrew/preinstall.d/*chairlift*' >/dev/null; then
+    echo "ChairLift files left in the image"; exit 1
+fi
+test ! -e /usr/bin/chairlift-helper
+test ! -e /usr/libexec/bootc-update-stage
 # Dark theme by default (COSMIC and GTK)
 grep -qx true /usr/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark
 test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'"
