@@ -80,6 +80,16 @@ next to the system information, in place of Bluefin's dinosaurs:
   color. A user's own `~/.config/fastfetch/config.jsonc` is used instead
   when it exists.
 
+## Shell prompt font
+
+`system_files/usr/share/fonts/cosmic-blue/cosmic-blue-prompt.ttf`, generated
+by `python3 prompt-font/build.py <output>` (fontTools): the arrows, the logo
+mark and the icons of the Starship prompt
+(`system_files/usr/share/cosmic-blue/starship.toml`), in plane 16 private use
+code points. The arrows span COSMIC Terminal's whole line (1.4 times the font
+size, with its default font Noto Sans Mono); Nerd Font arrows only reach the
+font's own height there.
+
 ## Icons
 
 The `cosmic-blue` icon theme is Tela circle, recolored with the accent

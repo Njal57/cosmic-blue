@@ -1,42 +1,36 @@
 # cosmic-blue default Starship prompt: powerline segments in the logo blues.
 #
-#   [ x status ] > [ user ] > [ ~/path | branch status ] >
+#   [ x status ] > [ logo user ] > [ ~/path ] > [ branch status ] > >
 #
-# The status segment only shows after a command that failed. The arrows and
-# icons are Nerd Font symbols, written as \u escapes so they stay readable
-# here. To change the prompt, copy this file to ~/.config/starship.toml:
-# Starship then uses yours instead (https://starship.rs/config/).
+# The status segment only shows after a command that failed, the git segment
+# only in a git repository. The arrows, the logo and the icons come from the
+# cosmic-blue Prompt font (branding/prompt-font), sized for COSMIC Terminal's
+# lines, and are written as \U escapes so they stay readable here.
+# To change the prompt, copy this file to ~/.config/starship.toml: Starship
+# then uses yours instead (https://starship.rs/config/).
 "$schema" = "https://starship.rs/config-schema.json"
 
 # One line per prompt, no blank line between them
 add_newline = false
 
 format = """\
-($status[\ue0b0](fg:#c9403a bg:#1d47c4))\
-$os$username$hostname\
-[\ue0b0](fg:#1d47c4 bg:#4f8dff)\
+($status[\U0010cb01](fg:#c9403a bg:#1d47c4))\
+$username$hostname\
+[\U0010cb01](fg:#1d47c4 bg:#4f8dff)\
 $directory\
-($git_branch$git_status$git_state)\
-[\ue0b0 ](fg:#4f8dff)\
+([\U0010cb01](fg:#4f8dff bg:#a9c8ff)$git_branch$git_status$git_state\
+[\U0010cb01](fg:#a9c8ff bg:#4f8dff))\
+[\U0010cb01 ](fg:#4f8dff)\
 """
 
 [status]
 disabled = false
-format = "[ \uf00d $status ]($style)"
-style = "fg:#ffffff bg:#c9403a"
-
-[os]
-disabled = false
-format = "[ $symbol]($style)"
-style = "fg:#ffffff bg:#1d47c4"
-
-[os.symbols]
-Fedora = "\uf30a "
-Linux = "\uf17c "
+format = "[ \U0010cb03 $status ]($style)"
+style = "bold fg:#ffffff bg:#c9403a"
 
 [username]
 show_always = true
-format = "[$user ]($style)"
+format = "[ \U0010cb00 $user ]($style)"
 style_user = "fg:#ffffff bg:#1d47c4"
 style_root = "bold fg:#ffd479 bg:#1d47c4"
 
@@ -48,20 +42,20 @@ style = "fg:#c9dbff bg:#1d47c4"
 [directory]
 format = "[ $path]($style)[$read_only]($read_only_style)[ ]($style)"
 style = "bold fg:#0b1736 bg:#4f8dff"
-read_only = " \U000f033e"
+read_only = " \U0010cb04"
 read_only_style = "fg:#0b1736 bg:#4f8dff"
 truncation_length = 3
-truncation_symbol = "\u2026/"
+truncation_symbol = "…/"
 
 [git_branch]
-format = "[\ue0b1 $symbol$branch ]($style)"
-symbol = "\ue725 "
-style = "fg:#0b1736 bg:#4f8dff"
+format = "[ $symbol$branch ]($style)"
+symbol = "\U0010cb02 "
+style = "fg:#0b1736 bg:#a9c8ff"
 
 [git_status]
 format = "[($all_status$ahead_behind )]($style)"
-style = "fg:#0b1736 bg:#4f8dff"
+style = "fg:#0b1736 bg:#a9c8ff"
 
 [git_state]
 format = "[\\($state( $progress_current/$progress_total)\\) ]($style)"
-style = "bold fg:#0b1736 bg:#4f8dff"
+style = "bold fg:#0b1736 bg:#a9c8ff"
