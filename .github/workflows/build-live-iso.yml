@@ -33,6 +33,7 @@ jobs:
     permissions:
       contents: read
       packages: read
+      issues: write  # size alerts
     strategy:
       fail-fast: false
       matrix:
@@ -117,6 +118,43 @@ jobs:
           compression-level: 0
           overwrite: true
 
+      # Size alert: the R2 free tier is 10 GB for both ISOs, so each one should
+      # stay under 5 GB. Over that, warn on the run and, outside pull requests,
+      # open (or comment on) an issue so the maintainer is notified.
+      - name: Check ISO size
+        if: steps.image.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISO_NAME: ${{ steps.build.outputs.name }}
+          ISO_ALERT_BYTES: "5000000000"
+        run: |
+          set -euo pipefail
+          size=$(stat -c %s "output/${ISO_NAME}.iso")
+          size_gb=$(awk -v s="${size}" 'BEGIN { printf "%.2f", s / 1e9 }')
+          echo "${ISO_NAME}.iso: ${size_gb} GB"
+          echo "${ISO_NAME}.iso: **${size_gb} GB**" >> "${GITHUB_STEP_SUMMARY}"
+          if (( size <= ISO_ALERT_BYTES )); then
+            exit 0
+          fi
+          message="${ISO_NAME}.iso is ${size_gb} GB, over the 5 GB limit set to keep both ISOs within the 10 GB Cloudflare R2 free tier."
+          echo "::warning::${message}"
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            exit 0
+          fi
+          title="Live ISO over 5 GB: ${ISO_NAME}"
+          body="${message}
+
+          Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+
+          The upload to R2 stops by itself if both ISOs together would exceed 10 GB."
+          body="$(sed 's/^ *//' <<< "${body}")"
+          number=$(gh issue list --repo "${GITHUB_REPOSITORY}" --state open --search "\"${title}\" in:title" --json number --jq '.[0].number // empty')
+          if [[ -n "${number}" ]]; then
+            gh issue comment "${number}" --repo "${GITHUB_REPOSITORY}" --body "${body}"
+          else
+            gh issue create --repo "${GITHUB_REPOSITORY}" --title "${title}" --body "${body}"
+          fi
+
       # Public download for the website: the ISO and its checksum, under fixed
       # names so each build replaces the previous one (R2 free tier: 10 GB).
       # Skipped on pull requests and until the R2 secrets are set.
@@ -131,6 +169,8 @@ jobs:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_BUCKET: ${{ vars.R2_BUCKET }}
           ISO_NAME: ${{ steps.build.outputs.name }}
+          GH_TOKEN: ${{ github.token }}
+          R2_LIMIT_BYTES: "10000000000"
         run: |
           set -euo pipefail
           if [[ -z "${AWS_ACCESS_KEY_ID}" || -z "${AWS_SECRET_ACCESS_KEY}" || -z "${R2_ACCOUNT_ID}" || -z "${R2_BUCKET}" ]]; then
@@ -138,8 +178,38 @@ jobs:
             exit 0
           fi
           cd output
-          sha256sum "${ISO_NAME}.iso" > "${ISO_NAME}.iso.sha256"
           endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+
+          # Stay within the free tier: everything else in the bucket plus this
+          # ISO (which replaces its previous version) must fit in 10 GB.
+          # Otherwise keep the current download, open an issue and fail the
+          # job so the maintainer is notified and can review.
+          size=$(stat -c %s "${ISO_NAME}.iso")
+          others=$(aws s3api list-objects-v2 --endpoint-url "${endpoint}" \
+            --bucket "${R2_BUCKET}" --output json \
+            | jq --arg own "${ISO_NAME}.iso" \
+              '[.Contents[]? | select(.Key != $own and .Key != ($own + ".sha256")) | .Size] | add // 0')
+          total=$(( size + others ))
+          total_gb=$(awk -v s="${total}" 'BEGIN { printf "%.2f", s / 1e9 }')
+          echo "R2 bucket after upload: ${total_gb} GB"
+          if (( total > R2_LIMIT_BYTES )); then
+            message="Not uploaded to R2: with ${ISO_NAME}.iso the bucket would hold ${total_gb} GB, over the 10 GB free tier. The previous ISO stays online."
+            echo "::error::${message}"
+            title="Live ISO not published: R2 bucket over 10 GB"
+            body="${message}
+
+            Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            body="$(sed 's/^ *//' <<< "${body}")"
+            number=$(gh issue list --repo "${GITHUB_REPOSITORY}" --state open --search "\"${title}\" in:title" --json number --jq '.[0].number // empty')
+            if [[ -n "${number}" ]]; then
+              gh issue comment "${number}" --repo "${GITHUB_REPOSITORY}" --body "${body}"
+            else
+              gh issue create --repo "${GITHUB_REPOSITORY}" --title "${title}" --body "${body}"
+            fi
+            exit 1
+          fi
+
+          sha256sum "${ISO_NAME}.iso" > "${ISO_NAME}.iso.sha256"
           # ISO first, then its checksum
           aws s3 cp --endpoint-url "${endpoint}" --no-progress \
             "${ISO_NAME}.iso" "s3://${R2_BUCKET}/${ISO_NAME}.iso"
