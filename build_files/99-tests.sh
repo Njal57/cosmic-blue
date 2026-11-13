@@ -147,7 +147,7 @@ for f in bin/ujust share/ublue-os/just/00-entry.just share/ublue-os/just/apps.ju
 done
 # cosmic-blue recipes (60-custom.just) parse and are listed by ujust
 recipes="$(just --justfile /usr/share/ublue-os/just/00-entry.just --summary)"
-for recipe in toggle-dark-mode reset-cosmic-theme reset-cosmic-config; do
+for recipe in toggle-dark-mode reset-cosmic-theme reset-cosmic-config export-cosmic-config; do
     grep -qw -- "${recipe}" <<<"${recipes}"
 done
 
