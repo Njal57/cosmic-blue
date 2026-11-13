@@ -7,18 +7,17 @@ version darkens the moon and the planet highlight, which would vanish on a
 light terminal background.
 
 The logo is drawn on a grid of pixels, two per terminal cell (top and bottom
-half), with as many columns as needed for a round logo in COSMIC Terminal. Terminals such as COSMIC Terminal draw block glyphs
-shorter than the cell (the line spacing stays empty below the glyph), so
-glyphs stacked on top of each other leave dark lines between rows. A cell
-background, on the other hand, always fills the whole cell. So every cell is
-drawn with its background color, and with the only glyph that never needs to
-reach the cell bottom, the upper half block:
+half), with as many columns as needed for a round logo in COSMIC Terminal.
+COSMIC Terminal draws block elements (such as the half blocks) shorter than
+the cell, and its frosted (translucent) background turns any opaque stand-in
+for it, like reverse video, into dark squares. So each cell is drawn with:
 
-- both halves set: upper half block in the top color on the bottom color
-  (a space on the background color when both are the same)
-- top half only: upper half block on the terminal background
-- bottom half only: upper half block in reverse video, i.e. the glyph in
-  the terminal background color on the bottom color
+- both halves set: an upper half in the top color on the bottom color as the
+  cell background (a space on that background when both are the same)
+- one half set: that half on the terminal's own background
+
+The halves are U+10CB05 and U+10CB06 of the cosmic-blue Prompt font
+(branding/prompt-font), which span exactly half of COSMIC Terminal's line.
 
 Needs rsvg-convert (librsvg), python3-numpy and python3-pillow:
     python3 branding/fastfetch/build.py
@@ -56,7 +55,9 @@ MIN_COVERAGE = 0.5
 # Two halves closer than this (per channel) are drawn as one color
 SAME_COLOR = 10
 
-UPPER_HALF = "▀"
+# Half cells of the cosmic-blue Prompt font
+UPPER_HALF = "\U0010CB05"
+LOWER_HALF = "\U0010CB06"
 
 
 def rasterize(svg: str, size: float, x0: float, y0: float) -> np.ndarray:
@@ -114,9 +115,7 @@ def cell(top, bottom) -> str:
     if top is None and bottom is None:
         return "\x1b[0m "
     if top is None:
-        # Reverse video: the glyph in the terminal background, the cell in
-        # the bottom color
-        return f"\x1b[0m{sgr(38, bottom)}\x1b[7m{UPPER_HALF}"
+        return f"\x1b[0m{sgr(38, bottom)}{LOWER_HALF}"
     if bottom is None:
         return f"\x1b[0m{sgr(38, top)}{UPPER_HALF}"
     if np.abs(np.asarray(top) - np.asarray(bottom)).max() * 255 < SAME_COLOR:
