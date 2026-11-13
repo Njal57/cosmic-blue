@@ -60,16 +60,19 @@ banding and writes the JPEG. The output is deterministic (fixed seeds).
 
 ## fastfetch
 
-`fastfetch` (an alias of `ublue-fastfetch`) shows the mark as terminal art
+`fastfetch` or `ff` (aliases of `ublue-fastfetch`) shows the mark as terminal art
 next to the system information, in place of Bluefin's dinosaurs:
 
 - `system_files/usr/share/ublue-os/fastfetch/cosmic-blue-dark.txt` /
-  `-light.txt`: the mark in 24-bit color block characters, 40x20 cells; the
-  light version darkens the moon and the planet highlight. Bottom and right
-  edges use reverse video blocks, so they are as smooth as the top and left
-  ones. Regenerate them with `python3 fastfetch/build.py` (needs
-  `rsvg-convert`, numpy and Pillow). The script picks the size and position
-  of the logo on the cell grid that give the cleanest curves.
+  `-light.txt`: the mark as 40x40 color pixels, two per terminal cell (the
+  upper half block on a background color), with edges blended into the
+  theme's terminal background. COSMIC Terminal draws glyphs shorter than the
+  cell, so stacked block glyphs leave lines between rows; cell backgrounds
+  don't, and the upper half block never has to reach the cell bottom. The
+  light version darkens the moon and the planet highlight. Regenerate them
+  with `python3 fastfetch/build.py` (needs `rsvg-convert`, numpy and
+  Pillow); it picks the size and position of the logo that give the
+  cleanest curves.
 - `system_files/usr/share/ublue-os/fastfetch.jsonc`: the modules (image, OS,
   COSMIC version, hardware...), with Nerd Font icons
 - `system_files/usr/bin/ublue-fastfetch`: picks the logo for the COSMIC
@@ -86,3 +89,23 @@ mark and the icons of the Starship prompt
 code points. The arrows span COSMIC Terminal's whole line (1.4 times the font
 size, with its default font Noto Sans Mono); Nerd Font arrows only reach the
 font's own height there.
+
+## Icons
+
+The `cosmic-blue` icon theme is Tela circle, recolored with the accent
+(`build_files/icon_theme/`), with a few icons of our own in front of it.
+`icons/build.py` draws them as SVG:
+
+- folders, home, desktop, network and trash (`build_files/icon_theme/layer/places/`):
+  a disk in the logo blues with a folder tab and a white symbol, inside the
+  logo's orbit
+- common file types (`build_files/icon_theme/layer/mimetypes/`): a light page
+  whose symbol and folded corner take the color of the type (documents blue,
+  spreadsheets green, archives amber...). Language-specific icons (Python,
+  Rust...) stay Tela's.
+- the live ISO's welcome tour and installer (`iso_files/welcome/*.svg`): the
+  mark on a night-blue disk
+
+The files are named like Tela's, and the theme also takes every name that
+Tela links to them (`build_files/icon_theme/compose.py`). Regenerate them with
+`python3 icons/build.py` after a change.

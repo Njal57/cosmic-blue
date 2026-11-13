@@ -35,6 +35,12 @@ HOME=/tmp/fastfetch-test fastfetch --config /usr/share/ublue-os/fastfetch.jsonc 
     --pipe true --structure os:kernel | grep cosmic-blue
 # (no grep -q: it would end fc-list with SIGPIPE, exit 141 under pipefail)
 fc-list : family | grep 'Symbols Nerd Font' >/dev/null
+# Logo art: only background colors and upper half blocks (gapless in
+# COSMIC Terminal), and the ff alias
+if LC_ALL=C.UTF-8 grep -q '[▁▂▃▄▅▆▇█▏▎▍▌▋▊▉▐▖▗▘▝▚▞▙▛▜▟]' /usr/share/ublue-os/fastfetch/cosmic-blue-*.txt; then
+    echo "fastfetch logo uses glyphs that leave gaps in COSMIC Terminal"; exit 1
+fi
+grep -q "alias ff='ublue-fastfetch'" /etc/profile.d/cosmic-blue-fastfetch.sh
 # Dark theme by default (COSMIC and GTK)
 grep -qx true /usr/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark
 test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'"
@@ -240,6 +246,13 @@ test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface icon-
 test -n "$(find /usr/share/icons/cosmic-blue/tela/symbolic -name 'audio-volume-high-symbolic.svg' -print -quit)"
 test -n "$(find /usr/share/icons/cosmic-blue/cosmic -name '*-symbolic.svg' -print -quit)"
 test -n "$(find /usr/share/icons/cosmic-blue/tela -name 'com.system76.CosmicFiles.svg' -print -quit)"
+# cosmic-blue layer (branding/icons/build.py) in front of Tela, with Tela's aliases
+grep -q '^\[layer/places\]' /usr/share/icons/cosmic-blue/index.theme
+grep -q '^\[layer/mimetypes\]' /usr/share/icons/cosmic-blue/index.theme
+for icon in places/default-folder places/folder places/folder-download places/inode-directory \
+    places/user-home places/user-trash mimetypes/text-plain mimetypes/image-jpeg mimetypes/application-zip; do
+    test -s "/usr/share/icons/cosmic-blue/layer/${icon}.svg"
+done
 # Every link of the theme points to an existing icon
 broken="$(find /usr/share/icons/cosmic-blue -xtype l)"
 [[ -z "${broken}" ]] || { echo "Broken icon links:"; echo "${broken}"; exit 1; }

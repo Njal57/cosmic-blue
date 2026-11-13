@@ -2,17 +2,23 @@
 """Render the cosmic-blue logo as terminal art for fastfetch.
 
 Writes system_files/usr/share/ublue-os/fastfetch/cosmic-blue-{dark,light}.txt
-(24-bit color block characters, shown by `fastfetch` through ublue-fastfetch).
-The light version darkens the moon and the planet highlight, which would
-vanish on a light terminal background.
+(24-bit color art, shown by `fastfetch` through ublue-fastfetch). The light
+version darkens the moon and the planet highlight, which would vanish on a
+light terminal background.
 
-Each terminal cell gets the block character whose shape best matches the
-logo's coverage of the cell, in the mean color of the covered pixels. Unicode
-has "lower" and "left" eighth blocks but no "upper" or "right" ones: those
-are drawn as a lower/left block in reverse video (the glyph in the terminal
-background, the cell in the logo color), so bottom and right edges are as
-smooth as top and left ones. Edges are hard, so the art shows no dark fringe
-on any terminal background.
+The logo is drawn on a grid of 40x40 square pixels, two per terminal cell
+(top and bottom half). Terminals such as COSMIC Terminal draw block glyphs
+shorter than the cell (the line spacing stays empty below the glyph), so
+glyphs stacked on top of each other leave dark lines between rows. A cell
+background, on the other hand, always fills the whole cell. So every cell is
+drawn with its background color, and with the only glyph that never needs to
+reach the cell bottom, the upper half block:
+
+- both halves set: upper half block in the top color on the bottom color
+  (a space on the background color when both are the same)
+- top half only: upper half block on the terminal background
+- bottom half only: upper half block in reverse video, i.e. the glyph in
+  the terminal background color on the bottom color
 
 Needs rsvg-convert (librsvg), python3-numpy and python3-pillow:
     python3 branding/fastfetch/build.py
@@ -29,58 +35,31 @@ from PIL import Image
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 LOGO = ROOT / "branding/logo/cosmic-blue-logo.svg"
 OUT = ROOT / "system_files/usr/share/ublue-os/fastfetch"
-# Terminal cells are about twice as high as wide: 40x20 cells is a square.
+# Terminal cells are about twice as high as wide: 40x20 cells is a square
+# of 40x40 pixels (two per cell).
 COLS, ROWS = 40, 20
-# Sub-pixels per cell (8 wide, 16 high: square pixels)
-CW, CH = 8, 16
-SUPERSAMPLE = 4
-# Colors of the mark that are too pale for a light background
-LIGHT_SWAPS = {"#e6f3ff": "#1d47c4", "#cfeeff": "#4f98f5"}
-
-LOWER = " ▁▂▃▄▅▆▇█"  # LOWER[k]: bottom k/8 filled
-LEFT = " ▏▎▍▌▋▊▉█"  # LEFT[k]: left k/8 filled
-QUADRANTS = {  # (top-left, top-right, bottom-left, bottom-right)
-    "▘": (1, 0, 0, 0), "▝": (0, 1, 0, 0), "▖": (0, 0, 1, 0), "▗": (0, 0, 0, 1),
-    "▀": (1, 1, 0, 0), "▄": (0, 0, 1, 1), "▌": (1, 0, 1, 0), "▐": (0, 1, 0, 1),
-    "▚": (1, 0, 0, 1), "▞": (0, 1, 1, 0),
-    "▛": (1, 1, 1, 0), "▜": (1, 1, 0, 1), "▙": (1, 0, 1, 1), "▟": (0, 1, 1, 1),
-}
-
-
-def shapes():
-    """(character, reverse video, mask) for every candidate, mask[y][x]."""
-    out = []
-    for k in range(1, 8):
-        rows = round(k * CH / 8)
-        lower = [[y >= CH - rows] * CW for y in range(CH)]
-        out.append((LOWER[k], False, lower))
-        # Upper (8-k)/8: lower k/8 block in reverse video
-        out.append((LOWER[k], True, [[not v for v in row] for row in lower]))
-        # Vertical bars one sub-pixel wide look like stray lines: skip them
-        if k in (1, 7):
-            continue
-        left = [[x < k for x in range(CW)] for _ in range(CH)]
-        out.append((LEFT[k], False, left))
-        out.append((LEFT[k], True, [[not v for v in row] for row in left]))
-    for char, (tl, tr, bl, br) in QUADRANTS.items():
-        mask = [[bool((tl, tr, bl, br)[(y >= CH // 2) * 2 + (x >= CW // 2)])
-                 for x in range(CW)] for y in range(CH)]
-        out.append((char, False, mask))
-    return out
-
-
-# Every candidate: empty, full and the partial blocks
-CANDIDATES = [(" ", False, np.zeros((CH, CW), bool)), ("█", False, np.ones((CH, CW), bool))] + [
-    (char, reverse, np.array(mask)) for char, reverse, mask in shapes()]
-MASKS = np.array([mask for _, _, mask in CANDIDATES], dtype=float)
+PX_ROWS = ROWS * 2
+# Sub-pixels per pixel, to measure the logo coverage of each pixel
+SUB = 8
 # Width of the logo's viewBox (-50 -50 100 100)
 VIEW = 100
+# Colors of the mark that are too pale for a light background
+LIGHT_SWAPS = {"#e6f3ff": "#1d47c4", "#cfeeff": "#4f98f5"}
+# Pixels partly covered by the logo are blended with the terminal background
+# of the cosmic-blue theme (smoother curves); under MIN_COVERAGE they stay
+# empty
+MIN_COVERAGE = 0.25
+TERMINAL_BG = {"dark": "#141c2a", "light": "#d3d8e0"}
+# Two halves closer than this (per channel) are drawn as one color
+SAME_COLOR = 10
+
+UPPER_HALF = "▀"
 
 
 def rasterize(svg: str, size: float, x0: float, y0: float) -> np.ndarray:
     """RGBA sub-pixels (float, alpha = coverage) of the logo drawn size
     sub-pixels wide with its top left corner at (x0, y0)."""
-    w, h = COLS * CW, ROWS * CH
+    w, h = COLS * SUB, PX_ROWS * SUB
     unit = VIEW / size  # SVG units per sub-pixel
     view = f"{-VIEW / 2 - x0 * unit:.4f} {-VIEW / 2 - y0 * unit:.4f} {w * unit:.4f} {h * unit:.4f}"
     svg = re.sub(r'viewBox="[^"]*"', f'viewBox="{view}"', svg, count=1)
@@ -88,66 +67,74 @@ def rasterize(svg: str, size: float, x0: float, y0: float) -> np.ndarray:
         svg_file = pathlib.Path(tmp, "logo.svg")
         png_file = pathlib.Path(tmp, "logo.png")
         svg_file.write_text(svg)
-        subprocess.run(["rsvg-convert", "-w", str(w * SUPERSAMPLE), "-h", str(h * SUPERSAMPLE),
+        subprocess.run(["rsvg-convert", "-w", str(w), "-h", str(h),
                         str(svg_file), "-o", str(png_file)], check=True)
-        image = np.asarray(Image.open(png_file).convert("RGBA"), dtype=float) / 255
-    # Box filter down to sub-pixels
-    return image.reshape(h, SUPERSAMPLE, w, SUPERSAMPLE, 4).mean(axis=(1, 3))
+        return np.asarray(Image.open(png_file).convert("RGBA"), dtype=float) / 255
 
 
-def cells(image: np.ndarray) -> np.ndarray:
-    """Coverage of every cell: [row, col, y, x]."""
-    cov = image[..., 3]
-    return cov.reshape(ROWS, CH, COLS, CW).transpose(0, 2, 1, 3)
-
-
-def choose(cov: np.ndarray):
-    """Best shape index (into CANDIDATES) and its error, for every cell."""
-    # err[shape, row, col] = sum of |coverage - mask|
-    err = np.abs(cov[None] - MASKS[:, None, None]).sum(axis=(3, 4))
-    best = err.argmin(axis=0)
-    return best, np.take_along_axis(err, best[None], 0)[0]
+def pixels(image: np.ndarray):
+    """Coverage [y, x] and mean color [y, x, rgb] of every pixel."""
+    blocks = image.reshape(PX_ROWS, SUB, COLS, SUB, 4)
+    alpha = blocks[..., 3]
+    coverage = alpha.mean(axis=(1, 3))
+    weight = alpha.sum(axis=(1, 3))[..., None]
+    color = (blocks[..., :3] * alpha[..., None]).sum(axis=(1, 3)) / np.maximum(weight, 1e-9)
+    return coverage, color
 
 
 def placement(svg: str):
-    """Size and position of the logo with the smallest total error, i.e. the
-    cleanest curves once drawn in cells."""
+    """Size and position of the logo whose pixels are the least ambiguous
+    (coverage closest to 0 or 1), i.e. the cleanest curves once drawn."""
     best = None
-    full = min(COLS * CW, ROWS * CH)
+    full = COLS * SUB
     for size in np.arange(full * 0.90, full + 0.1, full * 0.025):
         free = full - size
         for x0 in np.linspace(0, free, 5) if free else [0]:
             for y0 in np.linspace(0, free, 5) if free else [0]:
-                _, err = choose(cells(rasterize(svg, size, x0, y0)))
-                score = err.sum() / size  # per unit of outline
-                if best is None or score < best[0]:
-                    best = (score, size, x0, y0)
+                coverage, _ = pixels(rasterize(svg, size, x0, y0))
+                error = np.minimum(coverage, 1 - coverage).sum() / size
+                if best is None or error < best[0]:
+                    best = (error, size, x0, y0)
     return best[1:]
 
 
-def render(svg: str, out: pathlib.Path, place) -> None:
-    image = rasterize(svg, *place)
-    cov = cells(image)
-    best, _ = choose(cov)
-    rgba = image.reshape(ROWS, CH, COLS, CW, 4).transpose(0, 2, 1, 3, 4)
+def sgr(kind: int, rgb) -> str:
+    r, g, b = (round(255 * c) for c in rgb)
+    return f"\x1b[{kind};2;{r};{g};{b}m"
+
+
+def cell(top, bottom) -> str:
+    """One terminal cell; top and bottom are an RGB color or None (empty)."""
+    if top is None and bottom is None:
+        return "\x1b[0m "
+    if top is None:
+        # Reverse video: the glyph in the terminal background, the cell in
+        # the bottom color
+        return f"\x1b[0m{sgr(38, bottom)}\x1b[7m{UPPER_HALF}"
+    if bottom is None:
+        return f"\x1b[0m{sgr(38, top)}{UPPER_HALF}"
+    if np.abs(np.asarray(top) - np.asarray(bottom)).max() * 255 < SAME_COLOR:
+        return f"\x1b[0m{sgr(48, (np.asarray(top) + np.asarray(bottom)) / 2)} "
+    return f"\x1b[0m{sgr(38, top)}{sgr(48, bottom)}{UPPER_HALF}"
+
+
+def render(svg: str, out: pathlib.Path, place, background: str) -> None:
+    coverage, color = pixels(rasterize(svg, *place))
+    on = coverage >= MIN_COVERAGE
+    bg = np.array([int(background[i:i + 2], 16) / 255 for i in (1, 3, 5)])
+    amount = np.clip(coverage, 0, 1)[..., None]
+    color = color * amount + bg * (1 - amount)
     lines = []
-    for cy in range(ROWS):
-        line = ""
-        for cx in range(COLS):
-            char, reverse, mask = CANDIDATES[best[cy, cx]]
-            if char == " ":
-                line += " "
-                continue
-            # Mean color of the logo pixels inside the shape
-            px = rgba[cy, cx]
-            weight = px[..., 3] * (mask if mask.any() else 1)
-            if weight.sum() == 0:
-                weight = px[..., 3]
-            r, g, b = (round(255 * (px[..., i] * weight).sum() / weight.sum()) for i in range(3))
-            color = f"\x1b[38;2;{r};{g};{b}m"
-            line += f"{color}\x1b[7m{char}\x1b[27m" if reverse else f"{color}{char}"
-        # Reset the colors at the end of each line
-        lines.append(f"{line.rstrip()}\x1b[0m")
+    for row in range(ROWS):
+        cells = []
+        for col in range(COLS):
+            top, bottom = (color[y, col] if on[y, col] else None
+                           for y in (2 * row, 2 * row + 1))
+            cells.append(cell(top, bottom))
+        # Trailing empty cells are left out; reset the colors at line end
+        while cells and cells[-1] == "\x1b[0m ":
+            cells.pop()
+        lines.append("".join(cells) + "\x1b[0m")
     out.write_text("".join(f"{line}\n" for line in lines))
     print(f"{out.relative_to(ROOT)}: {len(lines)} lines")
 
@@ -157,11 +144,11 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     place = placement(svg)
     print("logo size {:.1f}, position {:.1f} {:.1f} (sub-pixels)".format(*place))
-    render(svg, OUT / "cosmic-blue-dark.txt", place)
+    render(svg, OUT / "cosmic-blue-dark.txt", place, TERMINAL_BG["dark"])
     for old, new in LIGHT_SWAPS.items():
         assert old in svg, old
         svg = svg.replace(old, new)
-    render(svg, OUT / "cosmic-blue-light.txt", place)
+    render(svg, OUT / "cosmic-blue-light.txt", place, TERMINAL_BG["light"])
 
 
 if __name__ == "__main__":
