@@ -55,16 +55,17 @@ same through the build context:
 - `ujust` + recipes (`00-entry`, `apps`, `default`, `shared`, `update`,
   `system`): `update`, `toggle-updates`, `devmode`/`toggle-devmode`,
   `install-system-flatpaks`, `bluefin-cli`, `setup-vms`, `enroll-secure-boot-key`,
-  `powerwash`, `changelogs`, `report`, `device-info`, `benchmark`, `toggle-tpm2`,
-  `install-jetbrains-toolbox`, `install-ai-tools`, `cncf`…
+  `powerwash`, `device-info`, `benchmark`, `toggle-tpm2`,
+  `install-jetbrains-toolbox`, `install-ai-tools`, `cncf`… Bluefin-only recipes
+  are dropped in `build_files/10-system-files.sh`.
 - **Homebrew** (`ghcr.io/ublue-os/brew`): `brew-setup.service`,
   `brew-preinstall`, Brewfiles (`cli`, `fonts`, `ide`, `k8s-tools`, `ai-tools`…).
 - **Updates**: `uupd` + `uupd.timer`, `uupd-on-ac`, `bootc-update-stage`
   (replaces `rpm-ostreed-automatic.timer`).
 - **Setup**: `ublue-system-setup`, `ublue-user-setup` (+ hooks), `ublue-bling`
   (bling.sh/fish, starship), fastfetch, `uwelcome`.
-- **Flatpak**: `flatpak-preinstall.service`, "flatpark" filter,
-  `flatpak-appstream-refresh`, `flatpak-nuke-fedora`.
+- **Flatpak**: `flatpak-preinstall.service`, `flatpak-appstream-refresh`,
+  `flatpak-nuke-fedora` (not Bluefin's FlatPark remote).
 - `/etc/containers/policy.json` + keys (ublue image verification), hardware
   udev rules (Framework, ZSA, Wooting, Titan key…), Framework ICC profiles,
   polkit, bootc sudoers, `luks-tpm2-autounlock`.

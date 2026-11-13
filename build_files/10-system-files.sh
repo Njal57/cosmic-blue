@@ -75,6 +75,42 @@ GNOME_ONLY+=(
 GNOME_ONLY+=(
     usr/share/ublue-os/firefox-config
 )
+# More Bluefin leftovers that have no use on cosmic-blue:
+# - FlatPark, a third-party Flatpak hub that projectbluefin/common adds next to
+#   Flathub (cosmic-blue keeps Flathub and the COSMIC repository only), its
+#   filter and the unit that copies the filter for Bazaar's sandbox;
+# - the rest of Bazaar (background service, config, flatpak override);
+# - projectbluefin-countme, a usage counter for other Bluefin images that
+#   exits at once on cosmic-blue;
+# - the AI agent notes about Bluefin's repositories;
+# - get-geoclue-latitude, used only by Bluefin's GNOME dynamic wallpaper;
+# - `ujust changelogs`, which shows Bluefin's release notes (cosmic-blue's
+#   are on its GitHub releases page);
+# - opt-in Brewfiles for GNOME apps and Bluefin wallpapers, offered by
+#   ChairLift only: Bluefin's "full desktop" GNOME Circle list, Hidamari and
+#   Damask (video wallpaper and wallpaper slideshow, GNOME only).
+GNOME_ONLY+=(
+    usr/share/flatpak/remotes.d/flatpark.flatpakrepo
+    usr/share/flatpak/flatpark.filter
+    usr/lib/systemd/system/flatpark-filter-copy.path
+    usr/lib/systemd/system/flatpark-filter-copy.service
+    etc/bazaar
+    usr/lib/systemd/user/bazaar.service
+    usr/lib/tmpfiles.d/bazaar-flatpak.conf
+    usr/share/ublue-os/flatpak-overrides/io.github.kolunmi.Bazaar
+    usr/libexec/projectbluefin-countme
+    usr/lib/systemd/system/projectbluefin-countme.service
+    usr/lib/systemd/system/projectbluefin-countme.timer
+    usr/lib/systemd/system/timers.target.wants/projectbluefin-countme.timer
+    usr/lib/systemd/system-preset/03-projectbluefin-countme.preset
+    usr/share/ublue-os/agent
+    usr/libexec/get-geoclue-latitude
+    usr/share/ublue-os/just/changelog.just
+    usr/share/ublue-os/homebrew/full-desktop.Brewfile
+    usr/share/ublue-os/homebrew/video-wallpaper.Brewfile
+    usr/share/ublue-os/homebrew/wallpaper-slideshow.Brewfile
+    usr/share/ublue-os/homebrew/artwork.Brewfile
+)
 # Bluefin's community and help launchers, and its Report a Problem app, which
 # files issues in Bluefin's repositories. cosmic-blue's own Documentation
 # launcher (system_files) opens the cosmic-blue guide instead.
@@ -89,6 +125,25 @@ GNOME_ONLY+=(
 for path in "${GNOME_ONLY[@]}"; do
     rm -rf "${STAGE:?}/${path}"
 done
+
+# The FlatPark filter unit is enabled in the same preset file as the
+# appstream refresh, which stays.
+sed -i '/flatpark/d' "${STAGE}/usr/lib/systemd/system-preset/02-flatpak-appstream-refresh.preset"
+
+# Bluefin-only ujust recipes: `contribute` (runs a worker for Bluefin's
+# build hive), `bluespeed` (Bluefin's AI stack, `install-ai-tools` remains),
+# `bluefin-apps` (alias of install-system-flatpaks), `bazaar-preview`, and
+# `toggle-testing`, which switches to a "testing" tag that cosmic-blue does
+# not publish.
+python3 -I /ctx/build_files/drop-just-recipes.py \
+    "${STAGE}/usr/share/ublue-os/just/shared.just" contribute
+python3 -I /ctx/build_files/drop-just-recipes.py \
+    "${STAGE}/usr/share/ublue-os/just/system.just" \
+    bluespeed bluefin-apps bazaar-preview toggle-testing
+
+# Bluefin's zsh profile forces every LC_* variable (and LC_ALL) to en_US for
+# zsh login shells, which overrides the language chosen at install time.
+sed -i '/^export LC_[A-Z_]*=en_US/d' "${STAGE}/etc/zsh/zprofile"
 
 # `ujust` with no recipe prints a link to Bluefin's documentation first:
 # point it to the cosmic-blue guide.
