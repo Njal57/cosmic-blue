@@ -98,6 +98,11 @@ sed -i 's/ANACONDA_PRODUCTVERSION=.*/ANACONDA_PRODUCTVERSION=""/' /usr/{,s}bin/l
 # Installer shortcut: on the live user's desktop and first in the COSMIC dock.
 # The installer is not started automatically.
 sed -i 's/^Name=.*/Name=Install cosmic-blue/' /usr/share/applications/liveinst.desktop
+# cosmic-blue icon (branding/icons/build.py) instead of Anaconda's
+install -D -m 0644 /app/cosmic-blue-welcome/cosmic-blue-installer.svg \
+    /usr/share/icons/hicolor/scalable/apps/cosmic-blue-installer.svg
+sed -i 's/^Icon=.*/Icon=cosmic-blue-installer/' /usr/share/applications/liveinst.desktop
+grep -qx 'Icon=cosmic-blue-installer' /usr/share/applications/liveinst.desktop
 mkdir -p /etc/skel/Desktop
 install -m 0755 /usr/share/applications/liveinst.desktop /etc/skel/Desktop/liveinst.desktop
 dock=()
@@ -167,6 +172,9 @@ install -D -m 0644 /app/cosmic-blue-welcome/io.github.cosmic_blue_os.Welcome.des
     /usr/share/applications/io.github.cosmic_blue_os.Welcome.desktop
 install -D -m 0644 /app/cosmic-blue-welcome/io.github.cosmic_blue_os.Welcome.desktop \
     /etc/xdg/autostart/io.github.cosmic_blue_os.Welcome.desktop
+install -D -m 0644 /app/cosmic-blue-welcome/cosmic-blue-welcome.svg \
+    /usr/share/icons/hicolor/scalable/apps/cosmic-blue-welcome.svg
+gtk-update-icon-cache --force /usr/share/icons/hicolor || :
 # COSMIC's first-run assistant is for installed systems: skip it in the live
 # session so that it does not open on top of the tour.
 mkdir -p /etc/skel/.config

@@ -79,3 +79,23 @@ next to the system information, in place of Bluefin's dinosaurs:
   dark/light mode; `ublue-bling-fastfetch` gives the keys the COSMIC accent
   color. A user's own `~/.config/fastfetch/config.jsonc` is used instead
   when it exists.
+
+## Icons
+
+The `cosmic-blue` icon theme is Tela circle, recolored with the accent
+(`build_files/icon_theme/`), with a few icons of our own in front of it.
+`icons/build.py` draws them as SVG:
+
+- folders, home, desktop, network and trash (`build_files/icon_theme/layer/places/`):
+  a disk in the logo blues with a folder tab and a white symbol, inside the
+  logo's orbit
+- common file types (`build_files/icon_theme/layer/mimetypes/`): a light page
+  whose symbol and folded corner take the color of the type (documents blue,
+  spreadsheets green, archives amber...). Language-specific icons (Python,
+  Rust...) stay Tela's.
+- the live ISO's welcome tour and installer (`iso_files/welcome/*.svg`): the
+  mark on a night-blue disk
+
+The files are named like Tela's, and the theme also takes every name that
+Tela links to them (`build_files/icon_theme/compose.py`). Regenerate them with
+`python3 icons/build.py` after a change.

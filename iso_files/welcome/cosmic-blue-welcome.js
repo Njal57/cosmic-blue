@@ -154,7 +154,7 @@ class WelcomeWindow extends Adw.ApplicationWindow {
             allow_scroll_wheel: true,
         });
 
-        this._carousel.append(statusPage(pickIcon('fedora-logo-icon', 'distributor-logo', 'computer-symbolic'),
+        this._carousel.append(statusPage(pickIcon('cosmic-blue-logo', 'fedora-logo-icon', 'computer-symbolic'),
             _('Welcome to cosmic-blue'),
             _('cosmic-blue is Fedora Atomic with the COSMIC desktop, made in the spirit of Bluefin: a desktop that stays out of your way and keeps itself up to date.')));
         this._carousel.append(statusPage('media-optical-symbolic',
