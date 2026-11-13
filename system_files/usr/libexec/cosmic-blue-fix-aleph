@@ -1,0 +1,30 @@
+#!/usr/bin/bash
+# Replaces null values in /sysroot/.bootc-aleph.json (written once by
+# `bootc install`) with strings, so that bootupctl can parse it. The version
+# comes from the booted image. See
+# /usr/lib/systemd/system/bootloader-update.service.d/10-cosmic-blue-aleph.conf
+set -euo pipefail
+
+ALEPH=/sysroot/.bootc-aleph.json
+[[ -f "${ALEPH}" ]] || exit 0
+jq -e 'type == "object" and any(.[]; . == null)' "${ALEPH}" >/dev/null || exit 0
+
+version="$(bootc status --json 2>/dev/null | jq -r '.status.booted.image.version // empty' || true)"
+fixed="$(jq --arg version "${version:-unknown}" \
+    'with_entries(if .value == null then .value = (if .key == "version" then $version else "" end) else . end)' \
+    "${ALEPH}")"
+
+# /sysroot is read-only; the service has its own mount namespace
+# (MountFlags=slave), but put it back as it was in any case
+remounted=false
+if findmnt -no OPTIONS /sysroot | tr ',' '\n' | grep -qx ro; then
+    mount -o remount,rw /sysroot
+    remounted=true
+fi
+printf '%s\n' "${fixed}" > "${ALEPH}.tmp"
+mv "${ALEPH}.tmp" "${ALEPH}"
+sync -f "${ALEPH}"
+if [[ "${remounted}" == true ]]; then
+    mount -o remount,ro /sysroot || true
+fi
+echo "Repaired ${ALEPH} (null values replaced, version ${version:-unknown})"

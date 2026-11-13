@@ -323,3 +323,7 @@ if [[ "${IMAGE_NAME}" == *-nvidia ]]; then
 elif rpm -q kmod-nvidia; then
     echo "kmod-nvidia in a non-NVIDIA image"; exit 1
 fi
+
+# Repair of the bootc aleph of early installs (bootloader-update.service)
+test -x /usr/libexec/cosmic-blue-fix-aleph
+grep -q cosmic-blue-fix-aleph /usr/lib/systemd/system/bootloader-update.service.d/10-cosmic-blue-aleph.conf
