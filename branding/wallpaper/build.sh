@@ -15,13 +15,14 @@ for mode in dark light; do
     python3 compose.py "${mode}" "${out}/cosmic-blue${suffix}.jpg"
 done
 
-# Conceptual wallpapers: orbits (the default, dark and light) and waves
-for kind in orbits-dark orbits-light waves; do
-    python3 concept.py "${kind}" concept.svg
-    node render.js concept.svg concept.png
-    name="cosmic-blue-${kind%-dark}"
-    python3 compose.py concept "${out}/${name}.jpg" concept.png
-done
+# The default: a planetary system (dark and light), over the same sky
+python3 orbits.py dark "${out}/cosmic-blue-orbits.jpg"
+python3 orbits.py light "${out}/cosmic-blue-orbits-light.jpg"
+
+# Waves of light
+python3 concept.py waves concept.svg
+node render.js concept.svg concept.png
+python3 compose.py concept "${out}/cosmic-blue-waves.jpg" concept.png
 
 # The Milky Way above the Earth (NASA photo)
 curl -fsSL -o milky-way-orig.jpg \

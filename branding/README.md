@@ -34,8 +34,9 @@ Regenerate the SVGs with `python3 logo/build.py`.
 
 All 5120x2880, in `system_files/usr/share/backgrounds/cosmic-blue/`:
 
-- `cosmic-blue-orbits.jpg`: planets on tilted orbits around a bright star,
-  the default COSMIC wallpaper
+- `cosmic-blue-orbits.jpg`: a planetary system seen from above its plane (a
+  bright star, shaded planets, a ringed giant, an asteroid belt) over the
+  Milky Way, the default COSMIC wallpaper
 - `cosmic-blue-orbits-light.jpg`: the same on a pale sky, for the light theme
 - `cosmic-blue.jpg` / `cosmic-blue-light.jpg`: the logo as a scene (night and
   pale sky), offered in Settings
@@ -54,9 +55,10 @@ so the light one is offered in Settings. Later COSMIC releases read a wallpaper
 per theme (`com.system76.CosmicBackground.Dark` / `.Light`); those defaults are
 already set, so the wallpaper will follow the theme once Fedora ships them.
 
-The orbits and the waves are drawn as SVG by `wallpaper/concept.py`, rendered
-by `wallpaper/render.js` and finished by `wallpaper/compose.py concept` (a fine
-grain against banding). `wallpaper/milky_way.py` crops and grades the photo.
+`wallpaper/orbits.py dark|light` draws the planetary system with numpy over
+the sky of `wallpaper/sky.py`. The waves are drawn as SVG by
+`wallpaper/concept.py`, rendered by `wallpaper/render.js` and finished by
+`wallpaper/compose.py concept` (a fine grain against banding). `wallpaper/milky_way.py` crops and grades the photo.
 
 The logo scene is built from two layers:
 
