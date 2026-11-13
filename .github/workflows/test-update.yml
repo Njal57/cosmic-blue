@@ -1,0 +1,100 @@
+---
+# Update test on demand: installs one published image in a virtual machine,
+# updates it to another one, reboots, checks the updated system, then rolls
+# back (tests/vm-update-test.sh). promote-stable.yml runs the same test before
+# each promotion, from the current `stable` to the image it is about to
+# promote.
+#
+# Also runs on pull requests that change the test, from `stable` to `latest`.
+name: Test image updates
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tests/vm-lib.sh'
+      - 'tests/vm-update-test.sh'
+      - 'tests/screenshot-sheet.py'
+      - '.github/actions/vm-test-*/**'
+      - '.github/workflows/test-update.yml'
+  workflow_dispatch:
+    inputs:
+      from_tag:
+        description: "Tag installed first (e.g. stable or 20261105)"
+        required: true
+        default: stable
+      to_tag:
+        description: "Tag updated to (e.g. latest or 20261113)"
+        required: true
+        default: latest
+
+env:
+  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update_test:
+    name: Update ${{ matrix.image_suffix && format('{0} ', matrix.image_suffix) || '' }}${{ inputs.from_tag || 'stable' }} to ${{ inputs.to_tag || 'latest' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        # Same images as build.yml: cosmic-blue and cosmic-blue-nvidia
+        image_suffix: ["", "nvidia"]
+    env:
+      # output of build.yml, keep in sync
+      IMAGE_NAME: ${{ github.event.repository.name }}${{ matrix.image_suffix && format('-{0}', matrix.image_suffix) || '' }}
+      FROM_TAG: ${{ inputs.from_tag || 'stable' }}
+      TO_TAG: ${{ inputs.to_tag || 'latest' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Check the tags
+        id: tags
+        run: |
+          set -euo pipefail
+          image="${IMAGE_REGISTRY,,}/${IMAGE_NAME,,}"
+          echo "image=${image}" >> "${GITHUB_OUTPUT}"
+          for tag in "${FROM_TAG}" "${TO_TAG}"; do
+            if ! skopeo inspect --format '{{.Digest}}' "docker://${image}:${tag}" >/dev/null 2>&1; then
+              # e.g. no stable cosmic-blue-nvidia yet
+              echo "::notice::${image}:${tag} does not exist, skipping"
+              echo "skip=true" >> "${GITHUB_OUTPUT}"
+              exit 0
+            fi
+          done
+          echo "skip=false" >> "${GITHUB_OUTPUT}"
+
+      - name: Maximize build space
+        if: steps.tags.outputs.skip == 'false'
+        uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
+
+      - name: Prepare the update test
+        if: steps.tags.outputs.skip == 'false'
+        uses: ./.github/actions/vm-test-setup
+
+      - name: Update test
+        if: steps.tags.outputs.skip == 'false'
+        timeout-minutes: 90
+        env:
+          IMAGE: ${{ steps.tags.outputs.image }}
+          # The virtual machine has no NVIDIA GPU for these to work with
+          EXTRA_IGNORED_UNITS: ${{ matrix.image_suffix == 'nvidia' && 'nvidia-persistenced|nvidia-cdi-refresh' || '' }}
+        run: |
+          tests/vm-update-test.sh "${IMAGE}:${FROM_TAG}" "${IMAGE}:${TO_TAG}" "${RUNNER_TEMP}/update-test"
+
+      - name: Publish the update test results
+        if: always() && steps.tags.outputs.skip == 'false'
+        uses: ./.github/actions/vm-test-results
+        with:
+          dir: ${{ runner.temp }}/update-test
+          name: update-test-${{ env.IMAGE_NAME }}
+          title: ${{ env.IMAGE_NAME }} ${{ env.FROM_TAG }} → ${{ env.TO_TAG }}
