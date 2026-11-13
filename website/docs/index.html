@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation · cosmic-blue</title>
+  <meta name="description" content="How to use cosmic-blue: updates and rollback, installing apps, ujust commands, the look and getting help.">
+  <meta name="theme-color" content="#060b1c">
+  <link rel="alternate" hreflang="en" href="https://cosmic-blue-os.github.io/cosmic-blue/docs/">
+  <link rel="alternate" hreflang="fr" href="https://cosmic-blue-os.github.io/cosmic-blue/fr/docs/">
+  <link rel="alternate" hreflang="x-default" href="https://cosmic-blue-os.github.io/cosmic-blue/docs/">
+  <link rel="icon" href="../img/cosmic-blue-logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="page-head">
+    <nav class="top">
+      <a class="brand" href="../"><img src="../img/cosmic-blue-logo.svg" alt="" width="28" height="28">cosmic-blue</a>
+      <span class="links">
+        <a class="text" href="./" aria-current="page">Docs</a>
+        <a class="icon" href="../fr/docs/" hreflang="fr" lang="fr" title="Français" aria-label="Français"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><ellipse cx="12" cy="12" rx="4" ry="9.5"/><path d="M2.5 12h19M4.2 7h15.6M4.2 17h15.6"/></svg><span aria-hidden="true">FR</span></a>
+        
+      </span>
+    </nav>
+  </header>
+
+  <main class="docs">
+    <section class="block">
+      <h1>Documentation</h1>
+      <p>What you need to know to use cosmic-blue day to day. cosmic-blue is a Universal Blue image, like Bluefin and Aurora: the system is read-only and updated as a whole, and your apps and files live apart from it.</p>
+      <nav class="toc" aria-label="Contents">
+        <a href="#updates">Updates and rollback</a>
+        <a href="#apps">Installing software</a>
+        <a href="#ujust">ujust commands</a>
+        <a href="#look">The look</a>
+        <a href="#terminal">Terminal</a>
+        <a href="#help">Getting help</a>
+      </nav>
+    </section>
+
+    <section id="updates" class="block">
+      <h2>Updates and rollback</h2>
+      <p>The system, Flatpak apps and Homebrew packages update by themselves in the background. A system update applies on the next boot. To update now, or to turn the automatic updates off:</p>
+      <div class="code">
+        <pre><code>ujust update           # update everything now
+ujust toggle-updates   # turn automatic updates on or off</code></pre>
+        <button type="button" class="copy" data-copy>Copy</button>
+      </div>
+      <p>If an update breaks something, go back to the previous version. It stays installed until the next update, so this works offline:</p>
+      <div class="code">
+        <pre><code>sudo bootc rollback    # use the previous version on next boot
+sudo systemctl reboot
+sudo bootc status      # see the current and previous versions</code></pre>
+        <button type="button" class="copy" data-copy>Copy</button>
+      </div>
+    </section>
+
+    <section id="apps" class="block">
+      <h2>Installing software</h2>
+      <h3>Apps: COSMIC Store</h3>
+      <p>Graphical apps come as Flatpaks from the <strong>COSMIC Store</strong>, which shows Flathub and the COSMIC apps. They update with the system and do not touch it.</p>
+      <h3>Command line tools: Homebrew</h3>
+      <p>Command line tools install in your home folder with Homebrew:</p>
+      <div class="code">
+        <pre><code>brew search ripgrep
+brew install ripgrep</code></pre>
+        <button type="button" class="copy" data-copy>Copy</button>
+      </div>
+      <h3>Packages from other distributions: Distrobox</h3>
+      <p>Need a package that only exists for another distribution? Distrobox runs it in a container that shares your home folder:</p>
+      <div class="code">
+        <pre><code>distrobox create --name arch --image archlinux:latest
+distrobox enter arch</code></pre>
+        <button type="button" class="copy" data-copy>Copy</button>
+      </div>
+      <h3>Developer tools</h3>
+      <p>Developer mode adds Docker, Podman Desktop, VS Code and other IDEs, Lima and more. Pick what you want from a menu:</p>
+      <div class="code">
+        <pre><code>ujust devmode</code></pre>
+        <button type="button" class="copy" data-copy>Copy</button>
+      </div>
+    </section>
+
+    <section id="ujust" class="block">
+      <h2>ujust commands</h2>
+      <p><code>ujust</code> runs the shortcuts that come with the system. Run <code>ujust</code> alone to list them all, or <code>ujust --choose</code> to pick one from a menu. The most useful ones:</p>
+      <dl class="commands">
+        <dt><code>ujust update</code></dt>
+        <dd>Update the system, Flatpak apps and Homebrew packages now.</dd>
+        <dt><code>ujust toggle-updates</code></dt>
+        <dd>Turn automatic updates on or off.</dd>
+        <dt><code>ujust devmode</code></dt>
+        <dd>Install developer tools.</dd>
+        <dt><code>ujust toggle-dark-mode</code></dt>
+        <dd>Switch between the dark and light themes.</dd>
+        <dt><code>ujust reset-cosmic-theme</code></dt>
+        <dd>Restore the cosmic-blue look: colors, icons, wallpaper.</dd>
+        <dt><code>ujust reset-cosmic-config</code></dt>
+        <dd>Reset all COSMIC settings to the cosmic-blue defaults (a backup is kept).</dd>
+        <dt><code>ujust toggle-tpm2</code></dt>
+        <dd>Unlock an encrypted disk with the TPM2 chip instead of a password.</dd>
+        <dt><code>ujust enroll-secure-boot-key</code></dt>
+        <dd>NVIDIA image with Secure Boot: enroll the key that lets the driver load.</dd>
+      </dl>
+    </section>
+
+    <section id="look" class="block">
+      <h2>The look</h2>
+      <p>cosmic-blue comes with a blue COSMIC theme, frosted glass panels, cosmic-blue wallpapers, icons and cursors. Change anything in <strong>Settings</strong>. If you want the original look back:</p>
+      <div class="code">
+        <pre><code>ujust reset-cosmic-theme</code></pre>
+        <button type="button" class="copy" data-copy>Copy</button>
+      </div>
+    </section>
+
+    <section id="terminal" class="block">
+      <h2>Terminal</h2>
+      <p>Each new terminal shows a welcome message with a tip. <code>ff</code> shows the system information. To turn the welcome message off, or back on:</p>
+      <div class="code">
+        <pre><code>uwelcome toggle</code></pre>
+        <button type="button" class="copy" data-copy>Copy</button>
+      </div>
+    </section>
+
+    <section id="help" class="block">
+      <h2>Getting help</h2>
+      <p>Found a bug or something unclear? <a href="https://github.com/cosmic-blue-os/cosmic-blue/issues">Report a problem on GitHub</a>. Please say what you did, what happened, and add the output of:</p>
+      <div class="code">
+        <pre><code>sudo bootc status</code></pre>
+        <button type="button" class="copy" data-copy>Copy</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>cosmic-blue is built on <a href="https://universal-blue.org/">Universal Blue</a>, <a href="https://projectbluefin.io/">Bluefin</a>, <a href="https://fedoraproject.org/">Fedora</a> and <a href="https://system76.com/cosmic">COSMIC</a>. Not affiliated with these projects.</p>
+    <p><a href="https://github.com/cosmic-blue-os/cosmic-blue">Source code</a> ·
+    <a href="https://github.com/cosmic-blue-os/cosmic-blue/issues">Report a problem</a></p>
+  </footer>
+
+  <script src="../site.js"></script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+#!/usr/bin/bash
+# Print one random cosmic-blue tip, in Markdown, for the terminal welcome
+# banner (uwelcome, see /etc/uwelcome/config.json). Replaces Bluefin's umotd,
+# whose tips are about Bluefin, GNOME and apps cosmic-blue does not ship.
+# English, or French when the messages locale is French.
+set -euo pipefail
+
+docs="https://cosmic-blue-os.github.io/cosmic-blue/docs/"
+locale="${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}"
+
+if [[ "${locale}" == fr* ]]; then
+    docs="https://cosmic-blue-os.github.io/cosmic-blue/fr/docs/"
+    tips=(
+        "**Une mise à jour a cassé quelque chose ?** Revenez à la version précédente avec \`sudo bootc rollback\`, puis redémarrez."
+        "Les mises à jour s'installent en arrière-plan. Lancez \`ujust update\` pour mettre à jour tout de suite."
+        "Installez des applications depuis le **COSMIC Store** : Flathub et les applications COSMIC."
+        "Installez des outils en ligne de commande avec \`brew search\` et \`brew install\`."
+        "\`ujust\` liste tous les raccourcis, \`ujust --choose\` en choisit un dans un menu."
+        "**Vous développez ?** \`ujust devmode\` ajoute Docker, des IDE et des outils de virtualisation."
+        "Besoin d'un paquet d'une autre distribution ? \`distrobox create\` lance Ubuntu, Arch... dans un conteneur."
+        "**Tailscale est inclus** : connectez-vous avec \`sudo tailscale up\`."
+        "\`ff\` affiche les informations du système."
+        "Vous avez perdu le style cosmic-blue ? \`ujust reset-cosmic-theme\` le restaure."
+        "Passez du thème sombre au thème clair avec \`ujust toggle-dark-mode\`."
+        "Le guide de cosmic-blue est en ligne : [documentation](${docs})"
+        "Désactivez ce message d'accueil avec \`uwelcome toggle\`."
+    )
+else
+    tips=(
+        "**Did an update break something?** Go back to the previous version with \`sudo bootc rollback\`, then reboot."
+        "Updates install in the background. Run \`ujust update\` to update right now."
+        "Install apps from the **COSMIC Store**: Flathub and COSMIC apps."
+        "Install command line tools with \`brew search\` and \`brew install\`."
+        "\`ujust\` lists all the shortcuts, \`ujust --choose\` picks one from a menu."
+        "**Are you a developer?** \`ujust devmode\` adds Docker, IDEs and virtualization tools."
+        "Need a package from another distribution? \`distrobox create\` runs Ubuntu, Arch... in a container."
+        "**Tailscale is included**: sign in with \`sudo tailscale up\`."
+        "\`ff\` shows the system information."
+        "Lost the cosmic-blue look? \`ujust reset-cosmic-theme\` brings it back."
+        "Switch between the dark and light themes with \`ujust toggle-dark-mode\`."
+        "The cosmic-blue guide is online: [documentation](${docs})"
+        "Turn this welcome message off with \`uwelcome toggle\`."
+    )
+fi
+
+printf '%s\n' "${tips[RANDOM % ${#tips[@]}]}"
