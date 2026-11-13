@@ -180,8 +180,14 @@ vm "id -nG ${DEMO_USER} | grep -qw wheel" || error "The user made in the install
 vm 'timeout 300 bootc upgrade --check' \
     || echo "::warning::bootc upgrade --check failed on the installed system"
 
-# Login screen and desktop of the user made in the installer
-desktop_tour || true
+# The user made in the installer can log in. Only one screenshot: the full
+# desktop tour already runs in the boot test of every build (vm-boot-test.sh).
+if demo_user && demo_login 01-login-failed; then
+    sleep 30
+    screenshot "${SHOTS}/01-installed-desktop"
+else
+    error "The user made in the installer could not log in"
+fi
 demo_journal
 
 (( errors == 0 )) || fail "ISO install test failed (see the logs and screenshots in the artifacts)"
