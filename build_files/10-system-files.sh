@@ -79,6 +79,12 @@ for path in "${GNOME_ONLY[@]}"; do
     rm -rf "${STAGE:?}/${path}"
 done
 
+# `ujust toggle-tpm2` (projectbluefin/common) runs /usr/bin/luks-tpm2-autounlock:
+# common's script moves aside, and ours (system_files/usr/bin) runs extra
+# checks (no TPM2 chip, Secure Boot off) before calling it.
+install -d "${STAGE}/usr/libexec"
+mv "${STAGE}/usr/bin/luks-tpm2-autounlock" "${STAGE}/usr/libexec/ublue-luks-tpm2-autounlock"
+
 cp -a "${STAGE}/." /
 cp -a /ctx/system_files/cosmic-blue/. /
 
