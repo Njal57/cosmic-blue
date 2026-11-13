@@ -6,19 +6,18 @@ Writes system_files/usr/share/ublue-os/fastfetch/cosmic-blue-{dark,light}.txt
 version darkens the moon and the planet highlight, which would vanish on a
 light terminal background.
 
-The logo is drawn on a grid of 40x40 square pixels, two per terminal cell
-(top and bottom half). Terminals such as COSMIC Terminal draw block glyphs
-shorter than the cell (the line spacing stays empty below the glyph), so
-glyphs stacked on top of each other leave dark lines between rows. A cell
-background, on the other hand, always fills the whole cell. So every cell is
-drawn with its background color, and with the only glyph that never needs to
-reach the cell bottom, the upper half block:
+The logo is drawn on a grid of pixels, two per terminal cell (top and bottom
+half), with as many columns as needed for a round logo in COSMIC Terminal.
+COSMIC Terminal draws block elements (such as the half blocks) shorter than
+the cell, and its frosted (translucent) background turns any opaque stand-in
+for it, like reverse video, into dark squares. So each cell is drawn with:
 
-- both halves set: upper half block in the top color on the bottom color
-  (a space on the background color when both are the same)
-- top half only: upper half block on the terminal background
-- bottom half only: upper half block in reverse video, i.e. the glyph in
-  the terminal background color on the bottom color
+- both halves set: an upper half in the top color on the bottom color as the
+  cell background (a space on that background when both are the same)
+- one half set: that half on the terminal's own background
+
+The halves are U+10CB05 and U+10CB06 of the cosmic-blue Prompt font
+(branding/prompt-font), which span exactly half of COSMIC Terminal's line.
 
 Needs rsvg-convert (librsvg), python3-numpy and python3-pillow:
     python3 branding/fastfetch/build.py
@@ -35,31 +34,38 @@ from PIL import Image
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 LOGO = ROOT / "branding/logo/cosmic-blue-logo.svg"
 OUT = ROOT / "system_files/usr/share/ublue-os/fastfetch"
-# Terminal cells are about twice as high as wide: 40x20 cells is a square
-# of 40x40 pixels (two per cell).
-COLS, ROWS = 40, 20
+# Height / width of a COSMIC Terminal cell with its default font and line
+# height (measured on a screenshot: 19.3 x 7.9 px). Each pixel is half a
+# cell, so pixels are CELL_ASPECT / 2 times higher than wide.
+CELL_ASPECT = 2.43
+ROWS = 20
 PX_ROWS = ROWS * 2
+# As many columns as needed for a round logo
+COLS = round(ROWS * CELL_ASPECT)
 # Sub-pixels per pixel, to measure the logo coverage of each pixel
 SUB = 8
 # Width of the logo's viewBox (-50 -50 100 100)
 VIEW = 100
 # Colors of the mark that are too pale for a light background
 LIGHT_SWAPS = {"#e6f3ff": "#1d47c4", "#cfeeff": "#4f98f5"}
-# Pixels partly covered by the logo are blended with the terminal background
-# of the cosmic-blue theme (smoother curves); under MIN_COVERAGE they stay
-# empty
-MIN_COVERAGE = 0.25
-TERMINAL_BG = {"dark": "#141c2a", "light": "#d3d8e0"}
+# Pixels at least half covered by the logo get its color, the others stay
+# empty. They are not blended with a background color: the cosmic-blue
+# terminal is translucent, so any blend shows as darker squares on the edges.
+MIN_COVERAGE = 0.5
 # Two halves closer than this (per channel) are drawn as one color
 SAME_COLOR = 10
 
-UPPER_HALF = "▀"
+# Half cells of the cosmic-blue Prompt font
+UPPER_HALF = "\U0010CB05"
+LOWER_HALF = "\U0010CB06"
 
 
 def rasterize(svg: str, size: float, x0: float, y0: float) -> np.ndarray:
     """RGBA sub-pixels (float, alpha = coverage) of the logo drawn size
     sub-pixels wide with its top left corner at (x0, y0)."""
-    w, h = COLS * SUB, PX_ROWS * SUB
+    # Drawn with square sub-pixels, then squeezed vertically to the pixel
+    # grid, whose pixels are higher than wide
+    w, h = COLS * SUB, round(PX_ROWS * SUB * CELL_ASPECT / 2)
     unit = VIEW / size  # SVG units per sub-pixel
     view = f"{-VIEW / 2 - x0 * unit:.4f} {-VIEW / 2 - y0 * unit:.4f} {w * unit:.4f} {h * unit:.4f}"
     svg = re.sub(r'viewBox="[^"]*"', f'viewBox="{view}"', svg, count=1)
@@ -69,7 +75,8 @@ def rasterize(svg: str, size: float, x0: float, y0: float) -> np.ndarray:
         svg_file.write_text(svg)
         subprocess.run(["rsvg-convert", "-w", str(w), "-h", str(h),
                         str(svg_file), "-o", str(png_file)], check=True)
-        return np.asarray(Image.open(png_file).convert("RGBA"), dtype=float) / 255
+        image = Image.open(png_file).convert("RGBA").resize((w, PX_ROWS * SUB), Image.BOX)
+        return np.asarray(image, dtype=float) / 255
 
 
 def pixels(image: np.ndarray):
@@ -86,7 +93,7 @@ def placement(svg: str):
     """Size and position of the logo whose pixels are the least ambiguous
     (coverage closest to 0 or 1), i.e. the cleanest curves once drawn."""
     best = None
-    full = COLS * SUB
+    full = min(COLS * SUB, round(PX_ROWS * SUB * CELL_ASPECT / 2))
     for size in np.arange(full * 0.90, full + 0.1, full * 0.025):
         free = full - size
         for x0 in np.linspace(0, free, 5) if free else [0]:
@@ -108,9 +115,7 @@ def cell(top, bottom) -> str:
     if top is None and bottom is None:
         return "\x1b[0m "
     if top is None:
-        # Reverse video: the glyph in the terminal background, the cell in
-        # the bottom color
-        return f"\x1b[0m{sgr(38, bottom)}\x1b[7m{UPPER_HALF}"
+        return f"\x1b[0m{sgr(38, bottom)}{LOWER_HALF}"
     if bottom is None:
         return f"\x1b[0m{sgr(38, top)}{UPPER_HALF}"
     if np.abs(np.asarray(top) - np.asarray(bottom)).max() * 255 < SAME_COLOR:
@@ -118,12 +123,9 @@ def cell(top, bottom) -> str:
     return f"\x1b[0m{sgr(38, top)}{sgr(48, bottom)}{UPPER_HALF}"
 
 
-def render(svg: str, out: pathlib.Path, place, background: str) -> None:
+def render(svg: str, out: pathlib.Path, place) -> None:
     coverage, color = pixels(rasterize(svg, *place))
     on = coverage >= MIN_COVERAGE
-    bg = np.array([int(background[i:i + 2], 16) / 255 for i in (1, 3, 5)])
-    amount = np.clip(coverage, 0, 1)[..., None]
-    color = color * amount + bg * (1 - amount)
     lines = []
     for row in range(ROWS):
         cells = []
@@ -144,11 +146,11 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     place = placement(svg)
     print("logo size {:.1f}, position {:.1f} {:.1f} (sub-pixels)".format(*place))
-    render(svg, OUT / "cosmic-blue-dark.txt", place, TERMINAL_BG["dark"])
+    render(svg, OUT / "cosmic-blue-dark.txt", place)
     for old, new in LIGHT_SWAPS.items():
         assert old in svg, old
         svg = svg.replace(old, new)
-    render(svg, OUT / "cosmic-blue-light.txt", place, TERMINAL_BG["light"])
+    render(svg, OUT / "cosmic-blue-light.txt", place)
 
 
 if __name__ == "__main__":
