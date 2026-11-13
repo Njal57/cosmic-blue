@@ -167,7 +167,8 @@ for f in bin/ujust share/ublue-os/just/00-entry.just share/ublue-os/just/apps.ju
 done
 # cosmic-blue recipes (60-custom.just) parse and are listed by ujust
 recipes="$(just --justfile /usr/share/ublue-os/just/00-entry.just --summary)"
-for recipe in toggle-dark-mode reset-cosmic-theme reset-cosmic-config export-cosmic-config; do
+for recipe in toggle-dark-mode reset-cosmic-theme reset-cosmic-config export-cosmic-config \
+              install-microsoft-fonts; do
     grep -qw -- "${recipe}" <<<"${recipes}"
 done
 
@@ -212,6 +213,18 @@ IMPORTANT_PACKAGES=(
 for package in "${IMPORTANT_PACKAGES[@]}"; do
     rpm -q "${package}" >/dev/null || { echo "Missing package: ${package}"; exit 1; }
 done
+
+# Everyday pieces: printing, scanning, codecs, fonts, disks, file previews
+rpm -q cups cups-pk-helper foomatic-db-ppds system-config-printer hplip \
+    sane-backends sane-airscan ipp-usb \
+    ffmpeg gstreamer1-plugin-libav gstreamer1-plugins-good \
+    liberation-sans-fonts google-carlito-fonts google-crosextra-caladea-fonts \
+    gnome-disk-utility papers-thumbnailer gnome-epub-thumbnailer cabextract
+systemctl is-enabled cups.socket
+rpm -ql papers-thumbnailer | grep '^/usr/share/thumbnailers/.*\.thumbnailer$' >/dev/null
+# Microsoft core fonts are never shipped in the image (their license forbids
+# redistribution): users fetch them with `ujust install-microsoft-fonts`
+test -z "$(find /usr/share/fonts -iname 'arial*.ttf' -o -iname 'verdana*.ttf')"
 
 # No GNOME Shell package may end up in the image
 for package in gnome-shell gdm mutter; do
