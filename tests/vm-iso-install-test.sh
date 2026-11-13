@@ -91,10 +91,18 @@ poweroff
 mokutil --revoke-import 2>/dev/null || :
 %end
 EOF
-cat > "${WORK}/install.sh" <<'EOF'
+live_uid="$(vm 'ps -o uid= -C cosmic-panel | head -n 1' | tr -d ' ' || true)"
+[[ -n "${live_uid}" ]] || live_uid="$(vm 'id -u liveuser' || true)"
+[[ -n "${live_uid}" ]] || fail "No live session user found"
+cat > "${WORK}/install.sh" <<EOF
 #!/usr/bin/bash
-# The installer shortcut runs liveinst, which starts Anaconda; the same
-# script here, with Anaconda in text mode.
+# The installer shortcut runs liveinst as the live user, which restarts
+# itself as root with pkexec and takes the user's session environment
+# (Anaconda inhibits the screensaver on the user's session bus). The same
+# here, with Anaconda in text mode.
+export PKEXEC_UID=${live_uid}
+export XDG_RUNTIME_DIR=/run/user/${live_uid}
+export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${live_uid}/bus
 export LIVECMD="anaconda --liveinst --cmdline"
 exec liveinst --kickstart=/root/ks.cfg
 EOF
@@ -151,6 +159,10 @@ mkdir -p "${OUT}/anaconda"
 vm 'tar -cz -C /tmp/anaconda-logs .' | tar -xz -C "${OUT}/anaconda" 2>/dev/null || true
 
 # 4. Checks of the installed system
+# The installer used the cosmic-blue profile (iso_files/configure_live_iso.sh:
+# btrfs layout, no network spoke...), matched on VARIANT_ID in os-release
+grep -q "The 'cosmic-blue' profile is detected" "${OUT}"/anaconda/anaconda.log 2>/dev/null \
+    || error "The installer did not use the cosmic-blue profile: $(grep -ho "The '[^']*' profile is detected" "${OUT}"/anaconda/anaconda.log 2>/dev/null || echo 'anaconda.log missing')"
 if vm 'findmnt -n -o SOURCE /run/rootfsbase' >/dev/null 2>&1; then
     fail "The live ISO booted again instead of the installed system"
 fi
