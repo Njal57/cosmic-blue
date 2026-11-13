@@ -115,6 +115,25 @@ GNOME_ONLY+=(
     usr/share/ublue-os/just/60-report.just
     usr/share/ublue-os/homebrew/preinstall.d/bluefin-report.Brewfile
 )
+# ChairLift ("Control Center"), Bluefin's settings and update app, with
+# Bluefin's links and branding: its Homebrew cask (uninstalled from existing
+# accounts by brew-preinstall once the Brewfile is gone), its config, launcher
+# and icons, and its privileged helpers and their polkit actions. COSMIC
+# Settings and ujust cover the same ground.
+GNOME_ONLY+=(
+    usr/share/ublue-os/homebrew/preinstall.d/chairlift.Brewfile
+    usr/share/chairlift
+    usr/share/applications/io.projectbluefin.chairlift.desktop
+    usr/share/icons/hicolor/scalable/apps/io.projectbluefin.chairlift.svg
+    usr/share/icons/hicolor/symbolic/apps/io.projectbluefin.chairlift-symbolic.svg
+    usr/bin/chairlift-helper
+    usr/libexec/bootc-update-stage
+    usr/share/polkit-1/actions/io.projectbluefin.chairlift.bootc.policy
+    usr/share/polkit-1/actions/io.projectbluefin.chairlift.ublue.policy
+    usr/share/glib-2.0/schemas/io.projectbluefin.chairlift.livery.gschema.xml
+    usr/share/glib-2.0/schemas/io.projectbluefin.chairlift.updates.gschema.xml
+    usr/share/glib-2.0/schemas/io.projectbluefin.chairlift.firstrun.gschema.xml
+)
 for path in "${GNOME_ONLY[@]}"; do
     rm -rf "${STAGE:?}/${path}"
 done

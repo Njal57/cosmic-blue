@@ -60,6 +60,15 @@ fi
 test ! -e /usr/share/applications/discourse.desktop
 test ! -e /usr/share/applications/io.projectbluefin.Report.desktop
 grep -q '^Exec=/usr/bin/cosmic-blue-docs$' /usr/share/applications/documentation.desktop
+# No ChairLift (Bluefin's Control Center) or its helpers
+if compgen -G '/usr/share/applications/*chairlift*' >/dev/null \
+    || compgen -G '/usr/share/polkit-1/actions/*chairlift*' >/dev/null \
+    || compgen -G '/usr/share/glib-2.0/schemas/*chairlift*' >/dev/null \
+    || compgen -G '/usr/share/ublue-os/homebrew/preinstall.d/*chairlift*' >/dev/null; then
+    echo "ChairLift files left in the image"; exit 1
+fi
+test ! -e /usr/bin/chairlift-helper
+test ! -e /usr/libexec/bootc-update-stage
 # Dark theme by default (COSMIC and GTK)
 grep -qx true /usr/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark
 test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'"
@@ -111,8 +120,9 @@ printf '%s\n' "${PROMPT_OUT}" | cat -v
 if printf '%s' "${PROMPT_OUT}" | grep -qiE 'warn|error'; then exit 1; fi
 printf '%s' "${PROMPT_OUT}" | grep -q '/tmp'
 grep -q 'STARSHIP_CONFIG="${COSMIC_BLUE_STARSHIP}"' /etc/profile.d/90-starship.sh
-# The prompt's arrows, logo and icons come from the cosmic-blue Prompt font
-for cp in 10cb00 10cb01 10cb02 10cb03 10cb04; do
+# The prompt's arrows, logo and icons, and the fastfetch logo's half cells,
+# come from the cosmic-blue Prompt font
+for cp in 10cb00 10cb01 10cb02 10cb03 10cb04 10cb05 10cb06; do
     fc-list --format '%{file}\n' ":charset=${cp}" | grep -F /cosmic-blue-prompt.ttf >/dev/null
 done
 if grep -q 'Fedora\|\\ue0b0' /usr/share/cosmic-blue/starship.toml; then exit 1; fi
