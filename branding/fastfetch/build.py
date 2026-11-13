@@ -6,8 +6,8 @@ Writes system_files/usr/share/ublue-os/fastfetch/cosmic-blue-{dark,light}.txt
 version darkens the moon and the planet highlight, which would vanish on a
 light terminal background.
 
-The logo is drawn on a grid of 40x40 square pixels, two per terminal cell
-(top and bottom half). Terminals such as COSMIC Terminal draw block glyphs
+The logo is drawn on a grid of pixels, two per terminal cell (top and bottom
+half), with as many columns as needed for a round logo in COSMIC Terminal. Terminals such as COSMIC Terminal draw block glyphs
 shorter than the cell (the line spacing stays empty below the glyph), so
 glyphs stacked on top of each other leave dark lines between rows. A cell
 background, on the other hand, always fills the whole cell. So every cell is
@@ -35,10 +35,14 @@ from PIL import Image
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 LOGO = ROOT / "branding/logo/cosmic-blue-logo.svg"
 OUT = ROOT / "system_files/usr/share/ublue-os/fastfetch"
-# Terminal cells are about twice as high as wide: 40x20 cells is a square
-# of 40x40 pixels (two per cell).
-COLS, ROWS = 40, 20
+# Height / width of a COSMIC Terminal cell with its default font and line
+# height (measured on a screenshot: 19.3 x 7.9 px). Each pixel is half a
+# cell, so pixels are CELL_ASPECT / 2 times higher than wide.
+CELL_ASPECT = 2.43
+ROWS = 20
 PX_ROWS = ROWS * 2
+# As many columns as needed for a round logo
+COLS = round(ROWS * CELL_ASPECT)
 # Sub-pixels per pixel, to measure the logo coverage of each pixel
 SUB = 8
 # Width of the logo's viewBox (-50 -50 100 100)
@@ -59,7 +63,9 @@ UPPER_HALF = "▀"
 def rasterize(svg: str, size: float, x0: float, y0: float) -> np.ndarray:
     """RGBA sub-pixels (float, alpha = coverage) of the logo drawn size
     sub-pixels wide with its top left corner at (x0, y0)."""
-    w, h = COLS * SUB, PX_ROWS * SUB
+    # Drawn with square sub-pixels, then squeezed vertically to the pixel
+    # grid, whose pixels are higher than wide
+    w, h = COLS * SUB, round(PX_ROWS * SUB * CELL_ASPECT / 2)
     unit = VIEW / size  # SVG units per sub-pixel
     view = f"{-VIEW / 2 - x0 * unit:.4f} {-VIEW / 2 - y0 * unit:.4f} {w * unit:.4f} {h * unit:.4f}"
     svg = re.sub(r'viewBox="[^"]*"', f'viewBox="{view}"', svg, count=1)
@@ -69,7 +75,8 @@ def rasterize(svg: str, size: float, x0: float, y0: float) -> np.ndarray:
         svg_file.write_text(svg)
         subprocess.run(["rsvg-convert", "-w", str(w), "-h", str(h),
                         str(svg_file), "-o", str(png_file)], check=True)
-        return np.asarray(Image.open(png_file).convert("RGBA"), dtype=float) / 255
+        image = Image.open(png_file).convert("RGBA").resize((w, PX_ROWS * SUB), Image.BOX)
+        return np.asarray(image, dtype=float) / 255
 
 
 def pixels(image: np.ndarray):
@@ -86,7 +93,7 @@ def placement(svg: str):
     """Size and position of the logo whose pixels are the least ambiguous
     (coverage closest to 0 or 1), i.e. the cleanest curves once drawn."""
     best = None
-    full = COLS * SUB
+    full = min(COLS * SUB, round(PX_ROWS * SUB * CELL_ASPECT / 2))
     for size in np.arange(full * 0.90, full + 0.1, full * 0.025):
         free = full - size
         for x0 in np.linspace(0, free, 5) if free else [0]:

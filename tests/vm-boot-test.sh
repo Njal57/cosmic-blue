@@ -230,7 +230,7 @@ desktop_tour() {
     monitor "sendkey esc"
     sleep 3
 
-    # Files (folder icons), Settings (accent, theme), Terminal
+    # Files (folder icons), Settings (accent, theme), Terminal (fastfetch)
     local entry name cmd
     for entry in "05-files|cosmic-files" "06-settings|cosmic-settings appearance" \
             "07-terminal|cosmic-term"; do
@@ -243,6 +243,12 @@ desktop_tour() {
             continue
         fi
         sleep 12
+        if [[ "${name}" == 07-terminal ]]; then
+            # fastfetch, to check the logo as COSMIC Terminal really draws it
+            type_text ff
+            monitor "sendkey ret"
+            sleep 6
+        fi
         screenshot "${shots}/${name}"
         vm "pkill -u ${DEMO_USER} -f '^(/usr/bin/)?${cmd%% *}'" || true
         sleep 3
