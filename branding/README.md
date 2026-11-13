@@ -67,7 +67,8 @@ next to the system information, in place of Bluefin's dinosaurs:
   `-light.txt`: the mark as color pixels, two per terminal cell (the
   upper half block on a background color), 20 rows by 49 columns so it stays
   round in COSMIC Terminal, whose cells are about 2.4 times higher than wide,
-  with edges blended into the theme's terminal background. COSMIC Terminal draws glyphs shorter than the
+  with no blended edge pixels (the terminal is translucent, so a blend
+  shows as darker squares). COSMIC Terminal draws glyphs shorter than the
   cell, so stacked block glyphs leave lines between rows; cell backgrounds
   don't, and the upper half block never has to reach the cell bottom. The
   light version darkens the moon and the planet highlight. Regenerate them

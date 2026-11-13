@@ -49,11 +49,10 @@ SUB = 8
 VIEW = 100
 # Colors of the mark that are too pale for a light background
 LIGHT_SWAPS = {"#e6f3ff": "#1d47c4", "#cfeeff": "#4f98f5"}
-# Pixels partly covered by the logo are blended with the terminal background
-# of the cosmic-blue theme (smoother curves); under MIN_COVERAGE they stay
-# empty
-MIN_COVERAGE = 0.25
-TERMINAL_BG = {"dark": "#141c2a", "light": "#d3d8e0"}
+# Pixels at least half covered by the logo get its color, the others stay
+# empty. They are not blended with a background color: the cosmic-blue
+# terminal is translucent, so any blend shows as darker squares on the edges.
+MIN_COVERAGE = 0.5
 # Two halves closer than this (per channel) are drawn as one color
 SAME_COLOR = 10
 
@@ -125,12 +124,9 @@ def cell(top, bottom) -> str:
     return f"\x1b[0m{sgr(38, top)}{sgr(48, bottom)}{UPPER_HALF}"
 
 
-def render(svg: str, out: pathlib.Path, place, background: str) -> None:
+def render(svg: str, out: pathlib.Path, place) -> None:
     coverage, color = pixels(rasterize(svg, *place))
     on = coverage >= MIN_COVERAGE
-    bg = np.array([int(background[i:i + 2], 16) / 255 for i in (1, 3, 5)])
-    amount = np.clip(coverage, 0, 1)[..., None]
-    color = color * amount + bg * (1 - amount)
     lines = []
     for row in range(ROWS):
         cells = []
@@ -151,11 +147,11 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     place = placement(svg)
     print("logo size {:.1f}, position {:.1f} {:.1f} (sub-pixels)".format(*place))
-    render(svg, OUT / "cosmic-blue-dark.txt", place, TERMINAL_BG["dark"])
+    render(svg, OUT / "cosmic-blue-dark.txt", place)
     for old, new in LIGHT_SWAPS.items():
         assert old in svg, old
         svg = svg.replace(old, new)
-    render(svg, OUT / "cosmic-blue-light.txt", place, TERMINAL_BG["light"])
+    render(svg, OUT / "cosmic-blue-light.txt", place)
 
 
 if __name__ == "__main__":
