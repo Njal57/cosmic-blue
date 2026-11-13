@@ -86,6 +86,11 @@ printf '%s\n' "${PROMPT_OUT}" | cat -v
 if printf '%s' "${PROMPT_OUT}" | grep -qiE 'warn|error'; then exit 1; fi
 printf '%s' "${PROMPT_OUT}" | grep -q '/tmp'
 grep -q 'STARSHIP_CONFIG="${COSMIC_BLUE_STARSHIP}"' /etc/profile.d/90-starship.sh
+# The prompt's arrows, logo and icons come from the cosmic-blue Prompt font
+for cp in 10cb00 10cb01 10cb02 10cb03 10cb04; do
+    fc-list ":charset=${cp}" family | grep -F 'cosmic-blue Prompt' >/dev/null
+done
+if grep -q 'Fedora\|\\ue0b0' /usr/share/cosmic-blue/starship.toml; then exit 1; fi
 grep -q 'io.missioncenter.MissionCenter' /usr/share/flatpak/preinstall.d/cosmic-blue.preinstall
 # Fedora's own wallpapers stay available
 rpm -q "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
