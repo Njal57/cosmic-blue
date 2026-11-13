@@ -75,3 +75,5 @@ Built on [Universal Blue](https://github.com/ublue-os),
 [Bluefin](https://github.com/projectbluefin), [Fedora](https://fedoraproject.org/)
 and [COSMIC](https://github.com/pop-os/cosmic-epoch), from the
 [ublue-os/image-template](https://github.com/ublue-os/image-template) repository.
+The Milky Way wallpaper is a photo taken on the International Space Station,
+courtesy of NASA.

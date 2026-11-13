@@ -32,7 +32,7 @@ RUN /initial_setup/build.sh
 # (see build_files/greeter/build.sh)
 FROM registry.fedoraproject.org/fedora:${BASE_TAG} AS greeter
 COPY build_files/greeter /greeter
-COPY system_files/usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg /greeter/background.jpg
+COPY system_files/usr/share/backgrounds/cosmic-blue/cosmic-blue-orbits.jpg /greeter/background.jpg
 RUN /greeter/build.sh /greeter/background.jpg
 
 # Boot screen spinner frames, tinted with the logo blue
