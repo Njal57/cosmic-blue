@@ -262,11 +262,12 @@ jobs:
         run: |
           shot="$(compgen -G "${RUNNER_TEMP}/boot-test/screenshots/07-terminal.*" | head -n 1 || true)"
           [[ -n "${shot}" ]] || { echo "No terminal screenshot"; exit 0; }
-          python3 -c 'import sys; from PIL import Image; Image.open(sys.argv[1]).convert("RGB").save(sys.argv[2], "PNG", optimize=True)' \
-            "${shot}" "${RUNNER_TEMP}/terminal.png"
-          echo "TERMINAL-PNG-BEGIN"
-          base64 -w 120 "${RUNNER_TEMP}/terminal.png"
-          echo "TERMINAL-PNG-END"
+          python3 -c 'import sys; from PIL import Image; Image.open(sys.argv[1]).convert("RGB").save(sys.argv[2], "JPEG", quality=92)' \
+            "${shot}" "${RUNNER_TEMP}/terminal.jpg"
+          # Under 4000 lines: log readers often return only the last 5000
+          echo "TERMINAL-JPEG-BEGIN"
+          base64 -w 200 "${RUNNER_TEMP}/terminal.jpg"
+          echo "TERMINAL-JPEG-END"
 
       - name: Free the boot test space
         if: always()
