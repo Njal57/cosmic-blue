@@ -171,6 +171,15 @@ for recipe in toggle-dark-mode reset-cosmic-theme reset-cosmic-config export-cos
 done
 
 test ! -e /usr/share/flatpak/preinstall.d/bazaar.preinstall
+# FlatPark (Bluefin's second Flatpak remote) is kept: when it is there, its
+# filter must be too, so apps also on Flathub only come from Flathub
+FLATPARK=/usr/share/flatpak/remotes.d/flatpark.flatpakrepo
+if [[ -f "${FLATPARK}" ]]; then
+    filter="$(sed -n 's/^Filter=//p' "${FLATPARK}")"
+    test -n "${filter}"
+    grep -q '^deny ' "${filter}"
+    grep -qx 'enable flatpark-filter-copy.path' /usr/lib/systemd/system-preset/02-flatpak-appstream-refresh.preset
+fi
 # Bluefin leftovers removed in 10-system-files.sh
 for path in /etc/bazaar \
     /usr/lib/systemd/user/bazaar.service /usr/libexec/projectbluefin-countme \
