@@ -53,15 +53,14 @@ fn frosted(mut builder: ThemeBuilder) -> ThemeBuilder {
     builder
 }
 
-fn main() {
-    let dark = colors(frosted(ThemeBuilder::dark()), ACCENT_DARK, BG_DARK);
+/// Writes a dark and a light theme (builder and computed theme).
+fn write(dark: ThemeBuilder, light: ThemeBuilder) {
     dark.write_entry(&ThemeBuilder::dark_config().expect("dark builder config"))
         .expect("write dark builder");
     dark.build()
         .write_entry(&Theme::dark_config().expect("dark theme config"))
         .expect("write dark theme");
 
-    let light = colors(frosted(ThemeBuilder::light()), ACCENT_LIGHT, BG_LIGHT);
     light
         .write_entry(&ThemeBuilder::light_config().expect("light builder config"))
         .expect("write light builder");
@@ -69,4 +68,22 @@ fn main() {
         .build()
         .write_entry(&Theme::light_config().expect("light theme config"))
         .expect("write light theme");
+}
+
+/// Without an argument: the cosmic-blue themes. With "stock" or "frosted":
+/// themes from earlier images, which accounts may still hold as a copy
+/// (COSMIC's own default, written by the first-run assistant, and the same
+/// with frosted glass, the default before the blue colors). They go into
+/// /usr/share/cosmic-blue/previous-defaults.list, so that
+/// cosmic-blue-migrate-defaults can tell them from a user's own choice.
+fn main() {
+    match std::env::args().nth(1).as_deref() {
+        None => write(
+            colors(frosted(ThemeBuilder::dark()), ACCENT_DARK, BG_DARK),
+            colors(frosted(ThemeBuilder::light()), ACCENT_LIGHT, BG_LIGHT),
+        ),
+        Some("stock") => write(ThemeBuilder::dark(), ThemeBuilder::light()),
+        Some("frosted") => write(frosted(ThemeBuilder::dark()), frosted(ThemeBuilder::light())),
+        Some(other) => panic!("unknown theme variant {other}"),
+    }
 }

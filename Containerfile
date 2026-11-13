@@ -19,7 +19,9 @@ FROM ${BREW_IMAGE} AS brew
 FROM docker.io/library/rust:1 AS theme
 COPY build_files/theme /theme
 RUN cd /theme && cargo build --release \
-    && XDG_CONFIG_HOME=/out /theme/target/release/cosmic-blue-theme
+    && XDG_CONFIG_HOME=/out /theme/target/release/cosmic-blue-theme \
+    && XDG_CONFIG_HOME=/out/previous/stock /theme/target/release/cosmic-blue-theme stock \
+    && XDG_CONFIG_HOME=/out/previous/frosted /theme/target/release/cosmic-blue-theme frosted
 
 # COSMIC's first-run assistant, rebuilt from Fedora's source package with the
 # cosmic-blue patches (see build_files/initial_setup/patch.py)
@@ -63,6 +65,7 @@ COPY --from=brew /system_files /system_files/brew
 # Our own files, applied last so they take precedence
 COPY system_files /system_files/cosmic-blue
 COPY --from=theme /out/cosmic /system_files/cosmic-blue/usr/share/cosmic
+COPY --from=theme /out/previous /previous_defaults/theme
 COPY --from=initial_setup /out /initial_setup
 COPY --from=greeter /out /greeter
 COPY --from=plymouth /out /system_files/cosmic-blue/usr/share/plymouth/themes/cosmic-blue

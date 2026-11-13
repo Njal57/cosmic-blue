@@ -21,6 +21,7 @@ for step in \
     40-image-info.sh \
     50-services.sh \
     60-initramfs.sh \
+    85-defaults-manifest.sh \
     90-cleanup.sh \
     99-tests.sh; do
     echo "::group:: ===${step}==="

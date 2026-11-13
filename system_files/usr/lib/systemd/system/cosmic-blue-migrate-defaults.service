@@ -1,0 +1,12 @@
+[Unit]
+Description=Apply new cosmic-blue defaults to settings users never changed
+Documentation=file:///usr/libexec/cosmic-blue-migrate-defaults
+After=local-fs.target systemd-user-sessions.service cosmic-blue-user-defaults.service
+Before=cosmic-greeter.service display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/cosmic-blue-migrate-defaults
+
+[Install]
+WantedBy=multi-user.target
