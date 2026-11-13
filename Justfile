@@ -81,10 +81,12 @@ sudoif command *args:
 #   $target_image - The tag you want to apply to the image (default: $image_name).
 #   $tag - The tag for the image (default: $default_tag).
 #
-# The script constructs the version string using the tag and the current date.
-# If the git working directory is clean, it also includes the short SHA of the current HEAD.
+#   $version - The image version (see the `version` recipe). Default: the
+#              Fedora release and today's date, without looking at the registry.
 #
-# just build $target_image $tag
+# If the git working directory is clean, the labels also point to the commit.
+#
+# just build $target_image $tag $version
 #
 # Example usage:
 #   just build myimage mytag
@@ -93,21 +95,27 @@ sudoif command *args:
 #
 
 # Build the image using the specified parameters
-build $target_image=image_name $tag=default_tag:
+build $target_image=image_name $tag=default_tag $version="":
     #!/usr/bin/env bash
 
     set -euox pipefail
 
+    if [[ -z "${version}" ]]; then
+        version="$(just fedora-version).$(date -u +%Y%m%d)"
+    fi
+
     # The image name selects the variant (e.g. cosmic-blue-nvidia)
-    BUILD_ARGS=("--build-arg" "IMAGE_NAME=${target_image}")
-    LABELS=()
+    BUILD_ARGS=("--build-arg" "IMAGE_NAME=${target_image}" "--build-arg" "VERSION=${version}")
+    # Read by bootc (bootc status) and written to the aleph file by bootc install
+    LABELS=("--label" "org.opencontainers.image.version=${version}")
     if [[ -z "$(git status -s)" ]]; then
         GIT_SHA=$(git rev-parse --short HEAD)
+        # The commit the image was built from (read by release-notes.yml)
+        LABELS+=("--label" "org.opencontainers.image.revision=$(git rev-parse HEAD)")
         LABELS+=("--label" "io.artifacthub.package.readme-url=https://raw.githubusercontent.com/{{ repo_organization }}/{{ image_name }}/${GIT_SHA}/README.md")
         LABELS+=("--label" "org.opencontainers.image.documentation=https://raw.githubusercontent.com/{{ repo_organization }}/{{ image_name }}/${GIT_SHA}/README.md")
         LABELS+=("--label" "org.opencontainers.image.source=https://github.com/{{ repo_organization }}/{{ image_name }}/blob/${GIT_SHA}/Containerfile")
         LABELS+=("--label" "org.opencontainers.image.url=https://github.com/{{ repo_organization }}/{{ image_name }}/tree/${GIT_SHA}")
-        LABELS+=("--label" "org.opencontainers.image.version={{ default_tag }}.$(date +%Y%m%d)-${GIT_SHA}")
     fi
 
     # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
@@ -206,6 +214,54 @@ ostree-rechunk $target_image=image_name $tag=default_tag:
         rm -rf "${LABEL_CTX}"
     fi
 
+# Fedora release of the image (BASE_TAG in the Containerfile)
+[group('Utility')]
+fedora-version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    sed -n 's/^ARG BASE_TAG="\([0-9]*\)"$/\1/p' Containerfile | grep -x '[0-9][0-9]*'
+
+# Version of the next published image, as in Bluefin: <Fedora>.<YYYYMMDD>
+# (UTC), then .1, .2... for the later builds of the same day. A version is
+# taken if any of the given images (default: the main one) has it as a tag
+# on the registry, so that all variants built together share one version.
+[group('Utility')]
+version *images:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    base="$(just fedora-version).$(date -u +%Y%m%d)"
+    images=({{ images }})
+    if (( ${#images[@]} == 0 )); then
+        images=("{{ image_name }}")
+    fi
+
+    tags="$(mktemp)"
+    trap 'rm -f "${tags}"' EXIT
+    for image in "${images[@]}"; do
+        ref="docker://ghcr.io/{{ lowercase(repo_organization) }}/${image,,}"
+        if ! out="$(skopeo list-tags --retry-times 3 "${ref}" 2>&1)"; then
+            # A repository that was never pushed has no tags; any other error
+            # could hide a taken version, so it stops the build.
+            if grep -qiE 'name unknown|repository name not known|not found' <<< "${out}"; then
+                echo "No tags yet for ${ref}" >&2
+                continue
+            fi
+            echo "${out}" >&2
+            exit 1
+        fi
+        jq -r '.Tags[]' <<< "${out}" >> "${tags}"
+    done
+
+    version="${base}"
+    point=0
+    while grep -qxF "${version}" "${tags}"; do
+        point=$((point + 1))
+        version="${base}.${point}"
+    done
+    echo "${version}"
+
 # Generate Default Tag
 [group('Utility')]
 generate-default-tag $tag=default_tag:
@@ -216,12 +272,18 @@ generate-default-tag $tag=default_tag:
 
 # Generate Tags
 [group('Utility')]
-generate-build-tags $target_image=image_name $tag=default_tag:
+generate-build-tags $target_image=image_name $tag=default_tag $version="":
     #!/usr/bin/env bash
     set -eoux pipefail
 
-    DATE=$(date +%Y%m%d)
+    # The date of the version (44.20261113.1 -> 20261113), so that both stay
+    # the same when a build runs past midnight
+    DATE=$(date -u +%Y%m%d)
     BUILD_TAGS=()
+    if [[ -n "${version}" ]]; then
+        DATE="$(cut -d. -f2 <<< "${version}")"
+        BUILD_TAGS+=("${version}")
+    fi
     if [[ -z "$(git status -s)" ]]; then
         GIT_SHA=$(git rev-parse --short HEAD)
         BUILD_TAGS+=("${tag}-${GIT_SHA}")

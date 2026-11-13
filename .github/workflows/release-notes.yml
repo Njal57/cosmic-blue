@@ -75,12 +75,23 @@ jobs:
             if [[ "$1" == sha256:* ]]; then echo "${image}@$1"; else echo "${image}:$1"; fi
           }
 
-          # Git commit an image was built from (end of its version label,
-          # e.g. latest.20261110-abc1234), empty if unknown
+          # Git commit an image was built from, empty if unknown: its
+          # revision label, or for the images built before 2026-11-14 the end
+          # of its version label (e.g. latest.20261110-abc1234)
           commit_of() {
             skopeo inspect "docker://$1" \
+              | jq -r '.Labels["org.opencontainers.image.revision"]
+                       // (.Labels["org.opencontainers.image.version"] // ""
+                           | capture("-(?<sha>[0-9a-f]{7,40})$").sha)
+                       // ""'
+          }
+
+          # Version of an image (e.g. 44.20261110.1), empty for the images
+          # built before versions looked like this
+          version_of() {
+            skopeo inspect "docker://$1" \
               | jq -r '.Labels["org.opencontainers.image.version"] // ""' \
-              | sed -n 's/.*-\([0-9a-f]\{7,40\}\)$/\1/p'
+              | grep -xE '[0-9]+\.[0-9]{8}(\.[0-9]+)?' || true
           }
 
           # One image at a time to keep the disk usage down
@@ -100,6 +111,7 @@ jobs:
             new_sha="$(gh api "repos/${REPO}/commits/${new_commit}" --jq .sha)"
           fi
           echo "new_sha=${new_sha}" >> "${GITHUB_OUTPUT}"
+          echo "new_version=$(version_of "${new_ref}")" >> "${GITHUB_OUTPUT}"
 
           args=(--new "${out}/new.tsv")
           if [[ -n "${OLD}" ]]; then
@@ -123,17 +135,23 @@ jobs:
       - name: Write the notes
         env:
           RELEASE_TAG: ${{ github.event_name == 'pull_request' && 'preview' || inputs.release_tag }}
+          VERSION: ${{ steps.lists.outputs.new_version }}
         run: |
           set -euo pipefail
           image="${IMAGE_REGISTRY,,}/${IMAGE_NAME,,}"
           out="${RUNNER_TEMP}/notes"
           if [[ "${GITHUB_EVENT_NAME}" == pull_request ]]; then
-            title="Preview: latest compared with stable"
+            title="Preview: latest${VERSION:+ (${VERSION})} compared with stable"
             ref="${image}:latest"
           else
-            # stable-20261117 -> cosmic-blue stable 2026-11-17
+            # stable-20261117 -> cosmic-blue 44.20261110 (stable 2026-11-17)
             date="${RELEASE_TAG#stable-}"
-            title="cosmic-blue stable ${date:0:4}-${date:4:2}-${date:6:2}"
+            date="${date:0:4}-${date:4:2}-${date:6:2}"
+            if [[ -n "${VERSION}" ]]; then
+              title="cosmic-blue ${VERSION} (stable ${date})"
+            else
+              title="cosmic-blue stable ${date}"
+            fi
             ref="${image}:${RELEASE_TAG}"
           fi
           eval "args=($(< "${out}/args"))"
