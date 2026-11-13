@@ -235,6 +235,13 @@ test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface icon-
 test -n "$(find /usr/share/icons/cosmic-blue/tela/symbolic -name 'audio-volume-high-symbolic.svg' -print -quit)"
 test -n "$(find /usr/share/icons/cosmic-blue/cosmic -name '*-symbolic.svg' -print -quit)"
 test -n "$(find /usr/share/icons/cosmic-blue/tela -name 'com.system76.CosmicFiles.svg' -print -quit)"
+# cosmic-blue layer (branding/icons/build.py) in front of Tela, with Tela's aliases
+grep -q '^\[layer/places\]' /usr/share/icons/cosmic-blue/index.theme
+grep -q '^\[layer/mimetypes\]' /usr/share/icons/cosmic-blue/index.theme
+for icon in places/default-folder places/folder places/folder-download places/inode-directory \
+    places/user-home places/user-trash mimetypes/text-plain mimetypes/image-jpeg mimetypes/application-zip; do
+    test -s "/usr/share/icons/cosmic-blue/layer/${icon}.svg"
+done
 # Every link of the theme points to an existing icon
 broken="$(find /usr/share/icons/cosmic-blue -xtype l)"
 [[ -z "${broken}" ]] || { echo "Broken icon links:"; echo "${broken}"; exit 1; }
