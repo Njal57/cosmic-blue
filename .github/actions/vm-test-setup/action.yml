@@ -1,0 +1,19 @@
+name: Set up the virtual machine tests
+description: >-
+  Lets the runner use KVM and installs what tests/vm-boot-test.sh and
+  tests/vm-update-test.sh need (QEMU, UEFI firmware, socat, Pillow for the
+  screenshot sheet).
+runs:
+  using: composite
+  steps:
+    - name: Enable KVM and install QEMU
+      shell: bash
+      run: |
+        set -euxo pipefail
+        # Let the runner user use KVM
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+          | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf socat python3-pil

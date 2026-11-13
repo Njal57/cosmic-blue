@@ -12,6 +12,8 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 CAPTIONS = {
+    "before-update": "Before the update: desktop of the previous image",
+    "login-failed-before-update": "Before the update: login failed",
     "login-screen": "Login screen",
     "login-failed": "Login failed",
     "first-run": "First login: welcome assistant",
