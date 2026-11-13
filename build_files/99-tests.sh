@@ -35,6 +35,12 @@ HOME=/tmp/fastfetch-test fastfetch --config /usr/share/ublue-os/fastfetch.jsonc 
     --pipe true --structure os:kernel | grep cosmic-blue
 # (no grep -q: it would end fc-list with SIGPIPE, exit 141 under pipefail)
 fc-list : family | grep 'Symbols Nerd Font' >/dev/null
+# Logo art: only background colors and upper half blocks (gapless in
+# COSMIC Terminal), and the ff alias
+if LC_ALL=C.UTF-8 grep -q '[▁▂▃▄▅▆▇█▏▎▍▌▋▊▉▐▖▗▘▝▚▞▙▛▜▟]' /usr/share/ublue-os/fastfetch/cosmic-blue-*.txt; then
+    echo "fastfetch logo uses glyphs that leave gaps in COSMIC Terminal"; exit 1
+fi
+grep -q "alias ff='ublue-fastfetch'" /etc/profile.d/cosmic-blue-fastfetch.sh
 # Dark theme by default (COSMIC and GTK)
 grep -qx true /usr/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark
 test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'"
