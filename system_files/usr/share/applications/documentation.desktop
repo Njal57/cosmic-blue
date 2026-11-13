@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Terminal=false
+Exec=/usr/bin/cosmic-blue-docs
+Icon=ublue-docs
+Name=Documentation
+Name[fr]=Documentation
+Comment=cosmic-blue documentation
+Comment[fr]=Documentation de cosmic-blue
+Keywords=cosmic-blue;Help;Docs;Documentation;
+Keywords[fr]=cosmic-blue;Aide;Docs;Documentation;
+Categories=Utility;

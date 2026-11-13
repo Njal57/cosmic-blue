@@ -12,9 +12,12 @@ const setGpu = (gpu) => {
   }
   document.querySelector(`input[name="gpu"][value="${nvidia ? "nvidia" : "main"}"]`).checked = true;
 };
-let gpu = new URLSearchParams(location.search).get("gpu");
-try { gpu ??= localStorage.getItem("gpu"); } catch {}
-setGpu(gpu);
+// Only the home pages have the choice (not the documentation pages).
+if (document.querySelector('input[name="gpu"]')) {
+  let gpu = new URLSearchParams(location.search).get("gpu");
+  try { gpu ??= localStorage.getItem("gpu"); } catch {}
+  setGpu(gpu);
+}
 for (const input of document.querySelectorAll('input[name="gpu"]')) {
   input.addEventListener("change", () => {
     setGpu(input.value);
