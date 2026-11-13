@@ -1,6 +1,8 @@
 ---
 # Project website on GitHub Pages: https://cosmic-blue-os.github.io/cosmic-blue/
 # Needs Settings > Pages > Source set to "GitHub Actions".
+# Also rebuilt after each published image build, so the screenshots page
+# shows the desktop of the latest image (website/fetch-screenshots.sh).
 name: Website
 
 on:
@@ -19,6 +21,13 @@ on:
     paths:
       - '.github/workflows/pages.yml'
       - 'website/**'
+  workflow_run:
+    workflows:
+      - Build container image
+    types:
+      - completed
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,9 +36,15 @@ concurrency:
 jobs:
   build:
     name: Build website
+    # After an image build: only a published one (main, not a pull request)
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event != 'pull_request')
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+      actions: read  # download the boot test screenshots
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -37,8 +52,14 @@ jobs:
       - name: Install ImageMagick
         run: command -v convert || (sudo apt-get update && sudo apt-get install -y imagemagick)
 
+      - name: Fetch the desktop screenshots
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: website/fetch-screenshots.sh "${RUNNER_TEMP}/screenshots"
+
       - name: Build
         env:
+          SCREENSHOTS_DIR: ${{ runner.temp }}/screenshots
           # Public URL of the R2 bucket holding the live ISO (repository variable)
           ISO_BASE_URL: ${{ vars.ISO_BASE_URL }}
         run: website/build.sh _site
