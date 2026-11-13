@@ -2,20 +2,19 @@
 """The default cosmic-blue wallpaper: a planetary system seen from above its
 plane. A bright star, six orbits, shaded planets (one ringed giant), an
 asteroid belt, over the Milky Way of sky.py.
-Usage: orbits.py dark|light OUT.jpg (reads sky.png or sky-light.png).
+Usage: orbits.py OUT.jpg (reads sky.png).
 Needs numpy, pillow and scipy.
 """
 import math, sys
 import numpy as np
 from PIL import Image
 from scipy.ndimage import gaussian_filter
-mode, out = sys.argv[1], sys.argv[2]
-LIGHT = mode == "light"
+out = sys.argv[1]
 W, H = 5120, 2880
 rng = np.random.default_rng(7)
 SX, SY = 3300, 1420           # star
 TILT = math.radians(-12); RY = .30
-sky = np.asarray(Image.open("sky-light.png" if LIGHT else "sky.png").convert("RGB")).astype(np.float32) / 255
+sky = np.asarray(Image.open("sky.png").convert("RGB")).astype(np.float32) / 255
 y, x = np.mgrid[0:H, 0:W].astype(np.float32)
 rs = np.hypot(x - SX, y - SY)
 vig = np.clip(np.hypot((x - W / 2) / W, (y - H / 2) / H) * 1.6, 0, 1)[..., None]
@@ -24,18 +23,10 @@ vig = np.clip(np.hypot((x - W / 2) / W, (y - H / 2) / H) * 1.6, 0, 1)[..., None]
 def screen(a, b): return 1 - (1 - a) * (1 - np.clip(b, 0, 1))
 
 
-def ink(a, b, colour):
-    """Light mode: darken towards colour where b > 0 (lines on a pale sky)."""
-    b = np.clip(b, 0, 1)
-    return a * (1 - b) + a * np.array(colour) * b
-
-
-if LIGHT:   # pale sky, a white glow around the star
-    img = screen(sky * (1 - .12 * vig), (np.exp(-(rs / 1100) ** 2) * .5)[..., None])
-else:       # dimmed Milky Way, blue light around the star
-    img = sky * .42 * (1 - .5 * vig)
-    img += (np.exp(-(rs / 1500) ** 2) * .30)[..., None] * np.array([.10, .25, .75])
-    img += (np.exp(-(rs / 600) ** 2) * .35)[..., None] * np.array([.25, .45, 1.0])
+# dimmed Milky Way, blue light around the star
+img = sky * .42 * (1 - .5 * vig)
+img += (np.exp(-(rs / 1500) ** 2) * .30)[..., None] * np.array([.10, .25, .75])
+img += (np.exp(-(rs / 600) ** 2) * .35)[..., None] * np.array([.25, .45, 1.0])
 def ell(r, t):
     ex, ey = r * np.cos(t), r * RY * np.sin(t)
     return SX + ex * math.cos(TILT) - ey * math.sin(TILT), SY + ex * math.sin(TILT) + ey * math.cos(TILT)
@@ -50,10 +41,7 @@ for i, r in enumerate(radii):
     ok = (px >= 0) & (px < W) & (py >= 0) & (py < H)
     np.add.at(lines, (py[ok].astype(int), px[ok].astype(int)), near[ok] * (1 - .08 * i) * 14 / (r * 14 / 1000))
 lines = gaussian_filter(lines, 1.1) * 1.2 + gaussian_filter(lines, 8) * 3
-if LIGHT:
-    img = ink(img, lines[..., None] * .5, (.16, .39, .91))
-else:
-    img = screen(img, lines[..., None] * np.array([.45, .7, 1.0]) * .55)
+img = screen(img, lines[..., None] * np.array([.45, .7, 1.0]) * .55)
 
 # asteroid belt between the 3rd and 4th orbits
 n = 9000
@@ -64,10 +52,7 @@ belt = np.zeros((H, W), np.float32)
 ok = (px >= 0) & (px < W) & (py >= 0) & (py < H)
 np.add.at(belt, (py[ok].astype(int), px[ok].astype(int)), near[ok] * rng.uniform(.3, 1, n)[ok] ** 2)
 belt = gaussian_filter(belt, .9) * 5 + gaussian_filter(belt, 18) * 14
-if LIGHT:
-    img = ink(img, belt[..., None] * .4, (.16, .39, .91))
-else:
-    img = screen(img, belt[..., None] * np.array([.6, .78, 1.0]) * .5)
+img = screen(img, belt[..., None] * np.array([.6, .78, 1.0]) * .5)
 
 def noise1d(seed, n=64):
     return np.random.default_rng(seed).random(n)
@@ -131,8 +116,6 @@ core = np.exp(-(rs / 70) ** 2) * 1.6 + np.exp(-(rs / 220) ** 2) * .55 + np.exp(-
 streak = np.exp(-((y - SY) / 6) ** 2) * np.exp(-np.abs(x - SX) / 380) * .3
 ang = np.arctan2(y - SY, x - SX)
 spikes = (np.abs(np.cos(2 * (ang - math.radians(8)))) ** 400) * np.exp(-rs / 300) * .3
-if LIGHT:   # a blue halo, so the white star stands out on the pale sky
-    img = ink(img, (np.exp(-(rs / 260) ** 2) * .45 - np.exp(-(rs / 90) ** 2) * .45)[..., None].clip(0), (.31, .55, 1.0))
 img = screen(img, (core + streak + spikes)[..., None] * np.array([.88, .94, 1.0]))
 img = np.clip(img, 0, 1) * 255
 img += np.random.default_rng(57).normal(0, 2.0, img.shape[:2])[..., None]

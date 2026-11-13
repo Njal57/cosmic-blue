@@ -5,19 +5,14 @@ set -euo pipefail
 cd "$(dirname "$0")"
 out=../../system_files/usr/share/backgrounds/cosmic-blue
 
-# The logo scene (dark and light)
+# The logo scene
 python3 sky.py
-for mode in dark light; do
-    python3 foreground.py "${mode}"
-    node render.js
-    suffix=""
-    [[ "${mode}" == light ]] && suffix="-light"
-    python3 compose.py "${mode}" "${out}/cosmic-blue${suffix}.jpg"
-done
+python3 foreground.py
+node render.js
+python3 compose.py dark "${out}/cosmic-blue.jpg"
 
-# The default: a planetary system (dark and light), over the same sky
-python3 orbits.py dark "${out}/cosmic-blue-orbits.jpg"
-python3 orbits.py light "${out}/cosmic-blue-orbits-light.jpg"
+# The default: a planetary system, over the same sky
+python3 orbits.py "${out}/cosmic-blue-orbits.jpg"
 
 # Waves of light
 python3 concept.py waves concept.svg
@@ -29,4 +24,4 @@ curl -fsSL -o milky-way-orig.jpg \
     https://images-assets.nasa.gov/image/iss064e055946/iss064e055946~orig.jpg
 python3 milky_way.py milky-way-orig.jpg "${out}/cosmic-blue-milky-way.jpg"
 
-rm -f sky.png sky-light.png foreground.svg foreground.png concept.svg concept.png milky-way-orig.jpg
+rm -f sky.png foreground.svg foreground.png concept.svg concept.png milky-way-orig.jpg

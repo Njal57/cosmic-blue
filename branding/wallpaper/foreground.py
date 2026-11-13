@@ -3,14 +3,10 @@
 
 The logo, as a scene: a planet inside a glowing open orbit, with a moon in
 the gap. The sky, the Milky Way and the stars are rendered by sky.py.
-Usage: foreground.py [dark|light]. Writes foreground.svg (5120x2880). The light
-variant has deeper blues, a softer shadow, a white halo and an outlined moon,
-so the scene stays readable on a pale sky.
+Usage: foreground.py. Writes foreground.svg (5120x2880).
 """
 import math
-import sys
 
-LIGHT = len(sys.argv) > 1 and sys.argv[1] == "light"
 
 W, H = 5120, 2880
 CX, CY, PR = 3300, 1440, 430     # planet centre and radius
@@ -32,15 +28,14 @@ orbit = arc(GAP, 360 - GAP)
 mx, my = pt(0)
 mx -= R * 0.05                   # moon sits just inside the gap, as in the logo
 
-# colours: (dark, light)
-C = {k: v[LIGHT] for k, v in {
-    "orb": (("#7fe0ff", "#4f8dff", "#2f6bff"), ("#3fa9f5", "#2a63e8", "#1d47c4")),
-    "shadow": (("#020822", ".6", ".92"), ("#0a1f66", ".45", ".8")),
-    "halo": (("#3f86ff", ".45", "#2a5cff", ".12"), ("#ffffff", ".7", "#e8f0ff", ".25")),
-    "moon_edge": ("#8fb6ff", "#6f9cf5"),
-    "mglow": (("#e6f3ff", ".8", "#9fd0ff", ".3", "#5f9cff"), ("#ffffff", ".9", "#ffffff", ".35", "#ffffff")),
-    "orbit_glow": (".45", ".3"),
-}.items()}
+C = {
+    "orb": ("#7fe0ff", "#4f8dff", "#2f6bff"),
+    "shadow": ("#020822", ".6", ".92"),
+    "halo": ("#3f86ff", ".45", "#2a5cff", ".12"),
+    "moon_edge": "#8fb6ff",
+    "mglow": ("#e6f3ff", ".8", "#9fd0ff", ".3", "#5f9cff"),
+    "orbit_glow": ".45",
+}
 
 o = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}">',
      '<title>cosmic-blue</title><defs>',
@@ -67,7 +62,5 @@ o.append(f'<path d="{orbit}" fill="none" stroke="url(#orb)" stroke-width="260" s
 o.append(f'<path d="{orbit}" fill="none" stroke="url(#orb)" stroke-width="120" stroke-linecap="round"/>')
 o.append(f'<path d="{orbit}" fill="none" stroke="#e8fbff" stroke-width="14" stroke-linecap="round" opacity=".35" filter="url(#b18)"/>')
 o.append(f'<circle cx="{mx:.0f}" cy="{my:.0f}" r="380" fill="url(#mglow)"/><circle cx="{mx:.0f}" cy="{my:.0f}" r="80" fill="url(#moon)"/>')
-if LIGHT:  # the white moon needs an edge on a pale sky
-    o.append(f'<circle cx="{mx:.0f}" cy="{my:.0f}" r="80" fill="none" stroke="#2a63e8" stroke-width="6" opacity=".55"/>')
 o.append('</svg>')
 open("foreground.svg", "w").write("".join(o))
