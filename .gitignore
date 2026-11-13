@@ -6,3 +6,4 @@ _build-*/**
 *_rpm-ostree_*
 build_files/theme/target/
 _site/
+__pycache__/

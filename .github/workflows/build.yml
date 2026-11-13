@@ -218,6 +218,20 @@ jobs:
           name: boot-test-${{ env.IMAGE_NAME }}
           title: ${{ env.IMAGE_NAME }}
 
+      # The terminal screenshot as base64 in the log, for tools that can read
+      # job logs but not download artifacts (branches and pull requests only)
+      - name: Print the terminal screenshot
+        if: always() && matrix.image_suffix == '' && github.ref != format('refs/heads/{0}', github.event.repository.default_branch)
+        run: |
+          shot="$(compgen -G "${RUNNER_TEMP}/boot-test/screenshots/07-terminal.*" | head -n 1 || true)"
+          [[ -n "${shot}" ]] || { echo "No terminal screenshot"; exit 0; }
+          python3 -c 'import sys; from PIL import Image; Image.open(sys.argv[1]).convert("RGB").save(sys.argv[2], "JPEG", quality=92)' \
+            "${shot}" "${RUNNER_TEMP}/terminal.jpg"
+          # Under 4000 lines: log readers often return only the last 5000
+          echo "TERMINAL-JPEG-BEGIN"
+          base64 -w 200 "${RUNNER_TEMP}/terminal.jpg"
+          echo "TERMINAL-JPEG-END"
+
       - name: Free the boot test space
         if: always()
         run: sudo podman rmi -f "localhost/${IMAGE_NAME}:${DEFAULT_TAG}" || true
