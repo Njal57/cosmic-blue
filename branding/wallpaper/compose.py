@@ -1,12 +1,24 @@
 #!/usr/bin/env python3
 """Composite the sky and foreground.png, add a fine grain (prevents banding in
 the gradients) and write the final JPEG.
-Usage: compose.py dark|light OUT.jpg (reads sky.png or sky-light.png)."""
+Usage: compose.py dark|light OUT.jpg (reads sky.png or sky-light.png), or
+compose.py concept OUT.jpg IN.png (an opaque render, only the grain is added)."""
 import sys
 import numpy as np
 from PIL import Image
 
 mode, out = sys.argv[1], sys.argv[2]
+
+
+def finish(img):
+    a = np.asarray(img.convert("RGB")).astype(np.float32)
+    grain = np.random.default_rng(57).normal(0, 2.2, a.shape[:2]).astype(np.float32)[..., None]
+    Image.fromarray(np.clip(a + grain, 0, 255).astype(np.uint8)).save(out, quality=92, subsampling=0, optimize=True)
+
+
+if mode == "concept":
+    finish(Image.open(sys.argv[3]))
+    sys.exit()
 sky = np.asarray(Image.open("sky-light.png" if mode == "light" else "sky.png").convert("RGB")).astype(np.float32) / 255
 h, w = sky.shape[:2]
 y, x = np.mgrid[0:h, 0:w]
@@ -19,7 +31,4 @@ else:
     # quieter sky: dimmed Milky Way, a blue glow behind the planet, soft vignette
     sky = (sky * 0.6 + spot * np.array([.05, .14, .42])) * (1 - 0.55 * dist)
 sky = Image.fromarray((np.clip(sky, 0, 1) * 255).astype(np.uint8)).convert("RGBA")
-img = Image.alpha_composite(sky, Image.open("foreground.png").convert("RGBA"))
-a = np.asarray(img.convert("RGB")).astype(np.float32)
-grain = np.random.default_rng(57).normal(0, 2.2, a.shape[:2]).astype(np.float32)[..., None]
-Image.fromarray(np.clip(a + grain, 0, 255).astype(np.uint8)).save(out, quality=92, subsampling=0, optimize=True)
+finish(Image.alpha_composite(sky, Image.open("foreground.png").convert("RGBA")))
