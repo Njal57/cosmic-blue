@@ -76,9 +76,6 @@ GNOME_ONLY+=(
     usr/share/ublue-os/firefox-config
 )
 # More Bluefin leftovers that have no use on cosmic-blue:
-# - FlatPark, a third-party Flatpak hub that projectbluefin/common adds next to
-#   Flathub (cosmic-blue keeps Flathub and the COSMIC repository only), its
-#   filter and the unit that copies the filter for Bazaar's sandbox;
 # - the rest of Bazaar (background service, config, flatpak override);
 # - projectbluefin-countme, a usage counter for other Bluefin images that
 #   exits at once on cosmic-blue;
@@ -90,10 +87,6 @@ GNOME_ONLY+=(
 #   ChairLift only: Bluefin's "full desktop" GNOME Circle list, Hidamari and
 #   Damask (video wallpaper and wallpaper slideshow, GNOME only).
 GNOME_ONLY+=(
-    usr/share/flatpak/remotes.d/flatpark.flatpakrepo
-    usr/share/flatpak/flatpark.filter
-    usr/lib/systemd/system/flatpark-filter-copy.path
-    usr/lib/systemd/system/flatpark-filter-copy.service
     etc/bazaar
     usr/lib/systemd/user/bazaar.service
     usr/lib/tmpfiles.d/bazaar-flatpak.conf
@@ -125,10 +118,6 @@ GNOME_ONLY+=(
 for path in "${GNOME_ONLY[@]}"; do
     rm -rf "${STAGE:?}/${path}"
 done
-
-# The FlatPark filter unit is enabled in the same preset file as the
-# appstream refresh, which stays.
-sed -i '/flatpark/d' "${STAGE}/usr/lib/systemd/system-preset/02-flatpak-appstream-refresh.preset"
 
 # Bluefin-only ujust recipes: `contribute` (runs a worker for Bluefin's
 # build hive), `bluespeed` (Bluefin's AI stack, `install-ai-tools` remains),

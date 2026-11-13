@@ -64,8 +64,8 @@ same through the build context:
   (replaces `rpm-ostreed-automatic.timer`).
 - **Setup**: `ublue-system-setup`, `ublue-user-setup` (+ hooks), `ublue-bling`
   (bling.sh/fish, starship), fastfetch, `uwelcome`.
-- **Flatpak**: `flatpak-preinstall.service`, `flatpak-appstream-refresh`,
-  `flatpak-nuke-fedora` (not Bluefin's FlatPark remote).
+- **Flatpak**: `flatpak-preinstall.service`, "flatpark" filter,
+  `flatpak-appstream-refresh`, `flatpak-nuke-fedora`.
 - `/etc/containers/policy.json` + keys (ublue image verification), hardware
   udev rules (Framework, ZSA, Wooting, Titan key…), Framework ICC profiles,
   polkit, bootc sudoers, `luks-tpm2-autounlock`.

@@ -172,19 +172,14 @@ done
 
 test ! -e /usr/share/flatpak/preinstall.d/bazaar.preinstall
 # Bluefin leftovers removed in 10-system-files.sh
-for path in /usr/share/flatpak/remotes.d/flatpark.flatpakrepo \
-    /usr/lib/systemd/system/flatpark-filter-copy.path /etc/bazaar \
+for path in /etc/bazaar \
     /usr/lib/systemd/user/bazaar.service /usr/libexec/projectbluefin-countme \
     /usr/lib/systemd/system/projectbluefin-countme.timer /usr/share/ublue-os/agent \
     /usr/share/ublue-os/just/changelog.just /usr/share/ublue-os/homebrew/full-desktop.Brewfile; do
     test ! -e "${path}"
 done
-# (`! cmd` never stops a set -e script: use if ... exit 1)
-if flatpak remotes --system --columns=name | grep -qx flatpark \
-    || grep -rq flatpark /usr/lib/systemd/system-preset/; then
-    echo "FlatPark remote left in place"; exit 1
-fi
 for recipe in contribute bluespeed bluefin-apps bazaar-preview toggle-testing changelogs; do
+    # (`! cmd` never stops a set -e script: use if ... exit 1)
     if grep -qw -- "${recipe}" <<<"${recipes}"; then echo "ujust ${recipe} left in place"; exit 1; fi
 done
 if grep -q '^export LC_' /etc/zsh/zprofile; then exit 1; fi
