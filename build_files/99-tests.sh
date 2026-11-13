@@ -299,6 +299,27 @@ check_color "${builder}.Light.Builder/v2/bg_color" '#d3d8e0'
 grep -qx None "${builder}.Dark.Builder/v2/window_hint"
 grep -qx None "${builder}.Light.Builder/v2/window_hint"
 
+# New image defaults reach existing accounts (cosmic-blue-migrate-defaults):
+# the list of defaults covers COSMIC and GSettings, earlier defaults are known
+# (Fedora's packaged ones, COSMIC's teal theme, COSMIC's icon theme), and the
+# migration keeps the users' own choices
+DEFAULTS_LIST=/usr/share/cosmic-blue/defaults.list
+PREVIOUS_LIST=/usr/share/cosmic-blue/previous-defaults.list
+MIGRATE=/usr/libexec/cosmic-blue-migrate-defaults
+grep -q ' com.system76.CosmicTk/v1/icon_theme$' "${DEFAULTS_LIST}"
+grep -q ' com.system76.CosmicTheme.Dark.Builder/v2/accent$' "${DEFAULTS_LIST}"
+grep -q ' gsettings/org.gnome.desktop.interface/icon-theme$' "${DEFAULTS_LIST}"
+if grep -q 'xkb_config$' "${DEFAULTS_LIST}"; then exit 1; fi
+cmp <("${MIGRATE}" --manifest) "${DEFAULTS_LIST}"
+for variant in /ctx/previous_defaults/theme/stock/cosmic /ctx/previous_defaults/theme/frosted/cosmic \
+    /ctx/build_files/previous_defaults/upstream; do
+    "${MIGRATE}" --hash-tree "${variant}" | grep ' com.system76.CosmicT' >/dev/null
+    missing="$(comm -23 <("${MIGRATE}" --hash-tree "${variant}" | sort) <(sort "${PREVIOUS_LIST}"))"
+    [[ -z "${missing}" ]] || { echo "Not in ${PREVIOUS_LIST}:"; echo "${missing}"; exit 1; }
+done
+test -L /etc/systemd/system/multi-user.target.wants/cosmic-blue-migrate-defaults.service
+/ctx/build_files/migrate-defaults-test.sh "${MIGRATE}"
+
 # Secure Boot: the Universal Blue akmods key (enrolled with
 # `ujust enroll-secure-boot-key`) is in every image, so it can be enrolled
 # before switching to cosmic-blue-nvidia

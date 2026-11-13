@@ -1,0 +1,221 @@
+#!/usr/bin/bash
+# Brings existing accounts to the current cosmic-blue defaults after an image
+# update, without touching what users chose themselves.
+#
+# COSMIC reads each setting from ~/.config/cosmic first and falls back to the
+# image default in /usr/share/cosmic. Many settings end up copied into the
+# account although the user never chose them: COSMIC's first-run assistant
+# writes the whole theme, and COSMIC Settings writes the values of a page when
+# it is used. Such a copy pins the account to an old default, so a new default
+# of the image (icons, colors, wallpaper, dock...) never reaches it.
+#
+# The rule: when the image default of a setting has changed since the last
+# run for this account, the account's copy is removed if it holds a default
+# (the current one, the one the account had at the last run, or one from
+# /usr/share/cosmic-blue/previous-defaults.list: Fedora's packaged defaults
+# and older cosmic-blue defaults). The account then follows the image again.
+# A copy with any other value is the user's own choice and is never touched.
+# A setting whose default did not change is not looked at, so picking an old
+# default again later is kept too.
+#
+# A COSMIC theme (the colors, frosted glass...) is one choice spread over many
+# files (the builder edited by COSMIC Settings and the theme computed from
+# it): it is only reset when every file of it holds a default.
+#
+# The same applies to the GTK icon and cursor themes (GSettings).
+#
+# Usage:
+#   cosmic-blue-migrate-defaults            as root, at boot: every account
+#   cosmic-blue-migrate-defaults --user     the current account ($HOME)
+#   cosmic-blue-migrate-defaults --manifest prints the defaults list (build)
+#   cosmic-blue-migrate-defaults --hash-tree DIR
+#                                           prints "hash path" for each file
+#                                           of DIR, for previous-defaults.list
+set -euo pipefail
+
+DEFAULTS_DIR="${COSMIC_BLUE_DEFAULTS_DIR:-/usr/share/cosmic}"
+MANIFEST="${COSMIC_BLUE_MANIFEST:-/usr/share/cosmic-blue/defaults.list}"
+PREVIOUS="${COSMIC_BLUE_PREVIOUS:-/usr/share/cosmic-blue/previous-defaults.list}"
+# A setting written from the installer choices (cosmic-blue-user-defaults),
+# not an image default
+EXCLUDED_RE='^com\.system76\.(CosmicComp/v[0-9]+/xkb_config|CosmicAppletTime/v[0-9]+/(military_time|first_day_of_week))$'
+# GSettings keys set by the image (usr/share/glib-2.0/schemas/zz1-cosmic-blue.gschema.override).
+# The color scheme and GTK theme are left out: COSMIC sets them from the
+# dark/light mode.
+GSETTINGS_KEYS=(
+    org.gnome.desktop.interface:icon-theme
+    org.gnome.desktop.interface:cursor-theme
+)
+
+# Hash of a setting's value. Comment lines, white space and trailing commas
+# are ignored, so a copy written by COSMIC matches a default written by hand.
+value_hash() {
+    sed -E '/^[[:space:]]*\/\//d' | tr -d '[:space:]' | sed -E 's/,([])}])/\1/g' |
+        sha256sum | cut -d' ' -f1
+}
+
+# "gsettings/org.gnome.desktop.interface/icon-theme" -> "/org/gnome/desktop/interface/icon-theme"
+dconf_path() {
+    local schema="${1#gsettings/}"
+    schema="${schema%/*}"
+    printf '/%s/%s' "${schema//.//}" "${1##*/}"
+}
+
+print_manifest() {
+    local rel
+    while IFS= read -r -d '' rel; do
+        [[ "${rel}" =~ ${EXCLUDED_RE} ]] && continue
+        printf '%s %s\n' "$(value_hash <"${DEFAULTS_DIR}/${rel}")" "${rel}"
+    done < <(find "${DEFAULTS_DIR}" -type f -printf '%P\0' | sort -z)
+    local entry value
+    for entry in "${GSETTINGS_KEYS[@]}"; do
+        value="$(GSETTINGS_BACKEND=memory gsettings get "${entry%%:*}" "${entry##*:}")"
+        printf '%s gsettings/%s/%s\n' "$(printf '%s' "${value}" | value_hash)" \
+            "${entry%%:*}" "${entry##*:}"
+    done
+}
+
+hash_tree() {
+    local rel
+    while IFS= read -r -d '' rel; do
+        printf '%s %s\n' "$(value_hash <"$1/${rel}")" "${rel}"
+    done < <(find "$1" -type f -printf '%P\0' | sort -z)
+}
+
+# Theme files belong to one group per theme; any other setting is its own group
+group_of() {
+    if [[ "$1" =~ ^com\.system76\.CosmicTheme\.(Dark|Light)(\.Builder)?/ ]]; then
+        printf 'theme-%s' "${BASH_REMATCH[1]}"
+    else
+        printf '%s' "$1"
+    fi
+}
+
+migrate_user() {
+    local config="${XDG_CONFIG_HOME:-${HOME}/.config}/cosmic"
+    local state_dir="${XDG_STATE_HOME:-${HOME}/.local/state}/cosmic-blue"
+    local state="${state_dir}/defaults.list"
+    local manifest_hash
+    manifest_hash="$(sha256sum <"${MANIFEST}" | cut -d' ' -f1)"
+
+    local -A current=() seen=() known=() changed_groups=() members=()
+    local hash rel line
+    if [[ -f "${state}" ]]; then
+        # Nothing changed in the image defaults since the last run
+        [[ "$(head -n 1 "${state}")" == "manifest ${manifest_hash}" ]] && return 0
+        while read -r hash rel; do
+            [[ "${hash}" == manifest ]] || seen["${rel}"]="${hash}"
+        done <"${state}"
+    fi
+    if [[ -f "${PREVIOUS}" ]]; then
+        while read -r hash rel; do
+            known["${rel} ${hash}"]=1
+        done <"${PREVIOUS}"
+    fi
+    while read -r hash rel; do
+        current["${rel}"]="${hash}"
+        local group
+        group="$(group_of "${rel}")"
+        members["${group}"]+="${rel}"$'\n'
+        [[ "${seen[${rel}]:-}" == "${hash}" ]] || changed_groups["${group}"]=1
+    done <"${MANIFEST}"
+
+    # Hash of the account's value, empty when the account has none of its own
+    user_hash() {
+        if [[ "$1" == gsettings/* ]]; then
+            command -v dconf >/dev/null || return 0
+            local value
+            value="$(dconf read "$(dconf_path "$1")" 2>/dev/null || true)"
+            [[ -z "${value}" ]] || printf '%s' "${value}" | value_hash
+        elif [[ -f "${config}/$1" && ! -L "${config}/$1" ]]; then
+            value_hash <"${config}/$1"
+        fi
+    }
+    is_default() { # path hash
+        [[ "$2" == "${current[$1]}" || "$2" == "${seen[$1]:-}" || -n "${known[$1 $2]:-}" ]]
+    }
+
+    local group resets=() gsettings_resets=()
+    for group in "${!changed_groups[@]}"; do
+        local candidates=() all_default=true
+        while IFS= read -r rel; do
+            [[ -n "${rel}" ]] || continue
+            hash="$(user_hash "${rel}")"
+            [[ -n "${hash}" ]] || continue
+            if is_default "${rel}" "${hash}"; then
+                candidates+=("${rel}")
+            else
+                all_default=false
+            fi
+        done <<<"${members[${group}]}"
+        # A theme with any value of the user's own is kept as a whole
+        if [[ "${group}" == theme-* && "${all_default}" == false ]]; then
+            echo "Keeping the ${group#theme-} theme: it has the user's own colors"
+            continue
+        fi
+        resets+=("${candidates[@]}")
+    done
+
+    for rel in "${resets[@]}"; do
+        if [[ "${rel}" == gsettings/* ]]; then
+            gsettings_resets+=("${rel}")
+            continue
+        fi
+        echo "Following the new image default: ${rel}"
+        rm -f "${config:?}/${rel}"
+        # Empty version and component directories
+        local dir
+        dir="$(dirname "${config}/${rel}")"
+        while [[ "${dir}" != "${config}" && "${dir}" == "${config}"/* ]]; do
+            rmdir "${dir}" 2>/dev/null || break
+            dir="$(dirname "${dir}")"
+        done
+    done
+    if [[ "${#gsettings_resets[@]}" -gt 0 ]]; then
+        local commands=()
+        for rel in "${gsettings_resets[@]}"; do
+            echo "Following the new image default: ${rel}"
+            rel="${rel#gsettings/}"
+            commands+=("gsettings reset '${rel%/*}' '${rel##*/}'")
+        done
+        # No session yet at boot: dconf needs a bus of its own to write
+        dbus-run-session -- sh -c "$(printf '%s; ' "${commands[@]}")" ||
+            echo "Could not reset the GSettings keys"
+    fi
+
+    mkdir -p "${state_dir}"
+    {
+        echo "manifest ${manifest_hash}"
+        cat "${MANIFEST}"
+    } >"${state}.tmp"
+    mv -f "${state}.tmp" "${state}"
+}
+
+case "${1:-}" in
+--manifest)
+    print_manifest
+    ;;
+--hash-tree)
+    hash_tree "$2"
+    ;;
+--user)
+    migrate_user
+    ;;
+"")
+    # Every account (regular UIDs, home under /home), each with its own rights,
+    # before anyone logs in
+    while IFS=: read -r name _ uid _ _ home _; do
+        if ((uid >= 1000 && uid < 60000)) && [[ "${home}" == /home/* || "${home}" == /var/home/* ]] \
+            && [[ -d "${home}" ]]; then
+            echo "Account ${name}:"
+            runuser -u "${name}" -- env -i HOME="${home}" USER="${name}" LOGNAME="${name}" \
+                PATH=/usr/bin:/usr/sbin "$0" --user ||
+                echo "Account ${name}: could not apply the new defaults"
+        fi
+    done < <(getent passwd)
+    ;;
+*)
+    echo "Usage: $0 [--user | --manifest | --hash-tree DIR]" >&2
+    exit 1
+    ;;
+esac
