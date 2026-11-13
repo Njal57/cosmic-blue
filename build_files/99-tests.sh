@@ -46,6 +46,20 @@ if LC_ALL=C.UTF-8 grep -q '[▁▂▃▄▅▆▇█▏▎▍▌▋▊▉▐▖�
     echo "fastfetch logo uses glyphs that leave gaps in COSMIC Terminal"; exit 1
 fi
 grep -q "alias ff='ublue-fastfetch'" /etc/profile.d/cosmic-blue-fastfetch.sh
+# Terminal welcome banner (uwelcome): cosmic-blue links and tips, no
+# Bluefin links, launchers or commands left
+jq -e '.links | map(.url) == ["https://github.com/cosmic-blue-os/cosmic-blue/issues", "https://cosmic-blue-os.github.io/cosmic-blue/docs/"]' \
+    /etc/uwelcome/config.json >/dev/null
+jq -e '.motd.commands == ["cosmic-blue-tips"]' /etc/uwelcome/config.json >/dev/null
+test -n "$(LANG=en_US.UTF-8 cosmic-blue-tips)"
+test -n "$(LANG=fr_FR.UTF-8 cosmic-blue-tips)"
+if grep -rlE 'projectbluefin\.io|bluefin-cli|ujust report' /etc/uwelcome \
+    || grep -rl 'projectbluefin\.io' /usr/share/ublue-os/just /usr/share/applications; then
+    echo "Bluefin links or commands left in the welcome banner, ujust or launchers"; exit 1
+fi
+test ! -e /usr/share/applications/discourse.desktop
+test ! -e /usr/share/applications/io.projectbluefin.Report.desktop
+grep -q '^Exec=/usr/bin/cosmic-blue-docs$' /usr/share/applications/documentation.desktop
 # Dark theme by default (COSMIC and GTK)
 grep -qx true /usr/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark
 test "$(GSETTINGS_BACKEND=memory gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'"

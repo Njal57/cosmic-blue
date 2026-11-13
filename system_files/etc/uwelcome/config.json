@@ -1,0 +1,39 @@
+{
+  "color": "auto",
+  "greeting": {
+    "prefix": "􌬀 "
+  },
+  "commands": [
+    {
+      "cmd": "ujust --choose",
+      "desc": "cmd_list"
+    },
+    {
+      "cmd": "uwelcome toggle",
+      "desc": "banner_toggle"
+    },
+    {
+      "cmd": "ff",
+      "desc": "sys_info"
+    },
+    {
+      "cmd": "brew help",
+      "desc": "cli_pkg"
+    }
+  ],
+  "links": [
+    {
+      "name": "issues",
+      "url": "https://github.com/cosmic-blue-os/cosmic-blue/issues"
+    },
+    {
+      "name": "docs",
+      "url": "https://cosmic-blue-os.github.io/cosmic-blue/docs/"
+    }
+  ],
+  "motd": {
+    "commands": [
+      "cosmic-blue-tips"
+    ]
+  }
+}

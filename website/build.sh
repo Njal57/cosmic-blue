@@ -17,8 +17,9 @@ iso_name="cosmic-blue-live-amd64.iso"
 iso_nvidia_name="cosmic-blue-nvidia-live-amd64.iso"
 runs="https://github.com/cosmic-blue-os/cosmic-blue/actions/workflows/build-live-iso.yml?query=branch%3Amain+is%3Asuccess"
 
-# One page per language: index.html (English, default) and fr/index.html.
-for page in index.html fr/index.html; do
+# One page per language: index.html (English, default) and fr/index.html,
+# and the same for the documentation (docs/).
+for page in index.html fr/index.html docs/index.html fr/docs/index.html; do
   mkdir -p "$(dirname "${out}/${page}")"
   if [[ -n "${ISO_BASE_URL:-}" ]]; then
     sed -e "s|@ISO_NVIDIA_URL@|${ISO_BASE_URL%/}/${iso_nvidia_name}|g" \

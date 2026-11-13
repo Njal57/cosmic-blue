@@ -75,9 +75,25 @@ GNOME_ONLY+=(
 GNOME_ONLY+=(
     usr/share/ublue-os/firefox-config
 )
+# Bluefin's community and help launchers, and its Report a Problem app, which
+# files issues in Bluefin's repositories. cosmic-blue's own Documentation
+# launcher (system_files) opens the cosmic-blue guide instead.
+GNOME_ONLY+=(
+    usr/share/applications/discourse.desktop
+    usr/share/applications/bluefin-help.desktop
+    usr/share/applications/io.projectbluefin.Report.desktop
+    usr/share/icons/hicolor/scalable/apps/io.projectbluefin.Report.svg
+    usr/share/ublue-os/just/60-report.just
+    usr/share/ublue-os/homebrew/preinstall.d/bluefin-report.Brewfile
+)
 for path in "${GNOME_ONLY[@]}"; do
     rm -rf "${STAGE:?}/${path}"
 done
+
+# `ujust` with no recipe prints a link to Bluefin's documentation first:
+# point it to the cosmic-blue guide.
+sed -i 's|https://docs.projectbluefin.io/[^"]*|https://cosmic-blue-os.github.io/cosmic-blue/docs/|' \
+    "${STAGE}/usr/share/ublue-os/just/00-entry.just"
 
 # `ujust toggle-tpm2` (projectbluefin/common) runs /usr/bin/luks-tpm2-autounlock:
 # common's script moves aside, and ours (system_files/usr/bin) runs extra
