@@ -84,6 +84,20 @@ find /usr/share/backgrounds -printf '%y %p %l\n' | sort
 cat /usr/share/cosmic/com.system76.CosmicAppList/v1/favorites || true
 ls /usr/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/ || true
 
+# Defaults that accounts may still hold as a copy from an earlier image:
+# Fedora's packaged COSMIC defaults (before ours replace them), COSMIC's
+# earlier default themes and built-in defaults (build_files/previous_defaults).
+# cosmic-blue-migrate-defaults resets such copies when a default changes.
+PREVIOUS_DEFAULTS=/usr/share/cosmic-blue/previous-defaults.list
+mkdir -p "$(dirname "${PREVIOUS_DEFAULTS}")"
+{
+    /usr/libexec/cosmic-blue-migrate-defaults --hash-tree /usr/share/cosmic
+    for variant in /ctx/previous_defaults/theme/*/cosmic /ctx/build_files/previous_defaults/*/; do
+        /usr/libexec/cosmic-blue-migrate-defaults --hash-tree "${variant}"
+    done
+} | sort -u >"${PREVIOUS_DEFAULTS}"
+wc -l "${PREVIOUS_DEFAULTS}"
+
 # cosmic-blue defaults (wallpaper, theme, dock, extra shortcuts) and boot
 # screen (Plymouth theme)
 # were copied before these packages were installed; apply them again so they

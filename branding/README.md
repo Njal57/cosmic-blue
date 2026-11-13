@@ -32,21 +32,33 @@ Regenerate the SVGs with `python3 logo/build.py`.
 
 ## Wallpaper
 
-Two versions of the same scene, 5120x2880, in
-`system_files/usr/share/backgrounds/cosmic-blue/`:
+All 5120x2880, in `system_files/usr/share/backgrounds/cosmic-blue/`:
 
-- `cosmic-blue.jpg`: night sky, the default COSMIC wallpaper
-- `cosmic-blue-light.jpg`: pale sky, for the light theme
+- `cosmic-blue-orbits.jpg`: planets on tilted orbits around a bright star,
+  the default COSMIC wallpaper
+- `cosmic-blue-orbits-light.jpg`: the same on a pale sky, for the light theme
+- `cosmic-blue.jpg` / `cosmic-blue-light.jpg`: the logo as a scene (night and
+  pale sky), offered in Settings
+- `cosmic-blue-waves.jpg`: layered ribbons of light, offered in Settings
+- `cosmic-blue-milky-way.jpg`: the Milky Way above the Earth, a photo taken
+  on the International Space Station (NASA, ISS064-E-55946, public domain),
+  graded with the cosmic-blue palette, offered in Settings
 
 Keep the main elements inside the centre so they survive cropping to 16:10,
-4:3 and 21:9.
+4:3 and 21:9. `wallpaper/build.sh` renders them all (the NASA original is
+downloaded); the output is deterministic (fixed seeds). Keep the file names:
+accounts that picked a wallpaper in Settings point to its path.
 
 COSMIC 1.11 has one wallpaper for both themes (`com.system76.CosmicBackground`),
 so the light one is offered in Settings. Later COSMIC releases read a wallpaper
 per theme (`com.system76.CosmicBackground.Dark` / `.Light`); those defaults are
 already set, so the wallpaper will follow the theme once Fedora ships them.
 
-Each wallpaper is built from two layers:
+The orbits and the waves are drawn as SVG by `wallpaper/concept.py`, rendered
+by `wallpaper/render.js` and finished by `wallpaper/compose.py concept` (a fine
+grain against banding). `wallpaper/milky_way.py` crops and grades the photo.
+
+The logo scene is built from two layers:
 
 - `wallpaper/sky.py`: sky gradient, procedural Milky Way and stars (numpy);
   writes the night sky and the pale sky from the same Milky Way
@@ -54,9 +66,9 @@ Each wallpaper is built from two layers:
   glowing open orbit with a moon in the gap (SVG, rendered by
   `wallpaper/render.js` with Playwright's Chromium)
 
-`wallpaper/build.sh` renders both versions; `wallpaper/compose.py` dims the
+`wallpaper/compose.py` dims the
 sky behind the planet (dark) or lightens it (light), adds a fine grain against
-banding and writes the JPEG. The output is deterministic (fixed seeds).
+banding and writes the JPEG.
 
 ## fastfetch
 

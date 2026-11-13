@@ -6,16 +6,21 @@ set -euox pipefail
 jq -e '.transports.docker."ghcr.io/ublue-os"' /etc/containers/policy.json >/dev/null
 # No Bluefin wallpapers
 test ! -e /usr/share/backgrounds/bluefin
-# cosmic-blue wallpaper is the COSMIC default, and the logo is installed
-test -s /usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg
-grep -q 'Path("/usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg")' \
+# cosmic-blue wallpapers: orbits is the COSMIC default, the logo scene, waves
+# and the Milky Way are extras
+bg=/usr/share/backgrounds/cosmic-blue
+for name in orbits orbits-light waves milky-way; do
+    test -s "${bg}/cosmic-blue-${name}.jpg"
+done
+test -s "${bg}/cosmic-blue.jpg"
+test -s "${bg}/cosmic-blue-light.jpg"
+grep -q "Path(\"${bg}/cosmic-blue-orbits.jpg\")" \
     /usr/share/cosmic/com.system76.CosmicBackground/v1/all
 # Per-theme defaults (used by COSMIC releases after 1.11): the dark wallpaper
 # for the dark theme, the light one for the light theme
-test -s /usr/share/backgrounds/cosmic-blue/cosmic-blue-light.jpg
-grep -q 'Path("/usr/share/backgrounds/cosmic-blue/cosmic-blue.jpg")' \
+grep -q "Path(\"${bg}/cosmic-blue-orbits.jpg\")" \
     /usr/share/cosmic/com.system76.CosmicBackground.Dark/v1/all
-grep -q 'Path("/usr/share/backgrounds/cosmic-blue/cosmic-blue-light.jpg")' \
+grep -q "Path(\"${bg}/cosmic-blue-orbits-light.jpg\")" \
     /usr/share/cosmic/com.system76.CosmicBackground.Light/v1/all
 test -s /usr/share/icons/hicolor/scalable/apps/cosmic-blue-logo.svg
 # fastfetch: cosmic-blue logo and config instead of Bluefin's, a valid
@@ -121,6 +126,17 @@ KVER="$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core | head -n1)"
 lsinitrd "/usr/lib/modules/${KVER}/initramfs.img" > /tmp/initramfs.txt
 grep -q 'plymouth/themes/cosmic-blue/bgrt-fallback.png' /tmp/initramfs.txt
 grep -q 'plymouth/themes/cosmic-blue/cosmic-blue.plymouth' /tmp/initramfs.txt
+# TPM2 disk unlock (`ujust toggle-tpm2`): the recipe, our checks wrapping
+# common's script, and TPM2 support in the initramfs (systemd-cryptsetup token)
+grep -q '^toggle-tpm2:' /usr/share/ublue-os/just/shared.just
+grep -q '/usr/bin/luks-tpm2-autounlock' /usr/share/ublue-os/just/shared.just
+cmp /ctx/system_files/cosmic-blue/usr/bin/luks-tpm2-autounlock /usr/bin/luks-tpm2-autounlock
+test -x /usr/libexec/ublue-luks-tpm2-autounlock
+grep -q '^get_luks_uuid()' /usr/libexec/ublue-luks-tpm2-autounlock
+grep -q 'BASH_SOURCE' /usr/libexec/ublue-luks-tpm2-autounlock
+for cmd in systemd-cryptenroll cryptsetup gum mokutil; do command -v "${cmd}"; done
+grep -q 'libcryptsetup-token-systemd-tpm2.so' /tmp/initramfs.txt
+grep -q 'libtss2-esys' /tmp/initramfs.txt
 
 # cosmic-blue signing key and policy, and the signed image reference
 test -s /etc/pki/containers/cosmic-blue.pub
@@ -136,7 +152,7 @@ for f in bin/ujust share/ublue-os/just/00-entry.just share/ublue-os/just/apps.ju
 done
 # cosmic-blue recipes (60-custom.just) parse and are listed by ujust
 recipes="$(just --justfile /usr/share/ublue-os/just/00-entry.just --summary)"
-for recipe in toggle-dark-mode reset-cosmic-theme reset-cosmic-config; do
+for recipe in toggle-dark-mode reset-cosmic-theme reset-cosmic-config export-cosmic-config; do
     grep -qw -- "${recipe}" <<<"${recipes}"
 done
 
@@ -288,6 +304,27 @@ check_color "${builder}.Light.Builder/v2/bg_color" '#d3d8e0'
 grep -qx None "${builder}.Dark.Builder/v2/window_hint"
 grep -qx None "${builder}.Light.Builder/v2/window_hint"
 
+# New image defaults reach existing accounts (cosmic-blue-migrate-defaults):
+# the list of defaults covers COSMIC and GSettings, earlier defaults are known
+# (Fedora's packaged ones, COSMIC's teal theme, COSMIC's icon theme), and the
+# migration keeps the users' own choices
+DEFAULTS_LIST=/usr/share/cosmic-blue/defaults.list
+PREVIOUS_LIST=/usr/share/cosmic-blue/previous-defaults.list
+MIGRATE=/usr/libexec/cosmic-blue-migrate-defaults
+grep -q ' com.system76.CosmicTk/v1/icon_theme$' "${DEFAULTS_LIST}"
+grep -q ' com.system76.CosmicTheme.Dark.Builder/v2/accent$' "${DEFAULTS_LIST}"
+grep -q ' gsettings/org.gnome.desktop.interface/icon-theme$' "${DEFAULTS_LIST}"
+if grep -q 'xkb_config$' "${DEFAULTS_LIST}"; then exit 1; fi
+cmp <("${MIGRATE}" --manifest) "${DEFAULTS_LIST}"
+for variant in /ctx/previous_defaults/theme/stock/cosmic /ctx/previous_defaults/theme/frosted/cosmic \
+    /ctx/build_files/previous_defaults/upstream; do
+    "${MIGRATE}" --hash-tree "${variant}" | grep ' com.system76.CosmicT' >/dev/null
+    missing="$(comm -23 <("${MIGRATE}" --hash-tree "${variant}" | sort) <(sort "${PREVIOUS_LIST}"))"
+    [[ -z "${missing}" ]] || { echo "Not in ${PREVIOUS_LIST}:"; echo "${missing}"; exit 1; }
+done
+test -L /etc/systemd/system/multi-user.target.wants/cosmic-blue-migrate-defaults.service
+/ctx/build_files/migrate-defaults-test.sh "${MIGRATE}"
+
 # Secure Boot: the Universal Blue akmods key (enrolled with
 # `ujust enroll-secure-boot-key`) is in every image, so it can be enrolled
 # before switching to cosmic-blue-nvidia
@@ -323,3 +360,7 @@ if [[ "${IMAGE_NAME}" == *-nvidia ]]; then
 elif rpm -q kmod-nvidia; then
     echo "kmod-nvidia in a non-NVIDIA image"; exit 1
 fi
+
+# Repair of the bootc aleph of early installs (bootloader-update.service)
+test -x /usr/libexec/cosmic-blue-fix-aleph
+grep -q cosmic-blue-fix-aleph /usr/lib/systemd/system/bootloader-update.service.d/10-cosmic-blue-aleph.conf

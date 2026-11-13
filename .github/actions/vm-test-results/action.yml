@@ -1,0 +1,66 @@
+name: Publish the virtual machine test results
+description: >-
+  Uploads the logs and screenshots of a virtual machine test, makes one tall
+  image of the desktop screenshots (uploaded unzipped, so it opens straight in
+  a phone browser) and links it from the run summary. Use with if: always().
+inputs:
+  dir:
+    description: Output directory of the test
+    required: true
+  name:
+    description: Artifact name of the logs, also used for the screenshot sheet file name
+    required: true
+  title:
+    description: Title of the screenshot sheet and of the run summary section
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Upload the logs and screenshots
+      if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.dir }}
+        if-no-files-found: ignore
+        retention-days: 7
+
+    - name: Make the screenshot sheet
+      id: sheet
+      if: always()
+      shell: bash
+      env:
+        DIR: ${{ inputs.dir }}
+        NAME: ${{ inputs.name }}
+        TITLE: ${{ inputs.title }}
+      run: |
+        compgen -G "${DIR}/screenshots/*.ppm" >/dev/null \
+          || compgen -G "${DIR}/screenshots/*.png" >/dev/null \
+          || { echo "No desktop screenshots"; exit 0; }
+        echo "made=true" >> "${GITHUB_OUTPUT}"
+        tests/screenshot-sheet.py "${DIR}/screenshots" "${RUNNER_TEMP}/screenshots-${NAME}.jpg" \
+          "${TITLE} · ${GITHUB_REF_NAME} · $(git rev-parse --short HEAD)"
+
+    - name: Upload the screenshot sheet
+      id: upload-sheet
+      if: always() && steps.sheet.outputs.made == 'true'
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        path: ${{ runner.temp }}/screenshots-${{ inputs.name }}.jpg
+        archive: false
+        retention-days: 7
+
+    - name: Link the screenshots in the run summary
+      if: always() && steps.upload-sheet.outcome == 'success'
+      shell: bash
+      env:
+        SHEET_URL: ${{ steps.upload-sheet.outputs.artifact-url }}
+        NAME: ${{ inputs.name }}
+        TITLE: ${{ inputs.title }}
+      run: |
+        {
+          echo "## Screenshots: ${TITLE}"
+          echo
+          echo "[Open the desktop screenshots](${SHEET_URL}) (one image, opens in the browser)."
+          echo "Full-size PNGs and logs: artifact \`${NAME}\`."
+        } >> "${GITHUB_STEP_SUMMARY}"

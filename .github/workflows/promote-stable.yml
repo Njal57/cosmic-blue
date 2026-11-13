@@ -8,6 +8,12 @@
 # week, run this workflow by hand with a known good tag (e.g. 20261105) to
 # point `stable` back to it, or disable the workflow to freeze `stable`.
 #
+# Before stable moves, an update test installs the current stable image in a
+# virtual machine, updates it to the new one, reboots and checks it, then
+# rolls back (tests/vm-update-test.sh, also runnable alone with
+# test-update.yml). If it fails, stable stays where it is; the logs and
+# screenshots are linked from the run summary.
+#
 # The tag is copied by digest, so the cosign signature made by build.yml stays
 # valid: nothing is rebuilt or re-signed here.
 #
@@ -27,6 +33,11 @@ on:
         description: "Tag to promote (e.g. latest or 20261105). Empty: the daily build from 7 days ago."
         required: false
         default: ""
+      skip_update_test:
+        description: "Promote without the update test (e.g. to roll stable back quickly)"
+        type: boolean
+        required: false
+        default: false
 
 env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
@@ -76,8 +87,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Promote
-        id: promote
+      - name: Pick the image to promote
+        id: pick
         env:
           SOURCE_TAG: ${{ inputs.source_tag }}
           GH_ACTOR: ${{ github.actor }}
@@ -85,8 +96,6 @@ jobs:
         run: |
           set -euo pipefail
           image="${IMAGE_REGISTRY,,}/${IMAGE_NAME,,}"
-          outputs=/dev/null
-          if [[ -z "${{ matrix.image_suffix }}" ]]; then outputs="${GITHUB_OUTPUT}"; fi
           creds="${GH_ACTOR}:${GH_TOKEN}"
 
           digest_of() {
@@ -117,6 +126,63 @@ jobs:
           cosign verify --key cosign.pub "${image}@${digest}" >/dev/null
 
           previous="$(digest_of stable || true)"
+          {
+            echo "image=${image}"
+            echo "source=${source}"
+            echo "digest=${digest}"
+            echo "previous=${previous}"
+          } >> "${GITHUB_OUTPUT}"
+
+      # Install the current stable image in a virtual machine, update it to
+      # the image about to be promoted, reboot and check it, then roll back
+      # (tests/vm-update-test.sh): stable only moves if users can update to it.
+      - name: Maximize build space
+        if: steps.pick.outputs.previous != '' && steps.pick.outputs.previous != steps.pick.outputs.digest && !inputs.skip_update_test
+        uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
+
+      - name: Prepare the update test
+        if: steps.pick.outputs.previous != '' && steps.pick.outputs.previous != steps.pick.outputs.digest && !inputs.skip_update_test
+        uses: ./.github/actions/vm-test-setup
+
+      - name: Update test
+        id: update-test
+        if: steps.pick.outputs.previous != '' && steps.pick.outputs.previous != steps.pick.outputs.digest && !inputs.skip_update_test
+        timeout-minutes: 90
+        env:
+          IMAGE: ${{ steps.pick.outputs.image }}
+          DIGEST: ${{ steps.pick.outputs.digest }}
+          # The virtual machine has no NVIDIA GPU for these to work with
+          EXTRA_IGNORED_UNITS: ${{ matrix.image_suffix == 'nvidia' && 'nvidia-persistenced|nvidia-cdi-refresh' || '' }}
+        run: |
+          tests/vm-update-test.sh "${IMAGE}:stable" "${IMAGE}@${DIGEST}" "${RUNNER_TEMP}/update-test"
+
+      - name: Publish the update test results
+        if: always() && steps.update-test.outcome != 'skipped'
+        uses: ./.github/actions/vm-test-results
+        with:
+          dir: ${{ runner.temp }}/update-test
+          name: update-test-${{ env.IMAGE_NAME }}
+          title: ${{ env.IMAGE_NAME }} stable → ${{ steps.pick.outputs.source }}
+
+      - name: Promote
+        id: promote
+        env:
+          GH_ACTOR: ${{ github.actor }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          image: ${{ steps.pick.outputs.image }}
+          source: ${{ steps.pick.outputs.source }}
+          digest: ${{ steps.pick.outputs.digest }}
+          previous: ${{ steps.pick.outputs.previous }}
+        run: |
+          set -euo pipefail
+          outputs=/dev/null
+          if [[ -z "${{ matrix.image_suffix }}" ]]; then outputs="${GITHUB_OUTPUT}"; fi
+          creds="${GH_ACTOR}:${GH_TOKEN}"
+
+          digest_of() {
+            skopeo inspect --creds "${creds}" --format '{{.Digest}}' "docker://${image}:$1" 2>/dev/null
+          }
+
           if [[ "${previous}" == "${digest}" ]]; then
             echo "stable already points to ${digest}, nothing to do"
             echo "promoted=false" >> "${outputs}"

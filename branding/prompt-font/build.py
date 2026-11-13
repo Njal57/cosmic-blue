@@ -85,8 +85,14 @@ def logo(pen):
         circle(pen, px, py, r * scale)
 
 
+# The arrow is wider than its cell, like powerline arrows in terminals with
+# tighter lines: its tip reaches into the next cell, which the prompt always
+# fills with a space (COSMIC Terminal draws all cell backgrounds first)
+ARROW_TIP = 1000
+
+
 def arrow(pen):
-    polygon(pen, [(-15, round(CELL_TOP)), (ADVANCE, round((CELL_TOP + CELL_BOTTOM) / 2)),
+    polygon(pen, [(-15, round(CELL_TOP)), (ARROW_TIP, round((CELL_TOP + CELL_BOTTOM) / 2)),
                   (-15, round(CELL_BOTTOM))])
 
 
