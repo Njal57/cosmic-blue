@@ -121,6 +121,17 @@ KVER="$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core | head -n1)"
 lsinitrd "/usr/lib/modules/${KVER}/initramfs.img" > /tmp/initramfs.txt
 grep -q 'plymouth/themes/cosmic-blue/bgrt-fallback.png' /tmp/initramfs.txt
 grep -q 'plymouth/themes/cosmic-blue/cosmic-blue.plymouth' /tmp/initramfs.txt
+# TPM2 disk unlock (`ujust toggle-tpm2`): the recipe, our checks wrapping
+# common's script, and TPM2 support in the initramfs (systemd-cryptsetup token)
+grep -q '^toggle-tpm2:' /usr/share/ublue-os/just/shared.just
+grep -q '/usr/bin/luks-tpm2-autounlock' /usr/share/ublue-os/just/shared.just
+cmp /ctx/system_files/cosmic-blue/usr/bin/luks-tpm2-autounlock /usr/bin/luks-tpm2-autounlock
+test -x /usr/libexec/ublue-luks-tpm2-autounlock
+grep -q '^get_luks_uuid()' /usr/libexec/ublue-luks-tpm2-autounlock
+grep -q 'BASH_SOURCE' /usr/libexec/ublue-luks-tpm2-autounlock
+for cmd in systemd-cryptenroll cryptsetup gum mokutil; do command -v "${cmd}"; done
+grep -q 'libcryptsetup-token-systemd-tpm2.so' /tmp/initramfs.txt
+grep -q 'libtss2-esys' /tmp/initramfs.txt
 
 # cosmic-blue signing key and policy, and the signed image reference
 test -s /etc/pki/containers/cosmic-blue.pub

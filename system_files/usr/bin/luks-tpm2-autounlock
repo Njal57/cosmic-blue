@@ -1,0 +1,47 @@
+#!/usr/bin/bash
+# `ujust toggle-tpm2`: unlock the encrypted disk (LUKS) with the TPM2 chip at
+# boot, so the passphrase is no longer typed, or stop doing so.
+#
+# The enrollment itself is projectbluefin/common's script, moved at build to
+# /usr/libexec/ublue-luks-tpm2-autounlock (build_files/10-system-files.sh).
+# This wrapper adds the checks it lacks before handing over to it: shows
+# whether TPM2 unlock is already on, stops early when there is no TPM2 chip
+# (e.g. GNOME Boxes VMs), and warns when Secure Boot is off, since the PCR 7
+# binding then protects nothing.
+
+UPSTREAM=/usr/libexec/ublue-luks-tpm2-autounlock
+# shellcheck source=/dev/null
+source "${UPSTREAM}" # functions only (get_luks_uuid, resolve_crypt_disk...)
+
+LUKS_UUID="$(get_luks_uuid)"
+if [[ -z "${LUKS_UUID}" ]] || ! check_luks_device "${LUKS_UUID}"; then
+    echo "This system does not boot from an encrypted (LUKS) disk: there is nothing to unlock."
+    echo "Disk encryption is chosen in the installer (\"Encrypt my data\")."
+    exit 1
+fi
+CRYPT_DISK="$(resolve_crypt_disk "${LUKS_UUID}")"
+
+echo "Encrypted disk: ${CRYPT_DISK}"
+if sudo cryptsetup luksDump "${CRYPT_DISK}" | grep -q 'systemd-tpm2'; then
+    echo "TPM2 auto-unlock is currently ON."
+    exec "${UPSTREAM}"
+fi
+echo "TPM2 auto-unlock is currently OFF: the passphrase is asked at each boot."
+
+if [[ "$(cat /sys/class/tpm/tpm0/tpm_version_major 2>/dev/null)" != 2 ]]; then
+    echo "No TPM 2.0 chip found. Turn it on in the firmware (UEFI) settings, often"
+    echo "called TPM, fTPM, PTT or Security Device. Virtual machines need an emulated"
+    echo "TPM (virt-manager can add one, GNOME Boxes cannot)."
+    exit 1
+fi
+
+if ! mokutil --sb-state 2>/dev/null | grep -q 'SecureBoot enabled'; then
+    echo
+    echo "WARNING: Secure Boot is off. The TPM then hands the disk key to any system"
+    echo "started on this computer, for example from a USB stick, so the encryption"
+    echo "would no longer protect a stolen laptop. Turn Secure Boot on first, or at"
+    echo "least choose a PIN in the next step."
+    gum confirm --default=false "Continue anyway?" || exit 0
+fi
+
+exec "${UPSTREAM}"
