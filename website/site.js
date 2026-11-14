@@ -43,3 +43,14 @@ for (const button of document.querySelectorAll("[data-copy]")) {
     setTimeout(() => { button.textContent = labels.copy; }, 2000);
   });
 }
+
+// Dates (screenshots page): written as 2026-11-13 by build.sh, shown in the
+// page language.
+for (const time of document.querySelectorAll("time[datetime]")) {
+  const date = new Date(`${time.dateTime}T12:00:00Z`);
+  if (!Number.isNaN(date.getTime())) {
+    time.textContent = date.toLocaleDateString(document.documentElement.lang, {
+      day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+    });
+  }
+}

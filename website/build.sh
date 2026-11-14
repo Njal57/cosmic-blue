@@ -17,9 +17,32 @@ iso_name="cosmic-blue-live-amd64.iso"
 iso_nvidia_name="cosmic-blue-nvidia-live-amd64.iso"
 runs="https://github.com/cosmic-blue-os/cosmic-blue/actions/workflows/build-live-iso.yml?query=branch%3Amain+is%3Asuccess"
 
+# Desktop screenshots for the screenshots page and the home page preview,
+# from SCREENSHOTS_DIR (filled by website/fetch-screenshots.sh in CI). Files
+# are named like 03-desktop.png; the pages show a screenshot only if it is
+# there (blocks between <!-- shot:NAME --> and <!-- /shot -->).
+shots_dir="${SCREENSHOTS_DIR:-}"
+shots=""
+if [[ -n "${shots_dir}" && -f "${shots_dir}/info.env" ]]; then
+  mkdir -p "${out}/img/screenshots"
+  for file in "${shots_dir}"/*.png "${shots_dir}"/*.ppm; do
+    [[ -e "${file}" ]] || continue
+    name="$(basename "${file%.*}")"
+    name="${name#[0-9][0-9]-}"
+    [[ " ${shots} " == *" ${name} "* ]] && continue
+    convert "${file}" -strip -quality 90 -define webp:method=6 "${out}/img/screenshots/${name}.webp"
+    convert "${file}" -resize 960x -strip -quality 85 -define webp:method=6 "${out}/img/screenshots/${name}-960.webp"
+    shots+=" ${name}"
+  done
+  # shellcheck source=/dev/null
+  source "${shots_dir}/info.env"
+fi
+[[ -n "${shots}" ]] && shots+=" shots-info" || shots="no-shots"
+
 # One page per language: index.html (English, default) and fr/index.html,
-# and the same for the documentation (docs/).
-for page in index.html fr/index.html docs/index.html fr/docs/index.html; do
+# and the same for the documentation (docs/) and the screenshots.
+for page in index.html fr/index.html docs/index.html fr/docs/index.html \
+            screenshots/index.html fr/screenshots/index.html; do
   mkdir -p "$(dirname "${out}/${page}")"
   if [[ -n "${ISO_BASE_URL:-}" ]]; then
     sed -e "s|@ISO_NVIDIA_URL@|${ISO_BASE_URL%/}/${iso_nvidia_name}|g" \
@@ -30,6 +53,13 @@ for page in index.html fr/index.html docs/index.html fr/docs/index.html; do
         -e "s|@ISO_NVIDIA_URL@|${runs}|g" -e "s|@ISO_URL@|${runs}|g" \
       "${root}/website/${page}" > "${out}/${page}"
   fi
+  SHOTS="${shots}" perl -0pi -e '
+    my %have = map { $_ => 1 } split " ", $ENV{SHOTS};
+    s{^[ \t]*<!-- (?:shot:([\w-]+)|(shots-info|no-shots)) -->.*?<!-- /(?:shot|shots-info|no-shots) -->\n}
+     {$have{$1 // $2} ? $& : ""}gmse;
+    s{<!-- /?(shot(:[\w-]+)?|shots-info|no-shots) -->}{}g;' "${out}/${page}"
+  sed -i -e "s|@SHOTS_DATE@|${SHOTS_DATE:-}|g" -e "s|@SHOTS_COMMIT@|${SHOTS_COMMIT:-}|g" \
+    -e "s|@SHOTS_RUN@|${SHOTS_RUN:-}|g" "${out}/${page}"
 done
 cp "${root}/website/style.css" "${root}/website/site.js" "${out}/"
 cp "${root}/branding/logo/cosmic-blue-logo.svg" \
