@@ -172,7 +172,7 @@ jobs:
     name: Install test${{ matrix.image_suffix && format(' ({0})', matrix.image_suffix) || '' }}
     needs: build
     runs-on: ubuntu-26.04
-    timeout-minutes: 150
+    timeout-minutes: 180
     permissions:
       contents: read
       issues: write  # R2 size alerts

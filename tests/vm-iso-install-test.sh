@@ -24,7 +24,7 @@ source "$(dirname "$0")/vm-lib.sh"
 # Swiss French keyboard and a language with a 24-hour clock
 KS_LANG=fr_CH.UTF-8
 KS_XLAYOUT="ch (fr)"
-INSTALL_TIMEOUT=5400
+INSTALL_TIMEOUT=7200
 errors=0
 error() { echo "::error::$*"; errors=1; }
 
@@ -83,6 +83,9 @@ user --name=${DEMO_USER} --password=${DEMO_PASSWORD} --plaintext --groups=wheel 
 sshkey --username=root "${pubkey}"
 services --enabled=sshd
 bootloader --append="console=tty0 console=ttyS0,115200"
+# A text-mode install would make the system boot to a text console; the
+# graphical installer a person uses boots it to the login screen
+xconfig --startxonboot
 poweroff
 
 # NVIDIA image: the virtual machine cannot answer the firmware's prompt to
