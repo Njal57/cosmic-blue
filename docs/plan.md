@@ -55,8 +55,9 @@ same through the build context:
 - `ujust` + recipes (`00-entry`, `apps`, `default`, `shared`, `update`,
   `system`): `update`, `toggle-updates`, `devmode`/`toggle-devmode`,
   `install-system-flatpaks`, `bluefin-cli`, `setup-vms`, `enroll-secure-boot-key`,
-  `powerwash`, `changelogs`, `report`, `device-info`, `benchmark`, `toggle-tpm2`,
-  `install-jetbrains-toolbox`, `install-ai-tools`, `cncf`…
+  `powerwash`, `device-info`, `benchmark`, `toggle-tpm2`,
+  `install-jetbrains-toolbox`, `install-ai-tools`, `cncf`… Bluefin-only recipes
+  are dropped in `build_files/10-system-files.sh`.
 - **Homebrew** (`ghcr.io/ublue-os/brew`): `brew-setup.service`,
   `brew-preinstall`, Brewfiles (`cli`, `fonts`, `ide`, `k8s-tools`, `ai-tools`…).
 - **Updates**: `uupd` + `uupd.timer`, `uupd-on-ac`, `bootc-update-stage`

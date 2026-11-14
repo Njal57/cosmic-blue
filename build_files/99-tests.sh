@@ -183,7 +183,34 @@ for recipe in toggle-dark-mode reset-cosmic-theme reset-cosmic-config export-cos
 done
 
 test ! -e /usr/share/flatpak/preinstall.d/bazaar.preinstall
-! grep -q Bazaar /usr/share/ublue-os/homebrew/system-flatpaks.Brewfile
+# FlatPark (Bluefin's second Flatpak remote) is kept: when it is there, its
+# filter must be too, so apps also on Flathub only come from Flathub
+FLATPARK=/usr/share/flatpak/remotes.d/flatpark.flatpakrepo
+if [[ -f "${FLATPARK}" ]]; then
+    filter="$(sed -n 's/^Filter=//p' "${FLATPARK}")"
+    test -n "${filter}"
+    grep -q '^deny ' "${filter}"
+    grep -qx 'enable flatpark-filter-copy.path' /usr/lib/systemd/system-preset/02-flatpak-appstream-refresh.preset
+fi
+# Bluefin leftovers removed in 10-system-files.sh
+for path in /etc/bazaar \
+    /usr/lib/systemd/user/bazaar.service /usr/libexec/projectbluefin-countme \
+    /usr/lib/systemd/system/projectbluefin-countme.timer /usr/share/ublue-os/agent \
+    /usr/share/ublue-os/just/changelog.just /usr/share/ublue-os/homebrew/full-desktop.Brewfile; do
+    test ! -e "${path}"
+done
+for recipe in contribute bluespeed bluefin-apps bazaar-preview toggle-testing changelogs; do
+    # (`! cmd` never stops a set -e script: use if ... exit 1)
+    if grep -qw -- "${recipe}" <<<"${recipes}"; then echo "ujust ${recipe} left in place"; exit 1; fi
+done
+if grep -q '^export LC_' /etc/zsh/zprofile; then exit 1; fi
+# Default applications: ours, naming installed COSMIC apps
+grep -q CosmicStore /etc/xdg/mimeapps.list
+for app in com.system76.CosmicStore com.system76.CosmicPlayer noop; do
+    test -f "/usr/share/applications/${app}.desktop"
+done
+grep -q cosmic-blue /usr/share/applications/system-update.desktop
+if grep -q Bazaar /usr/share/ublue-os/homebrew/system-flatpaks.Brewfile; then exit 1; fi
 for remote in flathub cosmic; do
     grep -q '^\[Flatpak Repo\]' "/usr/share/flatpak/remotes.d/${remote}.flatpakrepo"
     flatpak remotes --system --columns=name | grep -qx "${remote}"
