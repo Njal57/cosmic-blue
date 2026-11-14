@@ -1,0 +1,29 @@
+# cosmic-blue default applications (replaces Bluefin's list, which named Bazaar
+# and GNOME Showtime). Papers and Loupe are first-boot flatpaks.
+[Default Applications]
+application/pdf=org.gnome.Papers.desktop
+application/vnd.flatpak.ref=com.system76.CosmicStore.desktop
+application/vnd.flatpak.repo=com.system76.CosmicStore.desktop
+application/vnd.appimage=noop.desktop
+image/avif=org.gnome.Loupe.desktop
+image/bmp=org.gnome.Loupe.desktop
+image/gif=org.gnome.Loupe.desktop
+image/heic=org.gnome.Loupe.desktop
+image/jpeg=org.gnome.Loupe.desktop
+image/jxl=org.gnome.Loupe.desktop
+image/png=org.gnome.Loupe.desktop
+image/svg+xml=org.gnome.Loupe.desktop
+image/tiff=org.gnome.Loupe.desktop
+image/webp=org.gnome.Loupe.desktop
+video/3gpp=com.system76.CosmicPlayer.desktop
+video/mp2t=com.system76.CosmicPlayer.desktop
+video/mp4=com.system76.CosmicPlayer.desktop
+video/mpeg=com.system76.CosmicPlayer.desktop
+video/ogg=com.system76.CosmicPlayer.desktop
+video/quicktime=com.system76.CosmicPlayer.desktop
+video/webm=com.system76.CosmicPlayer.desktop
+video/x-flv=com.system76.CosmicPlayer.desktop
+video/x-m4v=com.system76.CosmicPlayer.desktop
+video/x-matroska=com.system76.CosmicPlayer.desktop
+video/x-msvideo=com.system76.CosmicPlayer.desktop
+video/x-ms-wmv=com.system76.CosmicPlayer.desktop

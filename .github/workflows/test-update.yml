@@ -15,6 +15,7 @@ on:
     paths:
       - 'tests/vm-lib.sh'
       - 'tests/vm-update-test.sh'
+      - 'tests/vm-terminal-checks.sh'
       - 'tests/screenshot-sheet.py'
       - '.github/actions/vm-test-*/**'
       - '.github/workflows/test-update.yml'

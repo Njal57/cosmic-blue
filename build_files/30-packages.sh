@@ -78,6 +78,31 @@ FEDORA_PACKAGES=(
 )
 dnf5 -y install "${FEDORA_PACKAGES[@]}"
 
+# Everyday pieces that Fedora Workstation (and so Bluefin) has but our
+# base-main + COSMIC image lacks. Codecs, CUPS, SANE, Liberation and the
+# default Fedora fonts already come with base-main and the COSMIC group.
+EVERYDAY_PACKAGES=(
+    # Printing: rootless printer setup through polkit (system-config-printer),
+    # and the PPD drivers Fedora Workstation ships for older printers
+    cups-pk-helper
+    foomatic
+    foomatic-db-ppds
+    # Fonts metric-compatible with Calibri and Cambria, so Office documents
+    # keep their layout (Liberation already covers Arial, Times and Courier)
+    google-carlito-fonts
+    google-crosextra-caladea-fonts
+    # Disks: format USB drives, partitions, disk images, SMART data.
+    # COSMIC has no disk tool and GNOME Disks is not on Flathub.
+    gnome-disk-utility
+    # PDF and e-book previews in COSMIC Files (videos already have
+    # ffmpegthumbnailer)
+    papers-thumbnailer
+    gnome-epub-thumbnailer
+    # Extracts the Microsoft core fonts for `ujust install-microsoft-fonts`
+    cabextract
+)
+dnf5 -y install "${EVERYDAY_PACKAGES[@]}"
+
 # Tailscale (official Tailscale repo, disabled after use)
 dnf5 config-manager addrepo --from-repofile=https://pkgs.tailscale.com/stable/fedora/tailscale.repo
 dnf5 config-manager setopt tailscale-stable.enabled=0

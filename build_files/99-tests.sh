@@ -7,20 +7,21 @@ jq -e '.transports.docker."ghcr.io/ublue-os"' /etc/containers/policy.json >/dev/
 # No Bluefin wallpapers
 test ! -e /usr/share/backgrounds/bluefin
 # cosmic-blue wallpapers: orbits is the COSMIC default, the logo scene, waves
-# and the Milky Way are extras
+# and the Milky Way are extras. No light duplicates.
 bg=/usr/share/backgrounds/cosmic-blue
-for name in orbits orbits-light waves milky-way; do
+for name in orbits waves milky-way; do
     test -s "${bg}/cosmic-blue-${name}.jpg"
 done
 test -s "${bg}/cosmic-blue.jpg"
-test -s "${bg}/cosmic-blue-light.jpg"
+test ! -e "${bg}/cosmic-blue-light.jpg"
+test ! -e "${bg}/cosmic-blue-orbits-light.jpg"
 grep -q "Path(\"${bg}/cosmic-blue-orbits.jpg\")" \
     /usr/share/cosmic/com.system76.CosmicBackground/v1/all
-# Per-theme defaults (used by COSMIC releases after 1.11): the dark wallpaper
-# for the dark theme, the light one for the light theme
+# Per-theme defaults (used by COSMIC releases after 1.11): the same wallpaper
+# for both themes
 grep -q "Path(\"${bg}/cosmic-blue-orbits.jpg\")" \
     /usr/share/cosmic/com.system76.CosmicBackground.Dark/v1/all
-grep -q "Path(\"${bg}/cosmic-blue-orbits-light.jpg\")" \
+grep -q "Path(\"${bg}/cosmic-blue-orbits.jpg\")" \
     /usr/share/cosmic/com.system76.CosmicBackground.Light/v1/all
 test -s /usr/share/icons/hicolor/scalable/apps/cosmic-blue-logo.svg
 # fastfetch: cosmic-blue logo and config instead of Bluefin's, a valid
@@ -176,12 +177,40 @@ for f in bin/ujust share/ublue-os/just/00-entry.just share/ublue-os/just/apps.ju
 done
 # cosmic-blue recipes (60-custom.just) parse and are listed by ujust
 recipes="$(just --justfile /usr/share/ublue-os/just/00-entry.just --summary)"
-for recipe in toggle-dark-mode reset-cosmic-theme reset-cosmic-config export-cosmic-config; do
+for recipe in toggle-dark-mode reset-cosmic-theme reset-cosmic-config export-cosmic-config \
+              install-microsoft-fonts; do
     grep -qw -- "${recipe}" <<<"${recipes}"
 done
 
 test ! -e /usr/share/flatpak/preinstall.d/bazaar.preinstall
-! grep -q Bazaar /usr/share/ublue-os/homebrew/system-flatpaks.Brewfile
+# FlatPark (Bluefin's second Flatpak remote) is kept: when it is there, its
+# filter must be too, so apps also on Flathub only come from Flathub
+FLATPARK=/usr/share/flatpak/remotes.d/flatpark.flatpakrepo
+if [[ -f "${FLATPARK}" ]]; then
+    filter="$(sed -n 's/^Filter=//p' "${FLATPARK}")"
+    test -n "${filter}"
+    grep -q '^deny ' "${filter}"
+    grep -qx 'enable flatpark-filter-copy.path' /usr/lib/systemd/system-preset/02-flatpak-appstream-refresh.preset
+fi
+# Bluefin leftovers removed in 10-system-files.sh
+for path in /etc/bazaar \
+    /usr/lib/systemd/user/bazaar.service /usr/libexec/projectbluefin-countme \
+    /usr/lib/systemd/system/projectbluefin-countme.timer /usr/share/ublue-os/agent \
+    /usr/share/ublue-os/just/changelog.just /usr/share/ublue-os/homebrew/full-desktop.Brewfile; do
+    test ! -e "${path}"
+done
+for recipe in contribute bluespeed bluefin-apps bazaar-preview toggle-testing changelogs; do
+    # (`! cmd` never stops a set -e script: use if ... exit 1)
+    if grep -qw -- "${recipe}" <<<"${recipes}"; then echo "ujust ${recipe} left in place"; exit 1; fi
+done
+if grep -q '^export LC_' /etc/zsh/zprofile; then exit 1; fi
+# Default applications: ours, naming installed COSMIC apps
+grep -q CosmicStore /etc/xdg/mimeapps.list
+for app in com.system76.CosmicStore com.system76.CosmicPlayer noop; do
+    test -f "/usr/share/applications/${app}.desktop"
+done
+grep -q cosmic-blue /usr/share/applications/system-update.desktop
+if grep -q Bazaar /usr/share/ublue-os/homebrew/system-flatpaks.Brewfile; then exit 1; fi
 for remote in flathub cosmic; do
     grep -q '^\[Flatpak Repo\]' "/usr/share/flatpak/remotes.d/${remote}.flatpakrepo"
     flatpak remotes --system --columns=name | grep -qx "${remote}"
@@ -221,6 +250,18 @@ IMPORTANT_PACKAGES=(
 for package in "${IMPORTANT_PACKAGES[@]}"; do
     rpm -q "${package}" >/dev/null || { echo "Missing package: ${package}"; exit 1; }
 done
+
+# Everyday pieces: printing, scanning, codecs, fonts, disks, file previews
+rpm -q cups cups-pk-helper foomatic-db-ppds system-config-printer hplip \
+    sane-backends sane-airscan ipp-usb \
+    ffmpeg gstreamer1-plugin-libav gstreamer1-plugins-good \
+    liberation-sans-fonts google-carlito-fonts google-crosextra-caladea-fonts \
+    gnome-disk-utility papers-thumbnailer gnome-epub-thumbnailer cabextract
+systemctl is-enabled cups.socket
+rpm -ql papers-thumbnailer | grep '^/usr/share/thumbnailers/.*\.thumbnailer$' >/dev/null
+# Microsoft core fonts are never shipped in the image (their license forbids
+# redistribution): users fetch them with `ujust install-microsoft-fonts`
+test -z "$(find /usr/share/fonts -iname 'arial*.ttf' -o -iname 'verdana*.ttf')"
 
 # No GNOME Shell package may end up in the image
 for package in gnome-shell gdm mutter; do
