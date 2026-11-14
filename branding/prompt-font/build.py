@@ -92,9 +92,15 @@ def logo(pen):
 ARROW_TIP = 1000
 
 
+# Its back edge starts inside the cell before, a space of the arrow's own color,
+# so antialiasing leaves no seam between the segment and its arrow
+ARROW_BACK = -150
+
+
 def arrow(pen):
-    polygon(pen, [(-15, round(CELL_TOP)), (ARROW_TIP, round((CELL_TOP + CELL_BOTTOM) / 2)),
-                  (-15, round(CELL_BOTTOM))])
+    polygon(pen, [(ARROW_BACK, round(CELL_TOP)),
+                  (ARROW_TIP, round((CELL_TOP + CELL_BOTTOM) / 2)),
+                  (ARROW_BACK, round(CELL_BOTTOM))])
 
 
 def branch(pen):
