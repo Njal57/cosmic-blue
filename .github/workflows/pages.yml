@@ -29,10 +29,6 @@ on:
     branches:
       - main
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build:
     name: Build website
@@ -41,6 +37,13 @@ jobs:
       github.event_name != 'workflow_run' ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event != 'pull_request')
+    # Job-level, so a skipped run (image build that published nothing) never
+    # cancels or replaces a real one. Pull requests: a new push cancels the
+    # running build. Main: runs queue; a pending one may be replaced by a
+    # newer one, which builds the same or a later main.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -73,6 +76,9 @@ jobs:
     name: Deploy website
     if: github.event_name != 'pull_request'
     needs: build
+    concurrency:
+      group: ${{ github.workflow }}-deploy
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     permissions:
       pages: write
