@@ -36,7 +36,10 @@ JSON
 # Keep ID=fedora (avoids EFI/GRUB path issues); only change the displayed name.
 sed -i "s|^NAME=.*|NAME=\"${IMAGE_PRETTY_NAME}\"|" /usr/lib/os-release
 sed -i "s|^PRETTY_NAME=.*|PRETTY_NAME=\"${IMAGE_PRETTY_NAME} ${VERSION}\"|" /usr/lib/os-release
-sed -i "s|^VARIANT_ID=.*|VARIANT_ID=${IMAGE_NAME}|" /usr/lib/os-release
+# Fedora's base os-release has no VARIANT_ID line to replace: add it. The
+# live ISO's installer finds its cosmic-blue profile with it.
+sed -i "/^VARIANT_ID=/d" /usr/lib/os-release
+echo "VARIANT_ID=${IMAGE_NAME}" >> /usr/lib/os-release
 sed -i "s|^HOME_URL=.*|HOME_URL=\"${HOME_URL}\"|" /usr/lib/os-release
 sed -i "s|^SUPPORT_URL=.*|SUPPORT_URL=\"${HOME_URL}/issues\"|" /usr/lib/os-release
 sed -i "s|^BUG_REPORT_URL=.*|BUG_REPORT_URL=\"${HOME_URL}/issues\"|" /usr/lib/os-release

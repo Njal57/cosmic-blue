@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 # Shared helpers of the virtual machine tests (vm-boot-test.sh,
-# vm-update-test.sh): install an image to a virtual disk with `bootc install`,
+# vm-update-test.sh, vm-iso-install-test.sh): install an image to a virtual disk with `bootc install`,
 # boot it in QEMU (UEFI, KVM), run commands over SSH, check the system,
 # reboot, take screenshots and log in to the desktop.
 #
@@ -49,7 +49,14 @@ vm_install() {
     sudo chown "$(id -u):$(id -g)" "${WORK}/disk.raw"
 }
 
-# Boots the disk (UEFI, like most PCs and GNOME Boxes)
+# Boots the disk (UEFI, like most PCs and GNOME Boxes). The UEFI variables
+# (boot entries) are kept from one start to the next, as on a real PC.
+# Optional settings, as environment variables:
+#   VM_MEMORY (MiB, default 4096), VM_CPUS (default 2)
+#   VM_CDROM: an ISO in the CD drive
+#   VM_KERNEL, VM_INITRD, VM_APPEND: boot this kernel directly
+#   VM_SERIAL: serial log file name in OUT (default serial.log)
+#   VM_EXTRA_ARGS: array of more QEMU arguments
 vm_start() {
     local f ovmf_code="" ovmf_vars=""
     for f in /usr/share/OVMF/OVMF_CODE_4M.fd /usr/share/OVMF/OVMF_CODE.fd \
@@ -61,11 +68,20 @@ vm_start() {
         if [[ -f "${f}" ]]; then ovmf_vars="${f}"; break; fi
     done
     [[ -n "${ovmf_code}" && -n "${ovmf_vars}" ]] || fail "OVMF firmware not found"
-    cp "${ovmf_vars}" "${WORK}/vars.fd"
+    [[ -f "${WORK}/vars.fd" ]] || cp "${ovmf_vars}" "${WORK}/vars.fd"
+
+    local extra=()
+    if [[ -n "${VM_CDROM:-}" ]]; then
+        extra+=(-drive file="${VM_CDROM}",media=cdrom,readonly=on)
+    fi
+    if [[ -n "${VM_KERNEL:-}" ]]; then
+        extra+=(-kernel "${VM_KERNEL}" -initrd "${VM_INITRD}" -append "${VM_APPEND:-}")
+    fi
+    extra+=(${VM_EXTRA_ARGS[@]+"${VM_EXTRA_ARGS[@]}"})
 
     log "Booting the virtual machine"
     qemu-system-x86_64 \
-        -machine q35,accel=kvm -cpu host -smp 2 -m 4096 \
+        -machine q35,accel=kvm -cpu host -smp "${VM_CPUS:-2}" -m "${VM_MEMORY:-4096}" \
         -drive if=pflash,format=raw,readonly=on,file="${ovmf_code}" \
         -drive if=pflash,format=raw,file="${WORK}/vars.fd" \
         -drive file="${WORK}/disk.raw",format=raw,if=virtio \
@@ -73,9 +89,15 @@ vm_start() {
         -device virtio-net-pci,netdev=net0 \
         -device virtio-vga,xres=1920,yres=1080 \
         -display none \
-        -serial file:"${OUT}/serial.log" \
+        -serial file:"${OUT}/${VM_SERIAL:-serial.log}" \
         -monitor unix:"${WORK}/monitor.sock",server,nowait \
-        -pidfile "${WORK}/qemu.pid" -daemonize
+        -pidfile "${WORK}/qemu.pid" -daemonize \
+        "${extra[@]}"
+}
+
+# True while the virtual machine is running
+vm_running() {
+    [[ -f "${WORK}/qemu.pid" ]] && kill -0 "$(cat "${WORK}/qemu.pid")" 2>/dev/null
 }
 
 vm() {
@@ -102,7 +124,7 @@ vm_wait_ssh() {
     until vm true 2>/dev/null; do
         if (( SECONDS > deadline )); then
             screenshot "${1:-no-ssh}"
-            tail -n 50 "${OUT}/serial.log" || true
+            tail -n 50 "${OUT}/${VM_SERIAL:-serial.log}" || true
             fail "The virtual machine did not answer over SSH within 10 minutes"
         fi
         sleep 10
@@ -119,7 +141,7 @@ vm_reboot() {
     until new="$(vm cat /proc/sys/kernel/random/boot_id 2>/dev/null)" && [[ "${new}" != "${old}" ]]; do
         if (( SECONDS > deadline )); then
             screenshot "no-reboot"
-            tail -n 50 "${OUT}/serial.log" || true
+            tail -n 50 "${OUT}/${VM_SERIAL:-serial.log}" || true
             fail "The virtual machine did not come back within 10 minutes of the reboot"
         fi
         sleep 10

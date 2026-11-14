@@ -134,6 +134,8 @@ rpm -q "f${FEDORA_MAJOR_VERSION}-backgrounds-base"
 test -z "$(find /usr/share/backgrounds -type l)"
 test -z "$(find /usr/share/backgrounds -type f -exec sha256sum {} + | cut -d' ' -f1 | sort | uniq -d)"
 grep -q '^LOGO=cosmic-blue-logo$' /usr/lib/os-release
+# The live ISO installer matches its profile on VARIANT_ID
+grep -qE '^VARIANT_ID=cosmic-blue(-nvidia)?$' /usr/lib/os-release
 # Boot screen (Plymouth): cosmic-blue theme by default, with our logo images,
 # the blue spinner and Fedora's other images, and included in the initramfs
 test "$(plymouth-set-default-theme)" = cosmic-blue
