@@ -431,3 +431,5 @@ fi
 # Repair of the bootc aleph of early installs (bootloader-update.service)
 test -x /usr/libexec/cosmic-blue-fix-aleph
 grep -q cosmic-blue-fix-aleph /usr/lib/systemd/system/bootloader-update.service.d/10-cosmic-blue-aleph.conf
+# ISO installs: no systemd-remount-fs on the composefs root (fstab "/" line)
+grep -q "ConditionPathExists=!/run/ostree-booted" /usr/lib/systemd/system/systemd-remount-fs.service.d/10-cosmic-blue-ostree.conf
