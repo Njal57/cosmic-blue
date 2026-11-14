@@ -34,11 +34,10 @@ Regenerate the SVGs with `python3 logo/build.py`.
 
 All 5120x2880, in `system_files/usr/share/backgrounds/cosmic-blue/`:
 
-- `cosmic-blue-orbits.jpg`: planets on tilted orbits around a bright star,
-  the default COSMIC wallpaper
-- `cosmic-blue-orbits-light.jpg`: the same on a pale sky, for the light theme
-- `cosmic-blue.jpg` / `cosmic-blue-light.jpg`: the logo as a scene (night and
-  pale sky), offered in Settings
+- `cosmic-blue-orbits.jpg`: a planetary system seen from above its plane (a
+  bright star, shaded planets, a ringed giant, an asteroid belt) over the
+  Milky Way, the default COSMIC wallpaper
+- `cosmic-blue.jpg`: the logo as a scene, offered in Settings
 - `cosmic-blue-waves.jpg`: layered ribbons of light, offered in Settings
 - `cosmic-blue-milky-way.jpg`: the Milky Way above the Earth, a photo taken
   on the International Space Station (NASA, ISS064-E-55946, public domain),
@@ -49,26 +48,26 @@ Keep the main elements inside the centre so they survive cropping to 16:10,
 downloaded); the output is deterministic (fixed seeds). Keep the file names:
 accounts that picked a wallpaper in Settings point to its path.
 
-COSMIC 1.11 has one wallpaper for both themes (`com.system76.CosmicBackground`),
-so the light one is offered in Settings. Later COSMIC releases read a wallpaper
-per theme (`com.system76.CosmicBackground.Dark` / `.Light`); those defaults are
-already set, so the wallpaper will follow the theme once Fedora ships them.
+There are no light versions: the same wallpaper serves both themes. Later
+COSMIC releases read a wallpaper per theme (`com.system76.CosmicBackground.Dark`
+/ `.Light`); both point to the default.
 
-The orbits and the waves are drawn as SVG by `wallpaper/concept.py`, rendered
-by `wallpaper/render.js` and finished by `wallpaper/compose.py concept` (a fine
-grain against banding). `wallpaper/milky_way.py` crops and grades the photo.
+`wallpaper/orbits.py` draws the planetary system with numpy over
+the sky of `wallpaper/sky.py`. The waves are drawn as SVG by
+`wallpaper/concept.py`, rendered by `wallpaper/render.js` and finished by
+`wallpaper/compose.py concept` (a fine grain against banding). `wallpaper/milky_way.py` crops and grades the photo.
 
 The logo scene is built from two layers:
 
-- `wallpaper/sky.py`: sky gradient, procedural Milky Way and stars (numpy);
-  writes the night sky and the pale sky from the same Milky Way
-- `wallpaper/foreground.py dark|light`: the logo as a scene, a planet inside a
+- `wallpaper/sky.py`: sky gradient, procedural Milky Way and stars (numpy),
+  also the background of the orbits
+- `wallpaper/foreground.py`: the logo as a scene, a planet inside a
   glowing open orbit with a moon in the gap (SVG, rendered by
   `wallpaper/render.js` with Playwright's Chromium)
 
-`wallpaper/compose.py` dims the
-sky behind the planet (dark) or lightens it (light), adds a fine grain against
-banding and writes the JPEG.
+`wallpaper/compose.py dark` dims the
+sky, adds a blue glow behind the planet and a fine grain against banding, and
+writes the JPEG.
 
 ## fastfetch
 
@@ -76,11 +75,14 @@ banding and writes the JPEG.
 next to the system information, in place of Bluefin's dinosaurs:
 
 - `system_files/usr/share/ublue-os/fastfetch/cosmic-blue-dark.txt` /
-  `-light.txt`: the mark as 40x40 color pixels, two per terminal cell (the
-  upper half block on a background color), with edges blended into the
-  theme's terminal background. COSMIC Terminal draws glyphs shorter than the
-  cell, so stacked block glyphs leave lines between rows; cell backgrounds
-  don't, and the upper half block never has to reach the cell bottom. The
+  `-light.txt`: the mark as color pixels, two per terminal cell, 20 rows by
+  49 columns so it stays round in COSMIC Terminal, whose cells are about 2.4
+  times higher than wide. COSMIC Terminal draws the usual block elements
+  shorter than the cell (lines between rows), and its translucent background
+  shows any opaque stand-in for it (reverse video, blended edges) as dark
+  squares. So cells with both halves use a background color, and the halves
+  are the upper and lower half glyphs of the cosmic-blue Prompt font
+  (`prompt-font/`), which span exactly half of the line. The
   light version darkens the moon and the planet highlight. Regenerate them
   with `python3 fastfetch/build.py` (needs `rsvg-convert`, numpy and
   Pillow); it picks the size and position of the logo that give the

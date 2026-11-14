@@ -360,6 +360,113 @@ main {
   .code pre { padding-top: 40px; }
 }
 
+/* Documentation pages: a plain header instead of the hero */
+
+.page-head {
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--surface), var(--bg));
+}
+
+.docs { padding-top: 40px; }
+
+.docs h1 {
+  margin: 0 0 12px;
+  font-size: clamp(1.8rem, 5vw, 2.4rem);
+  font-weight: 600;
+}
+
+.docs .block { scroll-margin-top: 24px; }
+
+.toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 20px 0 0;
+}
+
+.toc a {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: .9rem;
+  text-decoration: none;
+}
+
+.toc a:hover { border-color: var(--accent); }
+
+.commands { margin: 16px 0 0; }
+
+.commands dt {
+  margin: 16px 0 2px;
+  color: var(--accent-light);
+}
+
+.commands dd {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Screenshots: the gallery page and the preview on the home page */
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr));
+  gap: 32px 24px;
+  margin: 0 0 72px;
+}
+
+.gallery figure { margin: 0; }
+
+.gallery figcaption { margin-top: 10px; }
+.gallery figcaption strong { color: var(--accent-light); font-weight: 600; }
+.gallery figcaption p { margin: 2px 0 0; color: var(--muted); font-size: .95rem; }
+
+.gallery img,
+.preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 12px 40px rgb(0 0 0 / .45);
+  transition: border-color .15s;
+}
+
+.gallery a:hover img,
+.gallery a:focus-visible img,
+.preview a:hover img,
+.preview a:focus-visible img { border-color: var(--accent); }
+
+.preview .shot { display: block; margin: 20px 0 12px; }
+
+.fine-print { font-size: .9rem; }
+
+/* Text link next to the icons in the top bar */
+.top .text {
+  padding: 0 10px;
+  opacity: .85;
+}
+
+.top .text:hover { opacity: 1; }
+
+.brand { white-space: nowrap; }
+
+/* Phones: keep the top bar on one line. The GitHub link is also in the
+   footer, and the globe alone stands for the language switch. */
+@media (max-width: 520px) {
+  .top { padding: 16px 12px 16px 16px; gap: 6px; }
+  .top .links { gap: 0; }
+  .top .text { padding: 0 6px; font-size: .95rem; }
+  .top .icon > span,
+  .top .icon[href^="https://github.com"] { display: none; }
+}
+
+@media (max-width: 359px) {
+  .brand { font-size: 0; gap: 0; }
+}
+
 footer {
   border-top: 1px solid var(--border);
   padding: 32px 24px 48px;

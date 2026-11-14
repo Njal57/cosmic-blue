@@ -12,9 +12,12 @@ const setGpu = (gpu) => {
   }
   document.querySelector(`input[name="gpu"][value="${nvidia ? "nvidia" : "main"}"]`).checked = true;
 };
-let gpu = new URLSearchParams(location.search).get("gpu");
-try { gpu ??= localStorage.getItem("gpu"); } catch {}
-setGpu(gpu);
+// Only the home pages have the choice (not the documentation pages).
+if (document.querySelector('input[name="gpu"]')) {
+  let gpu = new URLSearchParams(location.search).get("gpu");
+  try { gpu ??= localStorage.getItem("gpu"); } catch {}
+  setGpu(gpu);
+}
 for (const input of document.querySelectorAll('input[name="gpu"]')) {
   input.addEventListener("change", () => {
     setGpu(input.value);
@@ -39,4 +42,15 @@ for (const button of document.querySelectorAll("[data-copy]")) {
     }
     setTimeout(() => { button.textContent = labels.copy; }, 2000);
   });
+}
+
+// Dates (screenshots page): written as 2026-11-13 by build.sh, shown in the
+// page language.
+for (const time of document.querySelectorAll("time[datetime]")) {
+  const date = new Date(`${time.dateTime}T12:00:00Z`);
+  if (!Number.isNaN(date.getTime())) {
+    time.textContent = date.toLocaleDateString(document.documentElement.lang, {
+      day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+    });
+  }
 }

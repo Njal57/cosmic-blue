@@ -8,6 +8,7 @@
 # directory, removed on exit).
 # Needs: podman, qemu-system-x86_64, OVMF, socat, openssh-client, jq, KVM.
 
+TESTS_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 WORK="$(mktemp -d -p "${RUNNER_TEMP:-/var/tmp}" cosmic-blue-vm.XXXXXX)"
 SSH_PORT=2222
 mkdir -p "${OUT}"
@@ -274,10 +275,9 @@ desktop_tour() {
     monitor "sendkey esc"
     sleep 3
 
-    # Files (folder icons), Settings (accent, theme), Terminal
+    # Files (folder icons), Settings (accent, theme)
     local entry name cmd
-    for entry in "05-files|cosmic-files" "06-settings|cosmic-settings appearance" \
-            "07-terminal|cosmic-term"; do
+    for entry in "05-files|cosmic-files" "06-settings|cosmic-settings appearance"; do
         name="${entry%%|*}"
         cmd="${entry#*|}"
         if ! vm "runuser -u ${DEMO_USER} -- env ${DEMO_ENV} \
@@ -291,10 +291,49 @@ desktop_tour() {
         sleep 3
     done
 
+    # Terminal: prompt and fastfetch
+    terminal_shot
+
     # Lock screen
     vm 'loginctl lock-sessions' || { warn "could not lock the session"; return 1; }
     sleep 8
     screenshot "${SHOTS}/08-lock-screen"
+}
+
+# The terminal as the test user sees it: the cosmic-blue prompt (Starship) and
+# fastfetch (`ff`). Text checks first, as the user's login shell runs them,
+# then COSMIC Terminal opened in a small git project, so the prompt shows its
+# path and git segments, with `ff` typed in it.
+# The screenshot sheet adds a full-size crop of the window
+# (tests/screenshot-sheet.py).
+TERMINAL_PROJECT=projects/hello
+
+terminal_checks() {
+    local result line
+    result="$(vm "runuser -u ${DEMO_USER} -- bash -l -s -- ${TERMINAL_PROJECT}" \
+        < "${TESTS_DIR}/vm-terminal-checks.sh" 2>&1)" \
+        || result="FAIL could not run the checks as ${DEMO_USER}: ${result}"
+    while IFS= read -r line; do
+        [[ "${line}" == "FAIL "* ]] && warn "terminal: ${line#FAIL }"
+    done <<< "${result}"
+    [[ "${result}" != *"FAIL "* ]]
+}
+
+terminal_shot() {
+    terminal_checks || true
+    if ! vm "runuser -u ${DEMO_USER} -- env ${DEMO_ENV} \
+            sh -c 'cd ~${DEMO_USER}/${TERMINAL_PROJECT} || cd; exec setsid -f cosmic-term' \
+            >/dev/null 2>&1 </dev/null"; then
+        warn "could not start cosmic-term"
+        return 1
+    fi
+    sleep 12
+    type_text ff
+    monitor "sendkey ret"
+    sleep 6
+    screenshot "${SHOTS}/07-terminal"
+    vm "pkill -u ${DEMO_USER} -f '^(/usr/bin/)?cosmic-term'" || true
+    sleep 3
 }
 
 # Saves the journal of the test user's session

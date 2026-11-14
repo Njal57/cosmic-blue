@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Composite the sky and foreground.png, add a fine grain (prevents banding in
 the gradients) and write the final JPEG.
-Usage: compose.py dark|light OUT.jpg (reads sky.png or sky-light.png), or
+Usage: compose.py dark OUT.jpg (reads sky.png and foreground.png), or
 compose.py concept OUT.jpg IN.png (an opaque render, only the grain is added)."""
 import sys
 import numpy as np
@@ -19,16 +19,12 @@ def finish(img):
 if mode == "concept":
     finish(Image.open(sys.argv[3]))
     sys.exit()
-sky = np.asarray(Image.open("sky-light.png" if mode == "light" else "sky.png").convert("RGB")).astype(np.float32) / 255
+sky = np.asarray(Image.open("sky.png").convert("RGB")).astype(np.float32) / 255
 h, w = sky.shape[:2]
 y, x = np.mgrid[0:h, 0:w]
 spot = np.exp(-(((x - 3250) / 1900.0) ** 2 + ((y - 1500) / 1300.0) ** 2))[..., None]
 dist = np.clip(np.sqrt(((x - w / 2) / w) ** 2 + ((y - h / 2) / h) ** 2) * 1.6, 0, 1)[..., None]
-if mode == "light":
-    # a white glow behind the planet, very soft vignette
-    sky = (1 - (1 - sky) * (1 - spot * .18)) * (1 - 0.12 * dist)
-else:
-    # quieter sky: dimmed Milky Way, a blue glow behind the planet, soft vignette
-    sky = (sky * 0.6 + spot * np.array([.05, .14, .42])) * (1 - 0.55 * dist)
+# quieter sky: dimmed Milky Way, a blue glow behind the planet, soft vignette
+sky = (sky * 0.6 + spot * np.array([.05, .14, .42])) * (1 - 0.55 * dist)
 sky = Image.fromarray((np.clip(sky, 0, 1) * 255).astype(np.uint8)).convert("RGBA")
 finish(Image.alpha_composite(sky, Image.open("foreground.png").convert("RGBA")))

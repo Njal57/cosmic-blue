@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Background layer of the cosmic-blue wallpaper: sky gradient, a procedural
 Milky Way (domain-warped fractal noise, ridged-noise dust lanes) and stars.
-Writes sky.png (night sky, for the dark wallpaper) and sky-light.png (the same
-Milky Way as blue wisps on a pale sky, for the light wallpaper), 5120x2880.
+Writes sky.png, 5120x2880.
 Needs numpy, pillow and scipy.
 """
 import numpy as np, math, sys
@@ -98,15 +97,3 @@ tint = np.array([.85, .93, 1.0], np.float32)
 img = img + ((starI + glow)[..., None] * tint)
 img = np.clip(img, 0, 1)
 Image.fromarray((img*255+.5).astype(np.uint8)).save("sky.png")
-
-# light sky: pale gradient, the Milky Way as blue ink, its cyan core and the
-# stars as white highlights
-pale = np.array([[246, 249, 255], [219, 231, 255], [180, 203, 255]], np.float32)/255
-light = np.where(t < .6, pale[0] + (pale[1]-pale[0])*(t/.6), pale[1] + (pale[2]-pale[1])*((t-.6)/.4))
-ink = np.array([42, 90, 216], np.float32)/255
-a = np.clip(emF.mean(-1, keepdims=True)*1.25, 0, 1)*.62
-light = light*(1-a) + ink*a
-core = np.clip(emF[..., 1:2] - emF[..., 0:1] - .05, 0, 1)
-light = 1 - (1-light)*(1-core*.9)
-light = 1 - (1-light)*(1-np.clip(starI + glow, 0, 1)[..., None]*.6)
-Image.fromarray((np.clip(light, 0, 1)*255+.5).astype(np.uint8)).save("sky-light.png")

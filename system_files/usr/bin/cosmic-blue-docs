@@ -1,0 +1,11 @@
+#!/usr/bin/bash
+# Open the cosmic-blue documentation in the browser, in French when the
+# messages locale is French (used by the Documentation launcher).
+set -euo pipefail
+
+locale="${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}"
+url="https://cosmic-blue-os.github.io/cosmic-blue/docs/"
+if [[ "${locale}" == fr* ]]; then
+    url="https://cosmic-blue-os.github.io/cosmic-blue/fr/docs/"
+fi
+exec xdg-open "${url}"

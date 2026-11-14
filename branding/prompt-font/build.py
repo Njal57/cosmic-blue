@@ -14,6 +14,7 @@ The glyphs sit in plane 16 private use code points, which Nerd Fonts and
 other fonts leave free, so terminals always fall back to this font for them:
   U+10CB00 logo mark   U+10CB01 arrow   U+10CB02 git branch
   U+10CB03 cross       U+10CB04 lock
+  U+10CB05 upper half  U+10CB06 lower half (the fastfetch logo's pixels)
 
 Needs fontTools. Usage: python3 build.py OUTPUT.ttf
 """
@@ -91,9 +92,15 @@ def logo(pen):
 ARROW_TIP = 1000
 
 
+# Its back edge starts inside the cell before, a space of the arrow's own color,
+# so antialiasing leaves no seam between the segment and its arrow
+ARROW_BACK = -150
+
+
 def arrow(pen):
-    polygon(pen, [(-15, round(CELL_TOP)), (ARROW_TIP, round((CELL_TOP + CELL_BOTTOM) / 2)),
-                  (-15, round(CELL_BOTTOM))])
+    polygon(pen, [(ARROW_BACK, round(CELL_TOP)),
+                  (ARROW_TIP, round((CELL_TOP + CELL_BOTTOM) / 2)),
+                  (ARROW_BACK, round(CELL_BOTTOM))])
 
 
 def branch(pen):
@@ -117,6 +124,23 @@ def lock(pen):
             + arc(300, 400, 100, 180, 0) + [(400, 380), (460, 380)])
 
 
+# Half cells for the fastfetch logo (branding/fastfetch/build.py): block
+# elements from other fonts stop short of the cell bottom in COSMIC Terminal,
+# these span exactly the upper or lower half of the whole line, plus a few
+# units to the sides so no seam shows between cells
+MIDDLE = round((CELL_TOP + CELL_BOTTOM) / 2)
+
+
+def upper_half(pen):
+    polygon(pen, [(-8, round(CELL_TOP)), (ADVANCE + 8, round(CELL_TOP)),
+                  (ADVANCE + 8, MIDDLE), (-8, MIDDLE)])
+
+
+def lower_half(pen):
+    polygon(pen, [(-8, MIDDLE), (ADVANCE + 8, MIDDLE),
+                  (ADVANCE + 8, round(CELL_BOTTOM)), (-8, round(CELL_BOTTOM))])
+
+
 GLYPHS = {
     ".notdef": (None, None),
     "space": (0x20, None),
@@ -125,6 +149,8 @@ GLYPHS = {
     "branch": (0x10CB02, branch),
     "cross": (0x10CB03, cross),
     "lock": (0x10CB04, lock),
+    "upperhalf": (0x10CB05, upper_half),
+    "lowerhalf": (0x10CB06, lower_half),
 }
 
 
