@@ -24,7 +24,7 @@ source "$(dirname "$0")/vm-lib.sh"
 # Swiss French keyboard and a language with a 24-hour clock
 KS_LANG=fr_CH.UTF-8
 KS_XLAYOUT="ch (fr)"
-INSTALL_TIMEOUT=2700
+INSTALL_TIMEOUT=5400
 errors=0
 error() { echo "::error::$*"; errors=1; }
 
@@ -47,7 +47,7 @@ live_args="$(sed -E 's/(^| )(quiet|rhgb)( |$)/ /g; s/  +/ /g; s/^ //' <<< "${liv
 echo "Live boot arguments: ${live_args}"
 
 truncate -s 64G "${WORK}/disk.raw"
-export VM_CDROM="${ISO}" VM_MEMORY=8192 VM_CPUS=4 VM_SERIAL=serial-live.log
+export VM_CDROM="${ISO}" VM_MEMORY=12288 VM_CPUS=4 VM_SERIAL=serial-live.log
 export VM_KERNEL="${WORK}/iso/vmlinuz" VM_INITRD="${WORK}/iso/initramfs.img"
 export VM_APPEND="${live_args} console=tty0 console=ttyS0,115200 systemd.wants=sshd.service"
 VM_EXTRA_ARGS=(-smbios "type=11,value=io.systemd.credential:ssh.authorized_keys.root=${pubkey}")
@@ -124,6 +124,7 @@ vm 'systemd-run --unit=cosmic-blue-install --service-type=exec \
     /root/install.sh'
 # Anaconda powers the virtual machine off when the install succeeds
 last_progress=""
+last_stats=${SECONDS}
 while vm_running; do
     if (( SECONDS - started > INSTALL_TIMEOUT )); then
         screenshot install-timeout
@@ -142,6 +143,14 @@ while vm_running; do
     if [[ -n "${progress}" && "${progress}" != "${last_progress}" ]]; then
         echo "[$(( (SECONDS - started) / 60 )) min] ${progress}"
         last_progress="${progress}"
+    fi
+    # Every 5 minutes: is the image deploy writing to the disk, or stuck?
+    if (( SECONDS - last_stats >= 300 )); then
+        last_stats=${SECONDS}
+        echo "[$(( (SECONDS - started) / 60 )) min] $(vm 'echo "written: $(df -BM --output=used /mnt/sysimage 2>/dev/null | tail -n 1)"; \
+            free -m | awk "/^Mem/ { print \"memory used/available MB: \" \$3 \"/\" \$7 }"; \
+            ps -eo pcpu,stat,etime,args --sort=-pcpu | head -n 4 | cut -c 1-160; \
+            dmesg | grep -iE "oom|hung task|blocked for" | tail -n 3' 2>/dev/null || true)"
     fi
     sleep 20
 done

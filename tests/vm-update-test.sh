@@ -65,8 +65,13 @@ staged="$(vm 'bootc status --json' | jq -r '.status.staged.image.imageDigest // 
 vm_reboot
 
 # 4. Checks of the updated system
-[[ "$(vm_booted_digest)" == "${to_digest}" ]] \
-    || { echo "::error::The system did not boot the update ${to_digest}"; errors=1; }
+if [[ "$(vm_booted_digest)" != "${to_digest}" ]]; then
+    echo "::error::The system did not boot the update ${to_digest}"
+    errors=1
+    # The staged update is written to the boot loader at shutdown
+    # (ostree-finalize-staged): its log from the previous boot
+    vm 'journalctl -b -1 --no-pager -u ostree-finalize-staged.service -u ostree-finalize-staged-hold.service; journalctl -b -1 --no-pager -n 60' || true
+fi
 vm_check_system after-update || errors=1
 vm "grep -qx kept /etc/cosmic-blue-update-test" \
     || { echo "::error::A change to /etc was lost in the update"; errors=1; }
