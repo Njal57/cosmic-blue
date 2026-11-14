@@ -24,7 +24,7 @@ source "$(dirname "$0")/vm-lib.sh"
 # Swiss French keyboard and a language with a 24-hour clock
 KS_LANG=fr_CH.UTF-8
 KS_XLAYOUT="ch (fr)"
-INSTALL_TIMEOUT=3600
+INSTALL_TIMEOUT=2700
 errors=0
 error() { echo "::error::$*"; errors=1; }
 
@@ -91,20 +91,16 @@ poweroff
 mokutil --revoke-import 2>/dev/null || :
 %end
 EOF
-live_uid="$(vm 'ps -o uid= -C cosmic-panel | head -n 1' | tr -d ' ' || true)"
-[[ -n "${live_uid}" ]] || live_uid="$(vm 'id -u liveuser' || true)"
-[[ -n "${live_uid}" ]] || fail "No live session user found"
-cat > "${WORK}/install.sh" <<EOF
+# The installer shortcut runs liveinst, which restarts as root and starts
+# Anaconda's graphical (or web) interface in the live user's session. Here
+# Anaconda runs in text mode with the same options and the same setup
+# (anaconda-cleanup), on a private session bus of its own (Anaconda uses
+# one to inhibit the screensaver), away from the live desktop.
+cat > "${WORK}/install.sh" <<'EOF'
 #!/usr/bin/bash
-# The installer shortcut runs liveinst as the live user, which restarts
-# itself as root with pkexec and takes the user's session environment
-# (Anaconda inhibits the screensaver on the user's session bus). The same
-# here, with Anaconda in text mode.
-export PKEXEC_UID=${live_uid}
-export XDG_RUNTIME_DIR=/run/user/${live_uid}
-export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${live_uid}/bus
-export LIVECMD="anaconda --liveinst --cmdline"
-exec liveinst --kickstart=/root/ks.cfg
+unset WAYLAND_DISPLAY DISPLAY
+anaconda-cleanup anaconda || true
+exec dbus-run-session -- anaconda --liveinst --cmdline --kickstart=/root/ks.cfg
 EOF
 vm 'cat > /root/ks.cfg' < "${WORK}/ks.cfg"
 vm 'cat > /root/install.sh && chmod +x /root/install.sh' < "${WORK}/install.sh"
@@ -114,6 +110,9 @@ collect_live_logs() {
     vm 'tar -cz -C / root/install.log root/ks.cfg $(cd / && ls -d tmp/*.log tmp/anaconda-tb-* 2>/dev/null)' \
         | tar -xz -C "${OUT}/anaconda-live" 2>/dev/null || true
     vm 'journalctl -b --no-pager' > "${OUT}/journal-live.log" 2>/dev/null || true
+    # Shown in the job log too, as artifacts are not always at hand
+    vm 'for f in /root/install.log /tmp/anaconda.log /tmp/program.log /tmp/storage.log /tmp/packaging.log; do
+            [ -f "$f" ] && { echo "== $f"; tail -n 40 "$f"; }; done; ls /tmp/anaconda-tb-* 2>/dev/null' || true
 }
 
 log "Installing from the live ISO"
@@ -135,10 +134,9 @@ while vm_running; do
         vm_running || break
         screenshot install-failed
         collect_live_logs
-        vm 'tail -n 60 /root/install.log; tail -n 60 /tmp/anaconda.log' || true
         fail "The installer stopped without powering off (unit ${state}): the install failed, see anaconda-live in the artifacts"
     fi
-    progress="$(vm 'tail -n 1 /root/install.log' 2>/dev/null || true)"
+    progress="$(vm 'tail -n 1 /tmp/anaconda.log' 2>/dev/null | cut -c 1-200 || true)"
     if [[ -n "${progress}" && "${progress}" != "${last_progress}" ]]; then
         echo "[$(( (SECONDS - started) / 60 )) min] ${progress}"
         last_progress="${progress}"
