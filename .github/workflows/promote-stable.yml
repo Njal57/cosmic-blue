@@ -7,6 +7,8 @@
 # has spent a week on `latest` first. If a regression shows up during that
 # week, run this workflow by hand with a known good tag (e.g. 20261105) to
 # point `stable` back to it, or disable the workflow to freeze `stable`.
+# A date tag is the last build of that day; each build also has its own
+# version tag (e.g. 44.20261105.1, see `just version`).
 #
 # Before stable moves, an update test installs the current stable image in a
 # virtual machine, updates it to the new one, reboots and checks it, then
@@ -30,7 +32,7 @@ on:
   workflow_dispatch:
     inputs:
       source_tag:
-        description: "Tag to promote (e.g. latest or 20261105). Empty: the daily build from 7 days ago."
+        description: "Tag to promote (e.g. latest, 20261105 or 44.20261105.1). Empty: the daily build from 7 days ago."
         required: false
         default: ""
       skip_update_test:

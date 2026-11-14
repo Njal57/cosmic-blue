@@ -95,14 +95,44 @@ jobs:
             echo "skip=false" >> "${GITHUB_OUTPUT}"
           fi
 
-  build_push:
-    name: Build and push ${{ matrix.image_suffix && format('image ({0})', matrix.image_suffix) || 'image' }}
+  # One version for all the images of this build, as in Bluefin:
+  # <Fedora>.<YYYYMMDD>, then .1, .2... if an image of the day is already on
+  # GHCR (`just version`). Builds of main never run at the same time (see
+  # concurrency above), so two published builds cannot get the same version.
+  version:
+    name: Pick the version
     needs: recent_build
     # recent_build only runs for the daily build
     if: >-
       !cancelled() &&
       (needs.recent_build.result == 'skipped' ||
        (needs.recent_build.result == 'success' && needs.recent_build.outputs.skip != 'true'))
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install just
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 #v4.0.0
+
+      - name: Pick the version
+        id: version
+        run: |
+          set -euo pipefail
+          image="$(just image_name)"
+          # Same images as the build_push matrix
+          version="$(just version "${image}" "${image}-nvidia")"
+          echo "Version: ${version}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+  build_push:
+    name: Build and push ${{ matrix.image_suffix && format('image ({0})', matrix.image_suffix) || 'image' }}
+    needs: version
+    if: ${{ !cancelled() && needs.version.result == 'success' }}
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
@@ -114,6 +144,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
 
     steps:
       # Action versions are pinned to commits and updated by Renovate
@@ -160,7 +193,8 @@ jobs:
         run: |
           just build \
             ${IMAGE_NAME} \
-            ${DEFAULT_TAG}
+            ${DEFAULT_TAG} \
+            ${VERSION}
 
       # Smaller delta updates for installed systems
       - name: Rechunk with rpm-ostree
@@ -175,7 +209,8 @@ jobs:
         run: |
           alias_tags="$(just generate-build-tags \
                         ${IMAGE_NAME} \
-                        ${DEFAULT_TAG})"
+                        ${DEFAULT_TAG} \
+                        ${VERSION})"
 
           echo "Tags for this Action..."
           echo "${alias_tags}"
