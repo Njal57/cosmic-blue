@@ -92,15 +92,17 @@ mokutil --revoke-import 2>/dev/null || :
 %end
 EOF
 # The installer shortcut runs liveinst, which restarts as root and starts
-# Anaconda's graphical (or web) interface in the live user's session. Here
-# Anaconda runs in text mode with the same options and the same setup
-# (anaconda-cleanup), on a private session bus of its own (Anaconda uses
-# one to inhibit the screensaver), away from the live desktop.
+# Anaconda's graphical interface in the live user's session, with
+# --liveinst. In that mode Anaconda only reads interactive-defaults.ks and
+# never runs unattended, so here it runs in text mode without --liveinst,
+# with the kickstart above: same installer settings, payload, storage and
+# post-install scripts. Its own session bus (it inhibits the screensaver on
+# one) keeps it away from the live desktop.
 cat > "${WORK}/install.sh" <<'EOF'
 #!/usr/bin/bash
 unset WAYLAND_DISPLAY DISPLAY
 anaconda-cleanup anaconda || true
-exec dbus-run-session -- anaconda --liveinst --cmdline --kickstart=/root/ks.cfg
+exec dbus-run-session -- anaconda --cmdline --kickstart=/root/ks.cfg
 EOF
 vm 'cat > /root/ks.cfg' < "${WORK}/ks.cfg"
 vm 'cat > /root/install.sh && chmod +x /root/install.sh' < "${WORK}/install.sh"
