@@ -7,20 +7,21 @@ jq -e '.transports.docker."ghcr.io/ublue-os"' /etc/containers/policy.json >/dev/
 # No Bluefin wallpapers
 test ! -e /usr/share/backgrounds/bluefin
 # cosmic-blue wallpapers: orbits is the COSMIC default, the logo scene, waves
-# and the Milky Way are extras
+# and the Milky Way are extras. No light duplicates.
 bg=/usr/share/backgrounds/cosmic-blue
-for name in orbits orbits-light waves milky-way; do
+for name in orbits waves milky-way; do
     test -s "${bg}/cosmic-blue-${name}.jpg"
 done
 test -s "${bg}/cosmic-blue.jpg"
-test -s "${bg}/cosmic-blue-light.jpg"
+test ! -e "${bg}/cosmic-blue-light.jpg"
+test ! -e "${bg}/cosmic-blue-orbits-light.jpg"
 grep -q "Path(\"${bg}/cosmic-blue-orbits.jpg\")" \
     /usr/share/cosmic/com.system76.CosmicBackground/v1/all
-# Per-theme defaults (used by COSMIC releases after 1.11): the dark wallpaper
-# for the dark theme, the light one for the light theme
+# Per-theme defaults (used by COSMIC releases after 1.11): the same wallpaper
+# for both themes
 grep -q "Path(\"${bg}/cosmic-blue-orbits.jpg\")" \
     /usr/share/cosmic/com.system76.CosmicBackground.Dark/v1/all
-grep -q "Path(\"${bg}/cosmic-blue-orbits-light.jpg\")" \
+grep -q "Path(\"${bg}/cosmic-blue-orbits.jpg\")" \
     /usr/share/cosmic/com.system76.CosmicBackground.Light/v1/all
 test -s /usr/share/icons/hicolor/scalable/apps/cosmic-blue-logo.svg
 # fastfetch: cosmic-blue logo and config instead of Bluefin's, a valid
